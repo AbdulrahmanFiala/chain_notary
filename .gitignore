@@ -1,3 +1,4 @@
+.env
 # Node.js dependencies and build output
 node_modules/
 package-lock.json
@@ -13,7 +14,7 @@ target/
 frontend/dist/
 
 # Windows/WSL metadata
-*.Zone.Identifier
+**/*.Identifier
 
 # Generated interface and type files
 backend/backend.did
