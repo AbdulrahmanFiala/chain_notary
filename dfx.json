@@ -17,12 +17,25 @@
       ]
     },
     "frontend": {
-      "dependencies": ["backend"],
+      "dependencies": [
+        "backend"
+      ],
       "frontend": {
         "entrypoint": "frontend/index.html"
       },
-      "source": ["frontend/dist"],
+      "source": [
+        "frontend/dist"
+      ],
       "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8080",
+      "type": "ephemeral",
+      "replica": {
+        "subnet_type": "system"
+      }
     }
   },
   "output_env_file": ".env"
