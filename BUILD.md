@@ -10,7 +10,19 @@ You can install the developer tools natively or use Dev Containers.
 
 #### Option 1: Native Installation
 
-> Installing `dfx` natively is currently only supported on macOS and Linux systems. On Windows, it is recommended to use the Dev Containers option.
+**For Windows Users:**
+
+`dfx` is not natively supported on Windows. You will need to install a Linux instance via Windows Subsystem for Linux and run all commands within that Linux instance.
+
+1. Download and install Windows Subsystem for Linux.
+2. Open a WSL terminal window.
+3. Download and install a Linux distribution (i.e., Ubuntu) using Windows Subsystem for Linux:
+   ```bash
+   wsl --install -d ubuntu
+   ```
+4. Open the WSL Linux environment. Run all following commands within this environment.
+
+**For All Users (Windows via WSL, macOS, and Linux):**
 
 1. Install `dfx` (Internet Computer SDK):
    ```bash
