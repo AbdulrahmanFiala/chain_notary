@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .nft-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .nft-image {
+            max-width: 300px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .nft-info {
+            margin: 15px 0;
+        }
+        .nft-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .nft-description {
+            color: #666;
+            margin: 10px 0;
+        }
+        .nft-id {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .load-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .load-button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ NFT Viewer</h1>
+    
+    <div class="nft-card">
+        <h2>Your NFT: nft_1754313676417649883</h2>
+        
+        <button class="load-button" onclick="loadNFT()">Load NFT Image</button>
+        
+        <div id="nft-display">
+            <div class="nft-info">
+                <div class="nft-title">My Test NFT</div>
+                <div class="nft-description">A test NFT with image</div>
+                <div class="nft-id">Token ID: nft_1754313676417649883</div>
+                <div class="nft-id">File Hash: 330a0696c312ea55bc8a359e47264a7c3099b0fdf305560ef7443a9cd33caaea</div>
+            </div>
+            
+            <div id="image-container">
+                <!-- Image will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadNFT() {
+            // This is the byte array from your NFT (the 20-byte JPEG header)
+            const imageBytes = [255, 216, 255, 224, 0, 16, 74, 70, 73, 70, 0, 1, 1, 1, 0, 72, 0, 72, 0, 0];
+            
+            try {
+                // Convert bytes to blob
+                const blob = new Blob([new Uint8Array(imageBytes)], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create and display image
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'nft-image';
+                img.alt = 'NFT Image';
+                
+                // Add error handling
+                img.onerror = function() {
+                    document.getElementById('image-container').innerHTML = 
+                        '<div class="error">⚠️ This is a minimal JPEG header (20 bytes). Real images would be much larger and display properly.</div>';
+                };
+                
+                img.onload = function() {
+                    document.getElementById('image-container').innerHTML = '';
+                    document.getElementById('image-container').appendChild(img);
+                };
+                
+            } catch (error) {
+                document.getElementById('image-container').innerHTML = 
+                    '<div class="error">Error loading image: ' + error.message + '</div>';
+            }
+        }
+        
+        // Auto-load the NFT when page loads
+        window.onload = function() {
+            loadNFT();
+        };
+    </script>
+</body>
+</html> 
