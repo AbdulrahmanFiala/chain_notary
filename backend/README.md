@@ -16,17 +16,27 @@ This backend provides NFT (Non-Fungible Token) functionality for the Internet Co
 
 ### Upload and Create NFT
 ```candid
-upload_file_and_create_nft : (FileUploadRequest) -> (NFTResponse)
+upload_file_and_create_nft : (vec nat8, text, DocumentMetadata) -> (NFTResponse)
 ```
 
-**Request Structure:**
+**Parameters:**
+- `file_data : vec nat8` - Binary file data
+- `file_type : text` - MIME type (e.g., "image/jpeg")
+- `metadata : DocumentMetadata` - Document metadata including owner, name, description, etc.
+
+**DocumentMetadata Structure:**
 ```candid
-type FileUploadRequest = record {
-    file_data : vec nat8;        // Binary file data
-    file_name : text;            // Original filename
-    file_type : text;            // MIME type (e.g., "image/jpeg")
-    metadata : NFTMetadata;      // NFT metadata
+type DocumentMetadata = record {
+    collection_id : opt text;    // Optional collection ID
+    document_id : opt text;      // Will be set by the canister
     owner : principal;           // Owner's principal ID
+    name : text;                 // Document name
+    description : opt text;      // Document description
+    image_url : opt text;        // Image URL
+    document_hash : text;        // Will be calculated by the canister
+    file_size : nat64;          // Will be set by the canister
+    file_type : text;           // MIME type (will be overridden)
+    uploaded_at : nat64;        // Will be set by the canister
 };
 ```
 
@@ -112,30 +122,24 @@ type NFTInfo = record {
 
 ```javascript
 // Example of uploading a file and creating an NFT
-const uploadNFT = async (file, metadata, owner) => {
+const uploadNFT = async (file, owner) => {
     const fileData = await file.arrayBuffer();
-    const request = {
-        file_data: Array.from(new Uint8Array(fileData)),
-        file_name: file.name,
+    const fileBytes = Array.from(new Uint8Array(fileData));
+    
+    const metadata = {
+        collection_id: null,
+        document_id: null,  // Will be set by the canister
+        owner: owner,
+        name: file.name,
+        description: "A unique digital document",
+        image_url: null,
+        document_hash: "",  // Will be calculated by the canister
+        file_size: 0,      // Will be set by the canister
         file_type: file.type,
-        metadata: {
-            name: "My NFT",
-            description: "A unique digital asset",
-            image_url: "https://example.com/image.jpg",
-            external_url: null,
-            attributes: [
-                {
-                    trait_type: "Color",
-                    value: "Blue",
-                    display_type: null
-                }
-            ],
-            properties: null
-        },
-        owner: owner
+        uploaded_at: 0     // Will be set by the canister
     };
 
-    const response = await backend.upload_file_and_create_nft(request);
+    const response = await backend.upload_file_and_create_nft(fileBytes, file.type, metadata);
     return response;
 };
 ```
