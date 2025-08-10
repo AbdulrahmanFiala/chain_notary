@@ -1,7 +1,7 @@
-pub mod metadata;
+pub mod models;
 pub mod args;
 pub mod errors;
 
-pub use metadata::*;
+pub use models::*;
 pub use args::*;
 pub use errors::*; 
