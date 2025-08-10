@@ -4,7 +4,7 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{DocumentMetadata, Document, Certificate};
+use crate::types::Document;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -40,13 +40,6 @@ thread_local! {
         )
     );
 
-    // Store certificates separately
-    pub static CERTIFICATES: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(5)))
-        )
-    );
-
     // Keep the original greeting functionality for compatibility
     pub static GREETING: RefCell<ic_stable_structures::Cell<String, Memory>> = RefCell::new(
         ic_stable_structures::Cell::init(
@@ -64,11 +57,11 @@ pub fn bytes_to_principal(bytes: &[u8]) -> Principal {
     Principal::from_slice(bytes)
 }
 
-pub fn nft_info_to_bytes(document_metadata: &DocumentMetadata) -> Vec<u8> {
-    serde_json::to_vec(document_metadata).unwrap_or_default()
+pub fn nft_info_to_bytes(document: &Document) -> Vec<u8> {
+    serde_json::to_vec(document).unwrap_or_default()
 }
 
-pub fn bytes_to_nft_info(bytes: &[u8]) -> Option<DocumentMetadata> {
+pub fn bytes_to_nft_info(bytes: &[u8]) -> Option<Document> {
     serde_json::from_slice(bytes).ok()
 }
 
@@ -86,13 +79,4 @@ pub fn tokens_to_bytes(tokens: &[String]) -> Vec<u8> {
 
 pub fn bytes_to_tokens(bytes: &[u8]) -> Vec<String> {
     serde_json::from_slice(bytes).unwrap_or_default()
-}
-
-// Certificate storage helpers
-pub fn certificate_to_bytes(certificate: &Certificate) -> Vec<u8> {
-    serde_json::to_vec(certificate).unwrap_or_default()
-}
-
-pub fn bytes_to_certificate(bytes: &[u8]) -> Option<Certificate> {
-    serde_json::from_slice(bytes).ok()
 } 

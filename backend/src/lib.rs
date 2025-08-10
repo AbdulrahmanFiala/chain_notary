@@ -18,7 +18,12 @@ use storage::GREETING;
 /// Set the greeting prefix
 #[update]
 pub fn set_greeting(prefix: String) {
-    GREETING.with_borrow_mut(|greeting| greeting.set(prefix).unwrap());
+    GREETING.with_borrow_mut(|greeting| {
+        if let Err(_) = greeting.set(prefix) {
+            // Log error but don't crash - use default greeting
+            ic_cdk::println!("Failed to set greeting, using default");
+        }
+    });
 }
 
 /// Get a greeting message

@@ -7,6 +7,7 @@ pub enum MintError {
     InvalidTokenId,
     TokenExists,
     Unauthorized,
+    InvalidMetadata,
 }
 
 #[derive(CandidType, Deserialize, Clone, Serialize)]
