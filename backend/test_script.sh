@@ -20,20 +20,15 @@ echo ""
 echo "🧪 Running Tests..."
 echo "==================="
 
-# Test 1: Greeting
-echo "1️⃣ Testing greeting function..."
-GREETING_RESULT=$(dfx canister call backend greet '("World")')
-echo "   Result: $GREETING_RESULT"
-
-# Test 2: Metadata
+# Test 1: Metadata
 echo ""
-echo "2️⃣ Testing ICRC-37 metadata..."
+echo "1️⃣ Testing ICRC-37 metadata..."
 METADATA_RESULT=$(dfx canister call backend icrc37_metadata)
 echo "   Result: $METADATA_RESULT"
 
-# Test 3: Mint NFT
+# Test 2: Mint NFT
 echo ""
-echo "3️⃣ Testing NFT minting..."
+echo "2️⃣ Testing NFT minting..."
 MINT_RESULT=$(dfx canister call backend icrc37_mint '(record { token_ids = vec {"test_001"}; metadata = null })')
 echo "   Result: $MINT_RESULT"
 
@@ -62,7 +57,6 @@ echo "🌐 To access the Candid UI, open:"
 echo "   http://localhost:8080/?canisterId=$CANISTER_ID"
 echo ""
 echo "📋 Manual Test Commands:"
-echo "   dfx canister call backend greet '(\"Your Name\")'"
 echo "   dfx canister call backend icrc37_metadata"
 echo "   dfx canister call backend get_nft_count"
 echo "   dfx canister call backend list_all_nfts" 

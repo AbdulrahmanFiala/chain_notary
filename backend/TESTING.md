@@ -37,20 +37,13 @@ Replace `<CANISTER_ID>` with your actual canister ID.
 ### Method 2: Command Line
 
 ```bash
-# Test greeting function
-dfx canister call backend greet '("World")'
-
 # Test metadata
 dfx canister call backend icrc37_metadata
 ```
 
 ## 📋 Test Cases
 
-### 1. Basic Greeting Test
 
-**Method:** `greet`
-**Input:** `"World"`
-**Expected Output:** `"Hello, World!"`
 
 ### 2. ICRC-37 Metadata Test
 
@@ -188,7 +181,8 @@ dfx canister call backend icrc37_mint '(record { token_ids = vec {"test_001"}; m
 
 ### Check Canister Logs
 ```bash
-dfx canister call backend greet '("Debug")'
+# Check canister status and logs
+dfx canister status backend
 ```
 
 ### Verify Candid Interface
@@ -215,7 +209,7 @@ dfx canister call backend icrc37_mint '(record { token_ids = vec {"duplicate"}; 
 
 - [ ] Deploy canister successfully
 - [ ] Access Candid UI in browser
-- [ ] Test greeting function
+
 - [ ] Test ICRC-37 metadata
 - [ ] Test minting NFT
 - [ ] Test file upload

@@ -39,13 +39,6 @@ thread_local! {
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4)))
         )
     );
-
-    // Keep the original greeting functionality for compatibility
-    pub static GREETING: RefCell<ic_stable_structures::Cell<String, Memory>> = RefCell::new(
-        ic_stable_structures::Cell::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))), "Hello, ".to_string()
-        ).unwrap()
-    );
 }
 
 // Helper functions for storage operations
