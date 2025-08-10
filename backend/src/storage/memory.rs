@@ -12,31 +12,24 @@ thread_local! {
     pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    // Store document metadata as JSON strings (Storable)
-    pub static NFT_METADATA: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+    // Store complete documents (metadata + file data) in a single storage area
+    pub static DOCUMENTS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
-        )
-    );
-
-    // Store document file data separately
-    pub static DOCUMENT_STORAGE: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
         )
     );
 
     // Store owner mappings as JSON strings
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
         )
     );
 
     // Store approvals
     pub static APPROVALS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4)))
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
         )
     );
 }
@@ -48,14 +41,6 @@ pub fn principal_to_bytes(principal: &Principal) -> Vec<u8> {
 
 pub fn bytes_to_principal(bytes: &[u8]) -> Principal {
     Principal::from_slice(bytes)
-}
-
-pub fn nft_info_to_bytes(document: &Document) -> Vec<u8> {
-    serde_json::to_vec(document).unwrap_or_default()
-}
-
-pub fn bytes_to_nft_info(bytes: &[u8]) -> Option<Document> {
-    serde_json::from_slice(bytes).ok()
 }
 
 pub fn document_to_bytes(document: &Document) -> Vec<u8> {

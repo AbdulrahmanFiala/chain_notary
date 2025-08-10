@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
 use crate::types::{CollectionMetadata, Document, CollectionCategory, Institution};
-use crate::storage::{NFT_METADATA, DOCUMENT_STORAGE, OWNER_TOKENS, bytes_to_nft_info, bytes_to_document, principal_to_bytes, bytes_to_tokens};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, bytes_to_document, principal_to_bytes, bytes_to_tokens};
 
 /// Get collection metadata
 #[query]
@@ -24,15 +24,15 @@ pub fn icrc37_metadata() -> CollectionMetadata {
 /// Get document metadata by document ID (fast query)
 #[query]
 pub fn get_nft_metadata(document_id: String) -> Option<Document> {
-    NFT_METADATA.with(|storage| {
-        storage.borrow().get(&document_id).and_then(|bytes| bytes_to_nft_info(&bytes))
+    DOCUMENTS.with(|storage| {
+        storage.borrow().get(&document_id).and_then(|bytes| bytes_to_document(&bytes))
     })
 }
 
 /// Get document file data by document ID (loads file data)
 #[query]
 pub fn get_nft_file(document_id: String) -> Option<Vec<u8>> {
-    DOCUMENT_STORAGE.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
             bytes_to_document(&bytes).map(|document| document.file_data.unwrap_or_default())
         })
@@ -50,7 +50,7 @@ pub fn get_complete_document(document_id: String) -> Option<(Document, Vec<u8>)>
 /// Get document object by document ID (includes file data)
 #[query]
 pub fn get_document(document_id: String) -> Option<Document> {
-    DOCUMENT_STORAGE.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| bytes_to_document(&bytes))
     })
 }
@@ -58,7 +58,7 @@ pub fn get_document(document_id: String) -> Option<Document> {
 /// List all document IDs (fast query)
 #[query]
 pub fn list_all_nfts() -> Vec<String> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter().map(|(k, _)| k.clone()).collect()
     })
 }
@@ -75,7 +75,7 @@ pub fn get_nfts_by_owner(owner: Principal) -> Vec<String> {
 /// Get total number of documents (fast query)
 #[query]
 pub fn get_nft_count() -> u64 {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().len() as u64
     })
 }
@@ -83,9 +83,9 @@ pub fn get_nft_count() -> u64 {
 /// Get document file size by document ID (fast query)
 #[query]
 pub fn get_document_file_size(document_id: String) -> Option<u64> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
-            bytes_to_nft_info(&bytes).map(|metadata| metadata.file_size)
+            bytes_to_document(&bytes).map(|metadata| metadata.file_size)
         })
     })
 }
@@ -93,9 +93,9 @@ pub fn get_document_file_size(document_id: String) -> Option<u64> {
 /// Get document file type by document ID (fast query)
 #[query]
 pub fn get_document_file_type(document_id: String) -> Option<String> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
-            bytes_to_nft_info(&bytes).map(|metadata| metadata.file_type)
+            bytes_to_document(&bytes).map(|metadata| metadata.file_type)
         })
     })
 }
@@ -103,9 +103,9 @@ pub fn get_document_file_type(document_id: String) -> Option<String> {
 /// Get documents by collection ID (fast query)
 #[query]
 pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .filter(|metadata| metadata.collection_id == collection_id)
             .collect()
     })
@@ -122,9 +122,9 @@ pub fn get_total_supply() -> u64 {
 pub fn get_documents_by_category(category: CollectionCategory) -> Vec<Document> {
     // For now, return all documents since we don't have category filtering implemented
     // This would need to be implemented based on collection categories
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .collect()
     })
 }
@@ -132,9 +132,9 @@ pub fn get_documents_by_category(category: CollectionCategory) -> Vec<Document> 
 /// Get all documents with their metadata (for collection building)
 #[query]
 pub fn get_all_documents_with_metadata() -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .collect()
     })
 }
@@ -142,9 +142,9 @@ pub fn get_all_documents_with_metadata() -> Vec<Document> {
 /// Get documents by recipient name
 #[query]
 pub fn get_documents_by_recipient(recipient_name: String) -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .filter(|doc| {
                 doc.recipient.as_ref()
                     .map(|r| r.name == recipient_name)
@@ -157,14 +157,13 @@ pub fn get_documents_by_recipient(recipient_name: String) -> Vec<Document> {
 /// Get documents by recipient email
 #[query]
 pub fn get_documents_by_recipient_email(recipient_email: String) -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .filter(|doc| {
                 doc.recipient.as_ref()
                     .and_then(|r| r.email.as_ref())
                     .map(|email| email == &recipient_email)
-                    .unwrap_or(false)
             })
             .collect()
     })
@@ -202,9 +201,9 @@ pub fn get_collection_metadata(collection_id: String) -> Option<CollectionMetada
 pub fn get_all_collection_ids() -> Vec<String> {
     let mut collection_ids = std::collections::HashSet::new();
     
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .for_each(|doc| {
                 if !doc.collection_id.is_empty() {
                     collection_ids.insert(doc.collection_id);
@@ -218,9 +217,9 @@ pub fn get_all_collection_ids() -> Vec<String> {
 /// Get documents by file type
 #[query]
 pub fn get_documents_by_file_type(file_type: String) -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .filter(|doc| doc.file_type == file_type)
             .collect()
     })
@@ -229,9 +228,9 @@ pub fn get_documents_by_file_type(file_type: String) -> Vec<Document> {
 /// Get documents by file size range
 #[query]
 pub fn get_documents_by_file_size_range(min_size: u64, max_size: u64) -> Vec<Document> {
-    NFT_METADATA.with(|storage| {
+    DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_nft_info(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
             .filter(|doc| doc.file_size >= min_size && doc.file_size <= max_size)
             .collect()
     })

@@ -1,6 +1,6 @@
 use ic_cdk::update;
 use crate::types::{NFTResponse, Document};
-use crate::storage::{DOCUMENT_STORAGE, NFT_METADATA, OWNER_TOKENS, nft_info_to_bytes, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
 use crate::utils::{calculate_file_hash, generate_token_id};
 
 /// Custom upload endpoint for creating documents from file uploads
@@ -40,40 +40,18 @@ pub async fn upload_file_and_create_nft(
     // Get current timestamp
     let uploaded_at = ic_cdk::api::time();
 
-    // Create document metadata (lightweight, fast queries)
+    // Create complete document with file data
     let mut document = metadata;
     document.document_id = document_id.clone();
     document.document_hash = document_hash.clone();
     document.file_size = file_data.len() as u64;
     document.file_type = file_type.clone();
     document.minted_at = uploaded_at;
-    document.file_data = Some(file_data.clone());
+    document.file_data = Some(file_data);
 
-    // Create document with file data (separate storage)
-    let document_storage = Document {
-        document_id: document_id.clone(),
-        collection_id: document.collection_id.clone(),
-        owner: document.owner,
-        name: document.name.clone(),
-        description: document.description.clone(),
-        image_url: document.image_url.clone(),
-        document_hash: document.document_hash.clone(),
-        file_size: document.file_size,
-        file_type: document.file_type.clone(),
-        file_data: Some(file_data),
-        minted_at: uploaded_at,
-        recipient: document.recipient.clone(),
-    };
-
-    // Store both metadata and document atomically
-    // Store the document metadata first
-    NFT_METADATA.with(|storage| {
-        storage.borrow_mut().insert(document_id.clone(), nft_info_to_bytes(&document));
-    });
-
-    // Store the document file data separately
-    DOCUMENT_STORAGE.with(|storage| {
-        storage.borrow_mut().insert(document_id.clone(), document_to_bytes(&document_storage));
+    // Store the complete document in single storage
+    DOCUMENTS.with(|storage| {
+        storage.borrow_mut().insert(document_id.clone(), document_to_bytes(&document));
     });
 
     // Update owner's token list

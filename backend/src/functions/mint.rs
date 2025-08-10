@@ -1,6 +1,6 @@
 use ic_cdk::{update, caller};
 use crate::types::{MintArgs, MintResult, MintError, Document, RecipientInfo};
-use crate::storage::{NFT_METADATA, OWNER_TOKENS, nft_info_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
 use crate::utils::{generate_token_id, validate_document_metadata, generate_default_collection_id};
 use std::collections::HashMap;
 
@@ -16,7 +16,7 @@ pub fn icrc37_mint(args: MintArgs) -> MintResult {
     
     for token_id in args.token_ids {
         // Check if token already exists
-        if NFT_METADATA.with(|storage| storage.borrow().contains_key(&token_id)) {
+        if DOCUMENTS.with(|storage| storage.borrow().contains_key(&token_id)) {
             return Err(MintError::TokenExists);
         }
 
@@ -48,8 +48,8 @@ pub fn icrc37_mint(args: MintArgs) -> MintResult {
         }
 
         // Store document metadata
-        NFT_METADATA.with(|storage| {
-            storage.borrow_mut().insert(token_id.clone(), nft_info_to_bytes(&document));
+        DOCUMENTS.with(|storage| {
+            storage.borrow_mut().insert(token_id.clone(), document_to_bytes(&document));
         });
 
         // Update owner's token list
