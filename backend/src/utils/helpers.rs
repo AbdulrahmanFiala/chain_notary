@@ -25,9 +25,4 @@ pub fn validate_document_metadata(document: &Document) -> Result<(), String> {
         return Err("Document hash cannot be empty".to_string());
     }
     Ok(())
-}
-
-/// Generate default collection ID for a principal
-pub fn generate_default_collection_id(principal: &Principal) -> String {
-    format!("collection_{}", principal.to_string())
 } 

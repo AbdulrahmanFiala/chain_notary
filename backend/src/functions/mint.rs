@@ -1,7 +1,7 @@
 use ic_cdk::{update, caller};
 use crate::types::{MintArgs, MintResult, MintError, Document, RecipientInfo};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
-use crate::utils::{generate_token_id, validate_document_metadata, generate_default_collection_id};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, bytes_to_collection, collection_to_bytes};
+use crate::utils::{generate_token_id, validate_document_metadata};
 use std::collections::HashMap;
 
 /// ICRC-37 Standard Implementation for minting documents
@@ -20,11 +20,25 @@ pub fn icrc37_mint(args: MintArgs) -> MintResult {
             return Err(MintError::TokenExists);
         }
 
+        // Determine collection ID from metadata
+        let collection_id = args.metadata.as_ref()
+            .and_then(|m| if m.collection_id.is_empty() { None } else { Some(m.collection_id.clone()) })
+            .unwrap_or_default();
+
+        // Validate that collection exists if specified
+        if !collection_id.is_empty() {
+            let collection_exists = COLLECTIONS.with(|storage| {
+                storage.borrow().contains_key(&collection_id)
+            });
+            
+            if !collection_exists {
+                return Err(MintError::InvalidMetadata);
+            }
+        }
+
         // Create document metadata with default values
         let mut document = Document {
-            collection_id: args.metadata.as_ref()
-                .and_then(|m| if m.collection_id.is_empty() { None } else { Some(m.collection_id.clone()) })
-                .unwrap_or_else(|| generate_default_collection_id(&caller)),
+            collection_id: collection_id.clone(),
             document_id: token_id.clone(),
             owner: caller,
             name: args.metadata.as_ref().map(|m| m.name.clone()).unwrap_or_else(|| "Minted Document".to_string()),
@@ -51,6 +65,19 @@ pub fn icrc37_mint(args: MintArgs) -> MintResult {
         DOCUMENTS.with(|storage| {
             storage.borrow_mut().insert(token_id.clone(), document_to_bytes(&document));
         });
+
+        // If document belongs to a collection, add it to the collection's documents list
+        if !document.collection_id.is_empty() {
+            COLLECTIONS.with(|storage| {
+                if let Some(collection_bytes) = storage.borrow().get(&document.collection_id) {
+                    if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+                        collection.documents.push(token_id.clone());
+                        collection.updated_at = document.minted_at;
+                        storage.borrow_mut().insert(document.collection_id.clone(), collection_to_bytes(&collection));
+                    }
+                }
+            });
+        }
 
         // Update owner's token list
         OWNER_TOKENS.with(|owner_tokens| {
