@@ -5,7 +5,9 @@ echo "========================================"
 
 # Get the canister ID
 CANISTER_ID=$(dfx canister id backend)
+echo "📦 Backend Canister ID: $CANISTER_ID"
 
+echo ""
 echo "📋 Creating a test institution..."
 dfx canister call backend create_institution '(
     "cairo_university",
@@ -62,4 +64,19 @@ echo "📋 Getting updated institution..."
 dfx canister call backend get_institution '("cairo_university")'
 
 echo ""
+echo "📋 Testing institution-collection relationship..."
+echo "Adding collection to institution..."
+dfx canister call backend add_collection_to_institution '(
+    "cairo_university",
+    "cairo_graduation_certs"
+)'
+
+echo ""
+echo "📋 Getting updated institution with collection..."
+dfx canister call backend get_institution '("cairo_university")'
+
+echo ""
 echo "✅ Institution management tests completed!"
+echo ""
+echo "🌐 You can also test these functions in the Candid UI:"
+echo "   http://localhost:8080/?canisterId=$CANISTER_ID"

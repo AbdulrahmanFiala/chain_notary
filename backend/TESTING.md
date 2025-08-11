@@ -159,18 +159,11 @@ dfx canister status backend
 dfx canister call backend icrc37_metadata
 ```
 
-### Issue 3: Invalid Principal
-```bash
-# Solution: Use anonymous principal
-dfx canister call backend icrc37_mint '(record { token_ids = vec {"test_001"}; metadata = null })'
-```
+
 
 ## 📊 Expected Test Results
 
-### After Minting NFT:
-1. `get_nft_count()` should return `1`
-2. `list_all_nfts()` should return `["test_001"]`
-3. `get_nft_metadata("test_001")` should return NFT info
+
 
 ### After File Upload:
 1. `get_nft_count()` should return `1`
@@ -192,9 +185,7 @@ dfx canister call backend icrc37_metadata
 
 ### Test Error Handling
 ```bash
-# Try to mint same token twice
-dfx canister call backend icrc37_mint '(record { token_ids = vec {"duplicate"}; metadata = null })'
-dfx canister call backend icrc37_mint '(record { token_ids = vec {"duplicate"}; metadata = null })'
+
 ```
 
 ## 🎯 Success Criteria
@@ -211,7 +202,7 @@ dfx canister call backend icrc37_mint '(record { token_ids = vec {"duplicate"}; 
 - [ ] Access Candid UI in browser
 
 - [ ] Test ICRC-37 metadata
-- [ ] Test minting NFT
+
 - [ ] Test file upload
 - [ ] Test query methods
 - [ ] Test error conditions

@@ -44,7 +44,6 @@ pub struct Document {
     pub file_size: u64,        
     pub file_type: String,    
     pub file_data: Option<Vec<u8>>,     
-    pub minted_at: u64,
     pub recipient: Option<RecipientInfo>
 }
 

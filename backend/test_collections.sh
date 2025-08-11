@@ -19,7 +19,8 @@ dfx canister call backend create_collection '(
     opt "Collection of university graduation certificates",
     opt "https://example.com/graduation.jpg",
     opt "https://example.com/graduation",
-    opt variant { UniversityGraduationCertificate }
+    opt variant { UniversityGraduationCertificate },
+    null
 )'
 
 echo ""
@@ -52,7 +53,7 @@ echo "-----------------------------------------------"
 
 # Create a document that references the collection
 echo "Creating a document in the collection..."
-dfx canister call backend upload_file_and_create_nft '(
+dfx canister call backend upload_file_and_publish_document '(
     vec { 255, 216, 255, 224, 0, 16, 74, 70, 73, 70, 0, 1, 1, 1, 0, 72, 0, 72, 0, 0 },
     "image/jpeg",
     record {
@@ -66,7 +67,7 @@ dfx canister call backend upload_file_and_create_nft '(
         file_size = 0;
         file_type = "";
         file_data = null;
-        minted_at = 0;
+        
         recipient = opt record {
             name = "John Doe";
             id = opt "12345";

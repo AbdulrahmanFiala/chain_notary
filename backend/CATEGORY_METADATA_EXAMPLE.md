@@ -19,40 +19,7 @@ The system now supports different document categories with their own specific me
 
 ## Usage Examples
 
-### 1. Minting a Certificate Document
 
-```rust
-// Example: Mint a university graduation certificate
-let certificate_data = CertificateData {
-    name: "John Doe's Graduation Certificate".to_string(),
-    description: Some("Bachelor of Science in Computer Science".to_string()),
-    image_url: Some("https://example.com/certificate.jpg".to_string()),
-    collection_id: Some("university_certs".to_string()),
-    document_hash: "sha256:abc123...".to_string(),
-    file_size: 1024,
-    file_type: "application/pdf".to_string(),
-    title: "Bachelor of Science in Computer Science".to_string(),
-    document_type: DocumentType::GraduationCertificate,
-    issued_date: 1640995200, // Unix timestamp
-    expiry_date: None, // Certificates typically don't expire
-    issuer_name: "University of Technology".to_string(),
-    recipient_info: Some(RecipientInfo {
-        name: "John Doe".to_string(),
-        identifier: "STU123456".to_string(),
-        contact: Some("john.doe@email.com".to_string()),
-    }),
-    additional_data: {
-        let mut map = HashMap::new();
-        map.insert("gpa".to_string(), "3.8".to_string());
-        map.insert("major".to_string(), "Computer Science".to_string());
-        map.insert("graduation_year".to_string(), "2024".to_string());
-        map
-    },
-};
-
-// Mint the certificate
-mint_certificate("cert_001".to_string(), certificate_data)?;
-```
 
 ### 2. Querying Certificate Data
 
@@ -181,9 +148,7 @@ impl CategorySpecificMetadata {
 5. **Add category-specific functions**:
 ```rust
 #[update]
-pub fn mint_license(token_id: String, license_data: LicenseData) -> MintResult {
-    // Implementation similar to mint_certificate
-}
+
 
 #[query]
 pub fn get_license_data(document_id: String) -> Option<License> {
@@ -220,13 +185,7 @@ if let Some(cert) = doc_metadata.as_certificate() {
 }
 ```
 
-3. **Validate category-specific data during minting**:
-```rust
-// Validate certificate data before minting
-if certificate_data.issued_date > certificate_data.expiry_date.unwrap_or(u64::MAX) {
-    return Err("Invalid date range".to_string());
-}
-```
+
 
 4. **Use appropriate error handling**:
 ```rust

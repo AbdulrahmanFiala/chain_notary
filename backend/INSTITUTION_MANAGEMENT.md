@@ -45,7 +45,7 @@ Document
 ├── name, description, image_url
 ├── document_hash, file_size, file_type
 ├── file_data (optional binary data)
-├── minted_at (timestamp)
+
 └── recipient (optional recipient info)
 ```
 
@@ -147,7 +147,7 @@ dfx canister call backend upload_file_and_create_document '(
         file_size: 0,
         file_type: "",
         file_data: null,
-        minted_at: 0,
+        
         recipient: null
     }
 )'

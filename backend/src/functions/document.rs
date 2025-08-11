@@ -62,7 +62,6 @@ pub async fn upload_file_and_publish_document(
     document.document_hash = document_hash.clone();
     document.file_size = file_data.len() as u64;
     document.file_type = file_type.clone();
-    document.minted_at = uploaded_at;
     document.file_data = Some(file_data);
 
     // Store the complete document in single storage
