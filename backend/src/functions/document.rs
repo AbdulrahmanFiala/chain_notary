@@ -1,6 +1,6 @@
 use ic_cdk::update;
 use crate::types::{NFTResponse, Document};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, bytes_to_collection, collection_to_bytes};
 use crate::utils::{calculate_file_hash, generate_token_id};
 
 /// Custom upload endpoint for creating documents from file uploads
@@ -31,6 +31,22 @@ pub async fn upload_file_and_create_nft(
         };
     }
 
+    // Validate that collection exists if specified
+    if !metadata.collection_id.is_empty() {
+        let collection_exists = COLLECTIONS.with(|storage| {
+            storage.borrow().contains_key(&metadata.collection_id)
+        });
+        
+        if !collection_exists {
+            return NFTResponse {
+                success: false,
+                document_id: None,
+                error_message: Some("Specified collection does not exist".to_string()),
+                document_hash: None,
+            };
+        }
+    }
+
     // Generate unique document ID
     let document_id = generate_token_id();
     
@@ -53,6 +69,19 @@ pub async fn upload_file_and_create_nft(
     DOCUMENTS.with(|storage| {
         storage.borrow_mut().insert(document_id.clone(), document_to_bytes(&document));
     });
+
+    // If document belongs to a collection, add it to the collection's documents list
+    if !document.collection_id.is_empty() {
+        COLLECTIONS.with(|storage| {
+            if let Some(collection_bytes) = storage.borrow().get(&document.collection_id) {
+                if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+                    collection.documents.push(document_id.clone());
+                    collection.updated_at = uploaded_at;
+                    storage.borrow_mut().insert(document.collection_id.clone(), collection_to_bytes(&collection));
+                }
+            }
+        });
+    }
 
     // Update owner's token list
     OWNER_TOKENS.with(|owner_tokens| {
