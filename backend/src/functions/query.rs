@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
 use crate::types::{CollectionMetadata, Document, CollectionCategory, Institution};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, bytes_to_document, principal_to_bytes, bytes_to_tokens};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, bytes_to_document, bytes_to_collection, principal_to_bytes, bytes_to_tokens};
 
 /// Get collection metadata
 #[query]
@@ -120,13 +120,25 @@ pub fn get_total_supply() -> u64 {
 /// Get documents by category
 #[query]
 pub fn get_documents_by_category(category: CollectionCategory) -> Vec<Document> {
-    // For now, return all documents since we don't have category filtering implemented
-    // This would need to be implemented based on collection categories
-    DOCUMENTS.with(|storage| {
+    // Get all collections with this category
+    let collections = COLLECTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .collect()
-    })
+            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
+            .filter(|collection| collection.category.as_ref() == Some(&category))
+            .collect::<Vec<_>>()
+    });
+    
+    // Get all documents from these collections
+    let mut documents = Vec::new();
+    for collection in collections {
+        for document_id in &collection.documents {
+            if let Some(document) = get_nft_metadata(document_id.clone()) {
+                documents.push(document);
+            }
+        }
+    }
+    
+    documents
 }
 
 /// Get all documents with their metadata (for collection building)
@@ -164,6 +176,7 @@ pub fn get_documents_by_recipient_email(recipient_email: String) -> Vec<Document
                 doc.recipient.as_ref()
                     .and_then(|r| r.email.as_ref())
                     .map(|email| email == &recipient_email)
+                    .unwrap_or(false)
             })
             .collect()
     })
@@ -172,46 +185,18 @@ pub fn get_documents_by_recipient_email(recipient_email: String) -> Vec<Document
 /// Get collection metadata by collection ID
 #[query]
 pub fn get_collection_metadata(collection_id: String) -> Option<CollectionMetadata> {
-    // Get all documents in the collection
-    let documents = get_documents_by_collection(collection_id.clone());
-    
-    if documents.is_empty() {
-        return None;
-    }
-    
-    // Build collection metadata from documents
-    let first_doc = documents.first()?;
-    Some(CollectionMetadata {
-        institution_id: first_doc.collection_id.clone(),
-        collection_id,
-        owner: first_doc.owner,
-        name: format!("Collection: {}", first_doc.collection_id),
-        description: Some(format!("Collection containing {} documents", documents.len())),
-        image_url: None,
-        external_url: None,
-        created_at: documents.iter().map(|d| d.minted_at).min().unwrap_or(0),
-        updated_at: documents.iter().map(|d| d.minted_at).max().unwrap_or(0),
-        category: Some(CollectionCategory::UniversityGraduationCertificate), // Default category
-        documents: documents.into_iter().map(|d| d.document_id).collect(),
+    COLLECTIONS.with(|storage| {
+        storage.borrow().get(&collection_id)
+            .and_then(|bytes| bytes_to_collection(&bytes))
     })
 }
 
 /// Get all collection IDs
 #[query]
 pub fn get_all_collection_ids() -> Vec<String> {
-    let mut collection_ids = std::collections::HashSet::new();
-    
-    DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .for_each(|doc| {
-                if !doc.collection_id.is_empty() {
-                    collection_ids.insert(doc.collection_id);
-                }
-            });
-    });
-    
-    collection_ids.into_iter().collect()
+    COLLECTIONS.with(|storage| {
+        storage.borrow().iter().map(|(k, _)| k.clone()).collect()
+    })
 }
 
 /// Get documents by file type

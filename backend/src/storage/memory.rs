@@ -4,7 +4,7 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::Document;
+use crate::types::{Document, CollectionMetadata, Institution};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -19,17 +19,24 @@ thread_local! {
         )
     );
 
-    // Store owner mappings as JSON strings
-    pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
+    // Store collections separately from documents
+    pub static COLLECTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
         )
     );
 
-    // Store approvals
-    pub static APPROVALS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+    // Store institutions separately from collections
+    pub static INSTITUTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
+        )
+    );
+
+    // Store owner mappings as JSON strings
+    pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
         )
     );
 }
@@ -51,10 +58,26 @@ pub fn bytes_to_document(bytes: &[u8]) -> Option<Document> {
     serde_json::from_slice(bytes).ok()
 }
 
+pub fn collection_to_bytes(collection: &CollectionMetadata) -> Vec<u8> {
+    serde_json::to_vec(collection).unwrap_or_default()
+}
+
+pub fn bytes_to_collection(bytes: &[u8]) -> Option<CollectionMetadata> {
+    serde_json::from_slice(bytes).ok()
+}
+
 pub fn tokens_to_bytes(tokens: &[String]) -> Vec<u8> {
     serde_json::to_vec(tokens).unwrap_or_default()
 }
 
 pub fn bytes_to_tokens(bytes: &[u8]) -> Vec<String> {
     serde_json::from_slice(bytes).unwrap_or_default()
+}
+
+pub fn institution_to_bytes(institution: &Institution) -> Vec<u8> {
+    serde_json::to_vec(institution).unwrap_or_default()
+}
+
+pub fn bytes_to_institution(bytes: &[u8]) -> Option<Institution> {
+    serde_json::from_slice(bytes).ok()
 } 
