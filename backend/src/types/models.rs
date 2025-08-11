@@ -59,7 +59,7 @@ pub struct RecipientInfo {
 
 // Response type
 #[derive(CandidType, Deserialize, Clone, Serialize)]
-pub struct NFTResponse {
+pub struct DocumentResponse {
     pub success: bool,
     pub document_id: Option<String>,
     pub error_message: Option<String>,

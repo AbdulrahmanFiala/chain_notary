@@ -1,18 +1,18 @@
 use ic_cdk::update;
-use crate::types::{NFTResponse, Document};
+use crate::types::{DocumentResponse, Document};
 use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, bytes_to_collection, collection_to_bytes};
 use crate::utils::{calculate_file_hash, generate_token_id};
 
-/// Custom upload endpoint for creating documents from file uploads
+/// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
-pub async fn upload_file_and_create_nft(
+pub async fn upload_file_and_publish_document(
     file_data: Vec<u8>,
     file_type: String,
     metadata: Document,
-) -> NFTResponse {
+) -> DocumentResponse {
     // Validate file size (max 2MB for demo)
     if file_data.len() > 2 * 1024 * 1024 {
-        return NFTResponse {
+        return DocumentResponse {
             success: false,
             document_id: None,
             error_message: Some("File size exceeds 2MB limit".to_string()),
@@ -23,7 +23,7 @@ pub async fn upload_file_and_create_nft(
     // Validate file type
     let allowed_types = vec!["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "text/plain"];
     if !allowed_types.contains(&file_type.as_str()) {
-        return NFTResponse {
+        return DocumentResponse {
             success: false,
             document_id: None,
             error_message: Some("Unsupported file type. Only JPEG, PNG, GIF, WebP, PDF, and TXT are allowed.".to_string()),
@@ -38,7 +38,7 @@ pub async fn upload_file_and_create_nft(
         });
         
         if !collection_exists {
-            return NFTResponse {
+            return DocumentResponse {
                 success: false,
                 document_id: None,
                 error_message: Some("Specified collection does not exist".to_string()),
@@ -93,7 +93,7 @@ pub async fn upload_file_and_create_nft(
         tokens.insert(owner_bytes, tokens_to_bytes(&current_tokens));
     });
 
-    NFTResponse {
+    DocumentResponse {
         success: true,
         document_id: Some(document_id),
         error_message: None,
