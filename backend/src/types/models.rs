@@ -34,7 +34,7 @@ pub enum CollectionCategory {
 
 #[derive(CandidType, Deserialize, Clone, Serialize)]
 pub struct Document {
-    pub collection_id: String, 
+    pub collection_id: Option<String>, 
     pub document_id: String,
     pub owner: Principal,
     pub name: String,
