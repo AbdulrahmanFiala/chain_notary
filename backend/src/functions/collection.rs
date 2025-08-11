@@ -245,7 +245,7 @@ pub fn add_document_to_collection(collection_id: String, document_id: String) ->
     
     // Update document's collection_id field
     let mut updated_document = document;
-    updated_document.collection_id = collection_id.clone();
+    updated_document.collection_id = Some(collection_id.clone());
     
     DOCUMENTS.with(|storage| {
         storage.borrow_mut().insert(document_id, document_to_bytes(&updated_document));
@@ -287,7 +287,7 @@ pub fn remove_document_from_collection(collection_id: String, document_id: Strin
                 .and_then(|bytes| bytes_to_document(&bytes))
         }) {
             let mut updated_document = document;
-            updated_document.collection_id = String::new();
+            updated_document.collection_id = Some(String::new());
             
             DOCUMENTS.with(|storage| {
                 storage.borrow_mut().insert(document_id, document_to_bytes(&updated_document));

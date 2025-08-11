@@ -32,18 +32,20 @@ pub async fn upload_file_and_publish_document(
     }
 
     // Validate that collection exists if specified
-    if !metadata.collection_id.is_empty() {
-        let collection_exists = COLLECTIONS.with(|storage| {
-            storage.borrow().contains_key(&metadata.collection_id)
-        });
-        
-        if !collection_exists {
-            return DocumentResponse {
-                success: false,
-                document_id: None,
-                error_message: Some("Specified collection does not exist".to_string()),
-                document_hash: None,
-            };
+    if let Some(ref collection_id) = metadata.collection_id {
+        if !collection_id.is_empty() {
+            let collection_exists = COLLECTIONS.with(|storage| {
+                storage.borrow().contains_key(collection_id)
+            });
+            
+            if !collection_exists {
+                return DocumentResponse {
+                    success: false,
+                    document_id: None,
+                    error_message: Some("Specified collection does not exist".to_string()),
+                    document_hash: None,
+                };
+            }
         }
     }
 
@@ -70,23 +72,25 @@ pub async fn upload_file_and_publish_document(
     });
 
     // If document belongs to a collection, add it to the collection's documents list
-    if !document.collection_id.is_empty() {
-        // First, get the collection data
-        let collection_data = COLLECTIONS.with(|storage| {
-            storage.borrow().get(&document.collection_id).map(|bytes| bytes.clone())
-        });
-        
-        // Then update it if it exists
-        if let Some(collection_bytes) = collection_data {
-            if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-                collection.documents.push(document_id.clone());
-                collection.updated_at = uploaded_at;
-                let updated_bytes = collection_to_bytes(&collection);
-                
-                // Now insert the updated collection
-                COLLECTIONS.with(|storage| {
-                    storage.borrow_mut().insert(document.collection_id.clone(), updated_bytes);
-                });
+    if let Some(ref collection_id) = document.collection_id {
+        if !collection_id.is_empty() {
+            // First, get the collection data
+            let collection_data = COLLECTIONS.with(|storage| {
+                storage.borrow().get(collection_id).map(|bytes| bytes.clone())
+            });
+            
+            // Then update it if it exists
+            if let Some(collection_bytes) = collection_data {
+                if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+                    collection.documents.push(document_id.clone());
+                    collection.updated_at = uploaded_at;
+                    let updated_bytes = collection_to_bytes(&collection);
+                    
+                    // Now insert the updated collection
+                    COLLECTIONS.with(|storage| {
+                        storage.borrow_mut().insert(collection_id.clone(), updated_bytes);
+                    });
+                }
             }
         }
     }

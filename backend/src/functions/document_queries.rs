@@ -64,7 +64,7 @@ pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .filter(|metadata| metadata.collection_id == collection_id)
+            .filter(|metadata| metadata.collection_id == Some(collection_id.clone()))
             .collect()
     })
 }
