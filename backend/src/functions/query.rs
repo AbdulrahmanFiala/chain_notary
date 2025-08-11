@@ -23,7 +23,7 @@ pub fn icrc37_metadata() -> CollectionMetadata {
 
 /// Get document metadata by document ID (fast query)
 #[query]
-pub fn get_nft_metadata(document_id: String) -> Option<Document> {
+pub fn get_document_metadata(document_id: String) -> Option<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| bytes_to_document(&bytes))
     })
@@ -31,7 +31,7 @@ pub fn get_nft_metadata(document_id: String) -> Option<Document> {
 
 /// Get document file data by document ID (loads file data)
 #[query]
-pub fn get_nft_file(document_id: String) -> Option<Vec<u8>> {
+pub fn get_document_file(document_id: String) -> Option<Vec<u8>> {
     DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
             bytes_to_document(&bytes).map(|document| document.file_data.unwrap_or_default())
@@ -42,8 +42,8 @@ pub fn get_nft_file(document_id: String) -> Option<Vec<u8>> {
 /// Get complete document (metadata + file data) by document ID
 #[query]
 pub fn get_complete_document(document_id: String) -> Option<(Document, Vec<u8>)> {
-    let metadata = get_nft_metadata(document_id.clone())?;
-    let file_data = get_nft_file(document_id)?;
+    let metadata = get_document_metadata(document_id.clone())?;
+    let file_data = get_document_file(document_id)?;
     Some((metadata, file_data))
 }
 
@@ -57,7 +57,7 @@ pub fn get_document(document_id: String) -> Option<Document> {
 
 /// List all document IDs (fast query)
 #[query]
-pub fn list_all_nfts() -> Vec<String> {
+pub fn list_all_documents() -> Vec<String> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter().map(|(k, _)| k.clone()).collect()
     })
@@ -65,7 +65,7 @@ pub fn list_all_nfts() -> Vec<String> {
 
 /// Get documents owned by a specific principal (fast query)
 #[query]
-pub fn get_nfts_by_owner(owner: Principal) -> Vec<String> {
+pub fn get_documents_by_owner(owner: Principal) -> Vec<String> {
     OWNER_TOKENS.with(|owner_tokens| {
         let owner_bytes = principal_to_bytes(&owner);
         owner_tokens.borrow().get(&owner_bytes).map(|bytes| bytes_to_tokens(&bytes)).unwrap_or_default()
@@ -74,7 +74,7 @@ pub fn get_nfts_by_owner(owner: Principal) -> Vec<String> {
 
 /// Get total number of documents (fast query)
 #[query]
-pub fn get_nft_count() -> u64 {
+pub fn get_document_count() -> u64 {
     DOCUMENTS.with(|storage| {
         storage.borrow().len() as u64
     })
@@ -111,12 +111,6 @@ pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
     })
 }
 
-/// Get total supply (same as count for documents)
-#[query]
-pub fn get_total_supply() -> u64 {
-    get_nft_count()
-}
-
 /// Get documents by category
 #[query]
 pub fn get_documents_by_category(category: CollectionCategory) -> Vec<Document> {
@@ -141,15 +135,6 @@ pub fn get_documents_by_category(category: CollectionCategory) -> Vec<Document> 
     documents
 }
 
-/// Get all documents with their metadata (for collection building)
-#[query]
-pub fn get_all_documents_with_metadata() -> Vec<Document> {
-    DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .collect()
-    })
-}
 
 /// Get documents by recipient name
 #[query]
@@ -198,25 +183,3 @@ pub fn get_all_collection_ids() -> Vec<String> {
         storage.borrow().iter().map(|(k, _)| k.clone()).collect()
     })
 }
-
-/// Get documents by file type
-#[query]
-pub fn get_documents_by_file_type(file_type: String) -> Vec<Document> {
-    DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .filter(|doc| doc.file_type == file_type)
-            .collect()
-    })
-}
-
-/// Get documents by file size range
-#[query]
-pub fn get_documents_by_file_size_range(min_size: u64, max_size: u64) -> Vec<Document> {
-    DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .filter(|doc| doc.file_size >= min_size && doc.file_size <= max_size)
-            .collect()
-    })
-} 
