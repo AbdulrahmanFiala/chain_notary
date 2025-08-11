@@ -27,7 +27,7 @@ pub struct CollectionMetadata {
     pub documents: Vec<String>, // List of document IDs
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum CollectionCategory {
     UniversityGraduationCertificate,
 }
