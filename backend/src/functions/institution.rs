@@ -138,16 +138,7 @@ pub fn list_all_institutions() -> Vec<Institution> {
     })
 }
 
-/// Get institutions by owner
-#[query]
-pub fn get_institutions_by_owner(owner: candid::Principal) -> Vec<Institution> {
-    INSTITUTIONS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes))
-            .filter(|institution| institution.owner == owner)
-            .collect()
-    })
-}
+
 
 /// Add a collection to an institution
 #[update]
@@ -250,33 +241,6 @@ pub fn remove_collection_from_institution(
     Ok(())
 }
 
-/// Get institution count
-#[query]
-pub fn get_institution_count() -> u64 {
-    INSTITUTIONS.with(|storage| storage.borrow().len() as u64)
-}
 
-/// Get collections by institution
-#[query]
-pub fn get_collections_by_institution(institution_id: String) -> Vec<CollectionMetadata> {
-    let institution = INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-    });
 
-    match institution {
-        Some(inst) => {
-            let mut collections = Vec::new();
-            for collection_id in &inst.collections {
-                if let Some(collection) = COLLECTIONS.with(|storage| {
-                    storage.borrow().get(collection_id)
-                        .and_then(|bytes| bytes_to_collection(&bytes))
-                }) {
-                    collections.push(collection);
-                }
-            }
-            collections
-        }
-        None => Vec::new(),
-    }
-}
+

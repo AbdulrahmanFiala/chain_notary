@@ -195,16 +195,7 @@ pub fn list_all_collections() -> Vec<CollectionMetadata> {
     })
 }
 
-/// Get collections owned by a specific principal
-#[query]
-pub fn get_collections_by_owner(owner: candid::Principal) -> Vec<CollectionMetadata> {
-    COLLECTIONS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
-            .filter(|collection| collection.owner == owner)
-            .collect()
-    })
-}
+
 
 /// Add a document to a collection
 #[update]
@@ -301,8 +292,4 @@ pub fn remove_document_from_collection(collection_id: String, document_id: Strin
     }
 }
 
-/// Get collection count
-#[query]
-pub fn get_collection_count() -> u64 {
-    COLLECTIONS.with(|storage| storage.borrow().len() as u64)
-}
+
