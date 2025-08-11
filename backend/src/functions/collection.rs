@@ -74,14 +74,22 @@ pub fn create_collection(
     if !final_institution_id.is_empty() {
         use crate::storage::INSTITUTIONS;
         use crate::storage::institution_to_bytes;
-        INSTITUTIONS.with(|storage| {
-            if let Some(inst_bytes) = storage.borrow().get(&final_institution_id) {
-                if let Some(mut institution) = crate::storage::bytes_to_institution(&inst_bytes) {
-                    institution.collections.push(collection_id.clone());
-                    storage.borrow_mut().insert(final_institution_id, institution_to_bytes(&institution));
-                }
-            }
+        
+        // First, get the institution data
+        let institution_data = INSTITUTIONS.with(|storage| {
+            storage.borrow().get(&final_institution_id).map(|bytes| bytes.clone())
         });
+        
+        // Then, if we have institution data, update it
+        if let Some(inst_bytes) = institution_data {
+            if let Some(mut institution) = crate::storage::bytes_to_institution(&inst_bytes) {
+                institution.collections.push(collection_id.clone());
+                let updated_bytes = institution_to_bytes(&institution);
+                INSTITUTIONS.with(|storage| {
+                    storage.borrow_mut().insert(final_institution_id, updated_bytes);
+                });
+            }
+        }
     }
     
     Ok(())

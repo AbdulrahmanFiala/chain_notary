@@ -179,14 +179,19 @@ pub fn add_collection_to_institution(
     institution.collections.push(collection_id.clone());
 
     // Update collection's institution_id
-    COLLECTIONS.with(|storage| {
-        if let Some(collection_bytes) = storage.borrow().get(&collection_id) {
-            if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-                collection.institution_id = institution_id.clone();
-                storage.borrow_mut().insert(collection_id, collection_to_bytes(&collection));
-            }
-        }
+    let collection_data = COLLECTIONS.with(|storage| {
+        storage.borrow().get(&collection_id).map(|bytes| bytes.clone())
     });
+    
+    if let Some(collection_bytes) = collection_data {
+        if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+            collection.institution_id = institution_id.clone();
+            let updated_bytes = collection_to_bytes(&collection);
+            COLLECTIONS.with(|storage| {
+                storage.borrow_mut().insert(collection_id, updated_bytes);
+            });
+        }
+    }
 
     // Update institution
     INSTITUTIONS.with(|storage| {
@@ -224,14 +229,19 @@ pub fn remove_collection_from_institution(
     institution.collections.retain(|id| id != &collection_id);
 
     // Clear collection's institution_id
-    COLLECTIONS.with(|storage| {
-        if let Some(collection_bytes) = storage.borrow().get(&collection_id) {
-            if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-                collection.institution_id = String::new();
-                storage.borrow_mut().insert(collection_id, collection_to_bytes(&collection));
-            }
-        }
+    let collection_data = COLLECTIONS.with(|storage| {
+        storage.borrow().get(&collection_id).map(|bytes| bytes.clone())
     });
+    
+    if let Some(collection_bytes) = collection_data {
+        if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+            collection.institution_id = String::new();
+            let updated_bytes = collection_to_bytes(&collection);
+            COLLECTIONS.with(|storage| {
+                storage.borrow_mut().insert(collection_id, updated_bytes);
+            });
+        }
+    }
 
     // Update institution
     INSTITUTIONS.with(|storage| {

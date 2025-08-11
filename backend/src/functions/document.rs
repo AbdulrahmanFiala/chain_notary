@@ -6,8 +6,8 @@ use crate::utils::{calculate_file_hash, generate_token_id};
 /// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
 pub async fn upload_file_and_publish_document(
-    file_data: Vec<u8>,
-    file_type: String,
+    file_data: Vec<u8>, // This maps to Candid 'blob'
+    file_type: String,   // This maps to Candid 'text'
     metadata: Document,
 ) -> DocumentResponse {
     // Validate file size (max 2MB for demo)
@@ -71,15 +71,24 @@ pub async fn upload_file_and_publish_document(
 
     // If document belongs to a collection, add it to the collection's documents list
     if !document.collection_id.is_empty() {
-        COLLECTIONS.with(|storage| {
-            if let Some(collection_bytes) = storage.borrow().get(&document.collection_id) {
-                if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-                    collection.documents.push(document_id.clone());
-                    collection.updated_at = uploaded_at;
-                    storage.borrow_mut().insert(document.collection_id.clone(), collection_to_bytes(&collection));
-                }
-            }
+        // First, get the collection data
+        let collection_data = COLLECTIONS.with(|storage| {
+            storage.borrow().get(&document.collection_id).map(|bytes| bytes.clone())
         });
+        
+        // Then update it if it exists
+        if let Some(collection_bytes) = collection_data {
+            if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+                collection.documents.push(document_id.clone());
+                collection.updated_at = uploaded_at;
+                let updated_bytes = collection_to_bytes(&collection);
+                
+                // Now insert the updated collection
+                COLLECTIONS.with(|storage| {
+                    storage.borrow_mut().insert(document.collection_id.clone(), updated_bytes);
+                });
+            }
+        }
     }
 
     // Update owner's token list
