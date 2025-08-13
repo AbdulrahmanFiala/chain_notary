@@ -19,6 +19,7 @@ frontend/dist/
 # Generated interface and type files
 backend/backend.did
 src/declarations/backend/
+src/declarations/frontend/
 
 # Dev container config (optional, uncomment if you don't want to commit it)
 #.devcontainer/
