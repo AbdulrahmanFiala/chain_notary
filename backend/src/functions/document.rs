@@ -1,0 +1,114 @@
+use ic_cdk::update;
+use crate::types::{DocumentResponse, Document};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, document_to_bytes, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, bytes_to_collection, collection_to_bytes};
+use crate::utils::{calculate_file_hash, generate_token_id};
+
+/// Custom upload endpoint for publishing documents to the icp blockchain
+#[update]
+pub async fn upload_file_and_publish_document(
+    file_data: Vec<u8>, // This maps to Candid 'blob'
+    file_type: String,   // This maps to Candid 'text'
+    metadata: Document,
+) -> DocumentResponse {
+    // Validate file size (max 2MB for demo)
+    if file_data.len() > 2 * 1024 * 1024 {
+        return DocumentResponse {
+            success: false,
+            document_id: None,
+            error_message: Some("File size exceeds 2MB limit".to_string()),
+            document_hash: None,
+        };
+    }
+
+    // Validate file type
+    let allowed_types = vec!["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf", "text/plain"];
+    if !allowed_types.contains(&file_type.as_str()) {
+        return DocumentResponse {
+            success: false,
+            document_id: None,
+            error_message: Some("Unsupported file type. Only JPEG, PNG, GIF, WebP, PDF, and TXT are allowed.".to_string()),
+            document_hash: None,
+        };
+    }
+
+    // Validate that collection exists if specified
+    if let Some(ref collection_id) = metadata.collection_id {
+        if !collection_id.is_empty() {
+            let collection_exists = COLLECTIONS.with(|storage| {
+                storage.borrow().contains_key(collection_id)
+            });
+            
+            if !collection_exists {
+                return DocumentResponse {
+                    success: false,
+                    document_id: None,
+                    error_message: Some("Specified collection does not exist".to_string()),
+                    document_hash: None,
+                };
+            }
+        }
+    }
+
+    // Generate unique document ID
+    let document_id = generate_token_id();
+    
+    // Calculate file hash for integrity verification
+    let document_hash = calculate_file_hash(&file_data);
+    
+    // Get current timestamp
+    let uploaded_at = ic_cdk::api::time();
+
+    // Create complete document with file data
+    let mut document = metadata;
+    document.document_id = document_id.clone();
+    document.document_hash = document_hash.clone();
+    document.file_size = file_data.len() as u64;
+    document.file_type = file_type.clone();
+    document.file_data = Some(file_data);
+
+    // Store the complete document in single storage
+    DOCUMENTS.with(|storage| {
+        storage.borrow_mut().insert(document_id.clone(), document_to_bytes(&document));
+    });
+
+    // If document belongs to a collection, add it to the collection's documents list
+    if let Some(ref collection_id) = document.collection_id {
+        if !collection_id.is_empty() {
+            // First, get the collection data
+            let collection_data = COLLECTIONS.with(|storage| {
+                storage.borrow().get(collection_id).map(|bytes| bytes.clone())
+            });
+            
+            // Then update it if it exists
+            if let Some(collection_bytes) = collection_data {
+                if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
+                    collection.documents.push(document_id.clone());
+                    collection.updated_at = uploaded_at;
+                    let updated_bytes = collection_to_bytes(&collection);
+                    
+                    // Now insert the updated collection
+                    COLLECTIONS.with(|storage| {
+                        storage.borrow_mut().insert(collection_id.clone(), updated_bytes);
+                    });
+                }
+            }
+        }
+    }
+
+    // Update owner's token list
+    OWNER_TOKENS.with(|owner_tokens| {
+        let mut tokens = owner_tokens.borrow_mut();
+        let owner_bytes = principal_to_bytes(&document.owner);
+        let current_tokens_bytes = tokens.get(&owner_bytes).unwrap_or_default();
+        let mut current_tokens = bytes_to_tokens(&current_tokens_bytes);
+        current_tokens.push(document_id.clone());
+        tokens.insert(owner_bytes, tokens_to_bytes(&current_tokens));
+    });
+
+    DocumentResponse {
+        success: true,
+        document_id: Some(document_id),
+        error_message: None,
+        document_hash: Some(document_hash),
+    }
+} 
