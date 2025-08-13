@@ -1,0 +1,12 @@
+{
+  "root": true,
+  "extends": ["next", "next/core-web-vitals"],
+  "plugins": ["@typescript-eslint"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "rules": {
+    // Example: "semi": ["error", "always"]
+  }
+}
