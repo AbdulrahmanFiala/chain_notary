@@ -1,5 +1,5 @@
 import LoadingSpinner from '#components/shared/LoadingSpinner.tsx';
-import { Col, Divider, Row, Typography } from 'antd';
+import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
 import { canisterId, createActor } from 'declarations/backend';
 import { isEmpty } from 'lodash';
 import { Check, Home } from 'lucide-react';
@@ -91,37 +91,46 @@ const CertificateSuccess: React.FC = () => {
               </div>
             </div> */}
             <div>
-              <Typography.Title level={4}>Blockchain Information</Typography.Title>
-              <Row gutter={[16, 16]} className="text-left">
-                <Col span={24}>
-                  <p className="text-sm font-medium text-gray-500 mb-1">NFT ID</p>
-                  <p className="text-gray-900 font-mono">{nftDetails.document_id}</p>
+              <Row gutter={[16, 16]}>
+                <Col xs={{ order: 2, span: 24 }} md={{ order: 1, span: 12 }}>
+                  <Typography.Title level={4} className='text-center md:text-left'>Blockchain Information</Typography.Title>
+                  <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">NFT ID</p>
+                      <p className="text-gray-900 font-mono wrap-break-word text-center md:text-left">{nftDetails.document_id}</p>
+                    </Col>
+                    {nftDetails.description && <Col span={24}>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">NFT Description</p>
+                      <p className="text-gray-900 font-mono text-center md:text-left">{nftDetails.description}</p>
+                    </Col>}
+                  </Row>
                 </Col>
-                {nftDetails.description && <Col span={24}>
-                  <p className="text-sm font-medium text-gray-500 mb-1">NFT Description</p>
-                  <p className="text-gray-900 font-mono">{nftDetails.description}</p>
-                </Col>}
-
+                <Col xs={{ order: 1, span: 24 }} md={{ order: 2, span: 12 }}>
+                  <div className="flex align-start md:justify-end justify-center">
+                    <QRCode className="w-full" value={`${window.location.host}/certificate-success?document_id=document_1755189245156235856`} />
+                  </div>
+                </Col>
               </Row>
 
+
               <Divider orientation='center' />
-              <Typography.Title level={4}>Recipient Information</Typography.Title>
-              <Row gutter={[16, 16]} className="text-left">
-                {nftDetails.recipient[0].name && <Col span={12}>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Name</p>
-                  <p className="text-gray-900 font-mono text-sm break-all">
+              <Typography.Title level={4} className='text-center md:text-left'>Recipient Information</Typography.Title>
+              <Row gutter={[16, 16]}>
+                {nftDetails.recipient[0].name && <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Name</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
                     {nftDetails.recipient[0].name}
                   </p>
                 </Col>}
-                {nftDetails.recipient[0].id && <Col span={12}>
-                  <p className="text-sm font-medium text-gray-500 mb-1">ID</p>
-                  <p className="text-gray-900 font-mono text-sm break-all">
+                {nftDetails.recipient[0].id && <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">ID</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
                     {nftDetails.recipient[0].id}
                   </p>
                 </Col>}
-                {nftDetails.recipient[0].email && <Col span={12}>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Email Address</p>
-                  <p className="text-gray-900 font-mono text-sm break-all">
+                {nftDetails.recipient[0].email && <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Email Address</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
                     {nftDetails.recipient[0].email}
                   </p>
                 </Col>}
@@ -131,23 +140,22 @@ const CertificateSuccess: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {/* <button className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          {/* <Button className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <Download className="w-4 h-4 mr-2" />
             Download Metadata
-          </button> */}
-          {/* <button onClick={() => {
+          </Button> */}
+          {/* <Button onClick={() => {
             window.open(`https://www.icpexplorer.org/#/search/${nftDetails.document_hash}`, '_blank');
           }} className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
             <ExternalLink className="w-4 h-4 mr-2" />
             View on Explorer
-          </button> */}
-          <button
+          </Button> */}
+          <Button
             onClick={onBackToHome}
-            className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <Home className="w-4 h-4 mr-2" />
             Back to Home
-          </button>
+          </Button>
         </div>
       </div>
     </div>
