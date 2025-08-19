@@ -53,7 +53,6 @@ pub enum DocumentType {
 
 #[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
 pub struct EarningReleaseData {
-    pub document_id: String,
     pub earning_release_id: String,
     pub quarter: u8,
     pub year: u16,
