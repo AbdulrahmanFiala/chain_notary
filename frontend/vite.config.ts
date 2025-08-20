@@ -1,11 +1,12 @@
-import { defineConfig } from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
 import { fileURLToPath, URL } from 'url';
+import { defineConfig } from 'vite';
 import environment from 'vite-plugin-environment';
-import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: './',
-  plugins: [environment('all', { prefix: 'CANISTER_' }), environment('all', { prefix: 'DFX_' }), tailwindcss()],
+  plugins: [react(), environment('all', { prefix: 'CANISTER_' }), environment('all', { prefix: 'DFX_' }), tailwindcss()],
   envDir: '../',
   define: {
     'process.env': process.env
@@ -22,8 +23,11 @@ export default defineConfig({
       {
         find: 'declarations',
         replacement: fileURLToPath(new URL('../src/declarations', import.meta.url))
-      }
-    ]
+      },{
+      find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url))
+    }
+    ],
+    dedupe: ['@dfinity/agent'],
   },
   server: {
     proxy: {

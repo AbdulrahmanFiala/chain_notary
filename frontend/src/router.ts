@@ -1,23 +1,16 @@
-import CertificateSuccess from "#pages/CertificateSuccess.tsx";
-import CreateCertificate from "#pages/CreateCertificate.tsx";
 import {
   createBrowserRouter
 } from "react-router";
-import App from "./App";
-
-const simulateApiFetch = async () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ message: "Data fetched from API" });
-    }, 5000); // simulate 5 second delay
-  });
-};
+import App from "@/App";
+import DocumentDetails from "@/pages/DocumentDetails";
+import QueryDocument from "@/pages/QueryDocument";
+import CreateDocument from "@/pages/CreateDocument";
 
 export const loader = async () => {
   return;
 };
 
-export const router = createBrowserRouter([
+const router = createBrowserRouter([
   {
     path: "/",
     Component: App,
@@ -25,12 +18,18 @@ export const router = createBrowserRouter([
   },
   {
     path: "/create-certificate",
-    Component: CreateCertificate,
+    Component: CreateDocument,
     loader,
   },
   {
     path: "/certificate-success",
-    Component: CertificateSuccess,
+    Component: DocumentDetails,
     loader,
-  }
+  }, {
+    path: "/query-document",
+    Component: QueryDocument,
+    loader,
+  },
 ]);
+
+export default router;
