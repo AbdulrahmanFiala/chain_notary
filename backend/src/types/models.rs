@@ -1,6 +1,5 @@
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
-use std::collections::HashMap;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Institution {
@@ -39,7 +38,7 @@ pub struct Document {
     pub owner: Principal,
     pub name: String,
     pub description: Option<String>,
-    pub document_hash: String,
+    pub document_hash: Option<String>, // Now optional - backend will calculate it
     pub document_data: DocumentType,
     pub file_size: u64,        
     pub file_type: String,    
