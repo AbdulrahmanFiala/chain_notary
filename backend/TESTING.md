@@ -87,28 +87,42 @@ dfx canister call backend icrc37_metadata
 
 ### 4. File Upload Test
 
-**Method:** `upload_file_and_create_nft`
+**Method:** `upload_file_and_publish_document`
 **Input:**
 ```json
 {
-  "file_data": [255, 216, 255, 224, 0, 16, 74, 70, 73, 70, 0, 1, 1, 1, 0, 72, 0, 72, 0, 0],
-  "file_name": "test.jpg",
-  "file_type": "image/jpeg",
   "metadata": {
-    "name": "Uploaded NFT",
-    "description": "NFT created via file upload",
-    "image_url": "https://example.com/image.jpg",
-    "external_url": null,
-    "attributes": [
-      {
-        "trait_type": "Type",
-        "value": "Uploaded",
-        "display_type": null
+    "institution_id": null,
+    "collection_id": null,
+    "document_id": "",
+    "owner": "2vxsx-fae",
+    "name": "Test Excel Document",
+    "description": "A test Excel spreadsheet for testing purposes",
+    "document_hash": "calculated_hash_here",
+    "document_data": {
+      "EarningRelease": {
+        "earning_release_id": "ER001",
+        "quarter": 1,
+        "year": 2024,
+        "consolidated_income_data": {
+          "gross_profit": 1000000.0,
+          "operating_profit": 800000.0,
+          "ebitda": 900000.0,
+          "profit_before_tax": 700000.0,
+          "net_profit": 500000.0
+        },
+        "consolidated_balance_sheet_data": {
+          "total_assets": 5000000.0,
+          "total_equity": 3000000.0,
+          "total_liabilities": 2000000.0,
+          "total_liabilities_and_equity": 5000000.0
+        }
       }
-    ],
-    "properties": null
-  },
-  "owner": "2vxsx-fae"
+    },
+    "file_size": 20,
+    "file_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "file_data": [80, 75, 3, 4, 20, 0, 6, 0, 8, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0]
+  }
 }
 ```
 
@@ -143,6 +157,14 @@ const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
 const arrayBuffer = await blob.arrayBuffer();
 const uint8Array = new Uint8Array(arrayBuffer);
 console.log(Array.from(uint8Array)); // Copy this array
+```
+
+### Generate Test Excel Data
+```javascript
+// In browser console, generate a small test Excel file header
+// This represents the first 20 bytes of an Excel .xlsx file (ZIP format)
+const excelHeader = [80, 75, 3, 4, 20, 0, 6, 0, 8, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0];
+console.log(excelHeader); // Copy this array for Excel file testing
 ```
 
 ## 🐛 Common Issues & Solutions
