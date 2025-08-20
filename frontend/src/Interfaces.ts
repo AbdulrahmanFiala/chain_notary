@@ -1,7 +1,8 @@
+import type { UploadFile } from "antd";
 import dayjs from "dayjs";
 
 export interface FormData {
-  fileData: any,
+  fileData: UploadFile,
   nftName: string;
   nftDescription: string;
   rewarderName: string;

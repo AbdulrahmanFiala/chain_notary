@@ -1,6 +1,5 @@
-import React from 'react';
-import Home from '#pages/Home.tsx';
-import './App.css';
+import '@/App.css';
+import Home from '@/pages/Home';
 
 function App() {
   return <Home />;
