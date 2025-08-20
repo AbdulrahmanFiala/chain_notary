@@ -1,10 +1,10 @@
+import App from "@/App";
+import CreateDocument from "@/pages/CreateDocument";
+import DocumentDetails from "@/pages/DocumentDetails";
+import QueryDocument from "@/pages/QueryDocument";
 import {
   createBrowserRouter
 } from "react-router";
-import App from "@/App";
-import DocumentDetails from "@/pages/DocumentDetails";
-import QueryDocument from "@/pages/QueryDocument";
-import CreateDocument from "@/pages/CreateDocument";
 
 export const loader = async () => {
   return;
@@ -17,12 +17,12 @@ const router = createBrowserRouter([
     loader,
   },
   {
-    path: "/create-certificate",
+    path: "/create-document",
     Component: CreateDocument,
     loader,
   },
   {
-    path: "/certificate-success",
+    path: "/document-details",
     Component: DocumentDetails,
     loader,
   }, {

@@ -1,40 +1,42 @@
-import type { FormData } from "@/Interfaces";
 import { Principal } from "@dfinity/principal";
-import { message } from "antd";
 import { backend } from "declarations/backend";
+import type { Document } from "declarations/backend/backend.did";
 
-const createDocumentService = async (data: FormData) => {
-
-  const fileObj = data.fileData?.originFileObj;
-  if (!fileObj) {
-    message.error('Please upload a file.');
-    return;
-  }
-
-  const arrayBuffer = await fileObj.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-  
-  // Calculate a document hash (example using SHA-256)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', uint8Array);
-  const documentHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  const ownerPrincipal = Principal.fromText("y5ii6-maar4-sidi3-ftt7h-5f7vs-lgpdn-zw6hp-xdccz-vvuyx-d2mth-uqe");
-
+const createDocumentService = async (data: Document) => {
+  const ownerPrincipal = Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID);  
   const mintedFile = await backend.upload_file_and_publish_document(
-    uint8Array,
-    fileObj.type,
     {
       collection_id: [],
-      document_id: data.nftName || "default_id",
+      document_id: data.document_id,
       owner: ownerPrincipal,
-      name: data.nftName || "Untitled Document",
-      description: [data.nftDescription || "No description provided"],
-      image_url: [],
-      document_hash: documentHash,
-      file_size: BigInt(fileObj.size || 0),
-      file_type: fileObj.type || "application/octet-stream",
-      file_data: [uint8Array],
-      recipient: [{ name: data.rewarderName || "Unknown Recipient", id: [data.nationalId || ""], email: [data.email || ""] }],
+      name: data.name,
+      description: data.description,
+      document_hash: data.document_hash,
+      file_size: data.file_size,
+      file_type: data.file_type,
+      file_data: data.file_data,
+      document_data: {
+        EarningRelease: {
+          earning_release_id: data.document_data.EarningRelease.earning_release_id,
+          consolidated_balance_sheet_data: {
+            total_assets: data.document_data.EarningRelease.consolidated_balance_sheet_data.total_assets,
+            total_equity: data.document_data.EarningRelease.consolidated_balance_sheet_data.total_equity,
+            total_liabilities_and_equity: data.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities_and_equity,
+            total_liabilities: data.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities
+          },
+          consolidated_income_data: {
+            ebitda: data.document_data.EarningRelease.consolidated_income_data.ebitda,
+            gross_profit: data.document_data.EarningRelease.consolidated_income_data.gross_profit,
+            net_profit: data.document_data.EarningRelease.consolidated_income_data.net_profit,
+            operating_profit: data.document_data.EarningRelease.consolidated_income_data.operating_profit,
+            profit_before_tax: data.document_data.EarningRelease.consolidated_income_data.profit_before_tax
+          },
+          year: data.document_data.EarningRelease.year,
+          quarter: data.document_data.EarningRelease.quarter
+
+        }
+      },
+      institution_id: [],
     }
   );
   return mintedFile;

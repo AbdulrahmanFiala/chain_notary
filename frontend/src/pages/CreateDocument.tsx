@@ -1,44 +1,48 @@
 import Header from '@/components/Header';
 import useFormValidation from '@/hooks/useFormValidation';
-import type { FormData } from '@/Interfaces';
 import createDocumentService from '@/services/documents/createDocument.service';
+import computeFileHash from '@/utils/compileFileHash';
+import getUint8Array from '@/utils/getUint8Array';
 import { InboxOutlined } from '@ant-design/icons';
-import { Button, Col, DatePicker, Flex, Form, Input, message, Row, Upload, type FormProps, type UploadProps } from 'antd';
-import dayjs from 'dayjs';
+import { Button, Col, Flex, Form, Input, InputNumber, message, Row, Typography, Upload, type FormProps, type UploadProps } from 'antd';
+import type { Document } from 'declarations/backend/backend.did';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const CreateDocument: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<Document>();
   const { isValid } = useFormValidation(form);
 
   const props: UploadProps = {
-    name: 'fileData',
+    name: 'file_data',
     listType: 'picture',
     multiple: false,
     maxCount: 1,
-    onChange(info) {
-      const { status } = info.file;
+
+    onChange: async (info) => {
+      const { status, size, type: file_type, originFileObj } = info.file;
       if (status === 'done') {
-        form.setFieldsValue({ fileData: info.file, nftName: info.file.uid, dateOfRewarding: dayjs(info.file.lastModifiedDate) });
+        const file_data = await getUint8Array(originFileObj as File)
+        const document_hash = await computeFileHash(file_data);
+        form.setFieldsValue({ file_data: [file_data], file_type, file_size: BigInt(size || 0), document_hash: [document_hash], name: info.file.uid });
         message.success(`${info.file.name} file uploaded successfully.`);
       } else if (status === 'error') {
         message.error(`${info.file.name} file upload failed.`);
       }
     },
     onRemove() {
-      form.setFieldsValue({ fileData: null });
+      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), document_hash: [], name: '' });
     }
   };
 
-  const handleSubmit: FormProps<FormData>['onFinish'] = async (formData) => {
+  const handleSubmit: FormProps<Document>['onFinish'] = async (values) => {
     setIsLoading(true);
     try {
-      const mintedFile = await createDocumentService(formData);
+      const mintedFile = await createDocumentService(values);
       setIsLoading(false);
-      navigate(`/certificate-success?document_id=${mintedFile?.document_id}`);
+      navigate(`/document-details?document_id=${mintedFile?.document_id}`);
     } catch (error) {
       console.error("Error during file upload and document creation:", error);
       setIsLoading(false);
@@ -50,7 +54,7 @@ const CreateDocument: React.FC = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="bg-gray-50 py-12">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
@@ -58,10 +62,10 @@ const CreateDocument: React.FC = () => {
             </h2>
 
             <Form className="form space-y-6" layout='vertical' onFinish={handleSubmit} form={form}>
-              <Row gutter={16}>
+              <Row gutter={[16, 16]}>
                 <Col span={24}>
                   <Form.Item
-                    name="fileData"
+                    name="file_data"
                     hasFeedback
                     rules={[{ required: true, message: 'Please upload a document to notarize!' }]}
                   >
@@ -79,83 +83,163 @@ const CreateDocument: React.FC = () => {
                 <Col span={24}>
                   <Form.Item
                     label="NFT Name"
-                    name="nftName"
+                    name="name"
                     hasFeedback
                     rules={[{ required: true, message: 'Please input the NFT name!' }]}
                   >
-                    <Input
-                      id="nftName"
-                      name="nftName"
-                    />
+                    <Input />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
                   <Form.Item
                     label="NFT Description"
-                    name="nftDescription"
+                    name="description"
+                    initialValue={['']}
                     hasFeedback
                   >
+                    <Input.TextArea rows={4} />
+                  </Form.Item>
+                </Col>
+                <Col span={24}>
+                  <div className='bg-gray-50 p-4! rounded-lg'>
+                    <Typography.Title level={5} className='mb-4'>Consolidated Balance Sheet</Typography.Title>
+                    <Row gutter={[16, 16]}>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Total Equity"
+                          name={['document_data', 'EarningRelease', 'consolidated_balance_sheet_data', 'total_equity']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the total equity!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Total Liabilities and Equity"
+                          name={['document_data', 'EarningRelease', 'consolidated_balance_sheet_data', 'total_liabilities_and_equity']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the total liabilities and equity!' }]}>
+                          <InputNumber className='w-full!' />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Total Assets"
+                          name={['document_data', 'EarningRelease', 'consolidated_balance_sheet_data', 'total_assets']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the total assets!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item></Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
 
-                    <Input.TextArea
-                      id="nftDescription"
-                      name="nftDescription"
-                      rows={4}
-                    />
-                  </Form.Item>
+                        <Form.Item
+                          label="Total Liabilities"
+                          name={['document_data', 'EarningRelease', 'consolidated_balance_sheet_data', 'total_liabilities']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the total liabilities!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
                 </Col>
-                <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <Form.Item
-                    label="Rewarder Name"
-                    name="rewarderName"
-                    hasFeedback
-                    rules={[{ required: true, message: 'Please input the rewarder name!' }]}
+                <Col span={24}>
+                  <div className='bg-gray-50 p-4! rounded-lg'>
+                    <Typography.Title level={5} className='mb-4'>Consolidated Income</Typography.Title>
+                    <Row gutter={[16, 16]}>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="EBITDA"
+                          name={['document_data', 'EarningRelease', 'consolidated_income_data', 'ebitda']}
+                          hasFeedback
+
+                          rules={[{ required: true, message: 'Please input the EBIDA!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          /></Form.Item></Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Gross Profit"
+                          name={['document_data', 'EarningRelease', 'consolidated_income_data', 'gross_profit']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the total equity!' }]}>
+                          <InputNumber className='w-full!' />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Net Profit"
+                          name={['document_data', 'EarningRelease', 'consolidated_income_data', 'net_profit']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the net profit!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+
+                        <Form.Item
+                          label="Operating Profit"
+                          name={['document_data', 'EarningRelease', 'consolidated_income_data', 'operating_profit']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the operating profit' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+
+                        <Form.Item
+                          label="Profit Before Tax"
+                          name={['document_data', 'EarningRelease', 'consolidated_income_data', 'profit_before_tax']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the profit before tax!' }]}
+                        >
+                          <InputNumber className='w-full!'
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <div
+                    className='bg-gray-50 p-4! rounded-lg'
                   >
-                    <Input
-                      id="rewarderName"
-                      name="rewarderName"
-                    />
-                  </Form.Item>
+                    <Typography.Title level={5} className='mb-4'>Earning Release</Typography.Title>
+                    <Row gutter={[16, 16]}>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Quarter"
+                          name={['document_data', 'EarningRelease', 'quarter']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the quarter!' }]}
+                        >
+                          <InputNumber className='w-full!' min={1} max={4} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Year"
+                          name={['document_data', 'EarningRelease', 'year']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the year!' }]}
+                        >
+                          <InputNumber className='w-full!' min={2000} max={new Date().getFullYear()} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
                 </Col>
-                <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <Form.Item
-                    label="Date of Rewarding"
-                    name="dateOfRewarding"
-                    hasFeedback
-                    rules={[{ required: true, message: 'Please select the date of rewarding!' }]}
-                  >
-                    <DatePicker
-                      id="dateOfRewarding"
-                      className='w-full'
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <Form.Item
-                    label="Email Address"
-                    name="email"
-                    hasFeedback
-                    rules={[{ required: true, message: 'Please input the email address!' }, { type: 'email', message: 'Please enter a valid email address!' }]}
-                  >
-                    <Input
-                      type='email'
-                      id="email"
-                      name="email"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <Form.Item
-                    label="National ID"
-                    name="nationalId"
-                    hasFeedback
-                    rules={[{ required: true, message: 'Please input the national ID!' }, { pattern: /^[0-9]{8,}$/, message: 'National ID must be at least 8 digits long!' }]}
-                  >
-                    <Input
-                      id="nationalId"
-                      name="nationalId"
-                    />
-                  </Form.Item>
-                </Col>
+
                 <Col span={24}>
                   <Form.Item className='mb-0!'>
                     <Flex gap="small" align="center" justify='space-between' wrap>
@@ -177,11 +261,42 @@ const CreateDocument: React.FC = () => {
                     </Flex>
                   </Form.Item>
                 </Col>
-              </Row>
-            </Form>
-          </div>
-        </div>
-      </div>
+
+              </Row >
+              <Form.Item
+                name="document_id"
+                hidden
+                initialValue={""}
+              ></Form.Item>
+              <Form.Item
+                name="institution_id"
+                hidden
+                initialValue={[]}
+              ></Form.Item>
+              <Form.Item
+                name="document_hash"
+                hidden
+                initialValue={['']}
+              ></Form.Item>
+              <Form.Item
+                name="file_size"
+                hidden
+                initialValue={BigInt(0)}
+              ></Form.Item>
+              <Form.Item
+                name="file_type"
+                hidden
+                initialValue={''}
+              ></Form.Item>
+              <Form.Item
+                name={["document_data", "EarningRelease", "earning_release_id"]}
+                hidden
+                initialValue={''}
+              ></Form.Item>
+            </Form >
+          </div >
+        </div >
+      </div >
 
     </>
 
