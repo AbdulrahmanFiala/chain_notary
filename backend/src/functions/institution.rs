@@ -1,6 +1,6 @@
-use ic_cdk::{update, query, caller};
-use crate::types::{Institution, CollectionMetadata, CollectionCategory};
-use crate::storage::{INSTITUTIONS, COLLECTIONS, institution_to_bytes, bytes_to_institution, bytes_to_collection, collection_to_bytes};
+use ic_cdk::{update, caller};
+use crate::types::{Institution, CollectionMetadata};
+use crate::storage::{INSTITUTIONS, COLLECTIONS};
 
 /// Create a new institution
 #[update]
@@ -10,17 +10,9 @@ pub fn create_institution(
     email: String,
 ) -> Result<(), String> {
     // Validate inputs
-    if institution_id.len() < 3 || institution_id.len() > 50 {
-        return Err("Institution ID must be between 3 and 50 characters".to_string());
-    }
-    
-    if name.len() < 2 || name.len() > 100 {
-        return Err("Institution name must be between 2 and 100 characters".to_string());
-    }
-    
-    if email.len() < 5 || email.len() > 100 {
-        return Err("Email must be between 5 and 100 characters".to_string());
-    }
+    crate::utils::validate_string_length(&institution_id, 3, 50, "Institution ID")?;
+    crate::utils::validate_string_length(&name, 2, 100, "Institution name")?;
+    crate::utils::validate_email(&email)?;
 
     let caller = caller();
     
@@ -42,9 +34,7 @@ pub fn create_institution(
         collections: Vec::new(),
     };
 
-    INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().insert(institution_id, institution_to_bytes(&institution));
-    });
+    crate::storage::update_institution_safe(&institution_id, &institution)?;
 
     Ok(())
 }
@@ -58,11 +48,8 @@ pub fn update_institution(
 ) -> Result<(), String> {
     let caller = caller();
     
-    let mut institution = INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-            .ok_or("Institution not found")
-    })?;
+    let mut institution = crate::storage::get_institution_safe(&institution_id)
+        .ok_or("Institution not found")?;
 
     // Check ownership
     if institution.owner != caller {
@@ -71,22 +58,16 @@ pub fn update_institution(
 
     // Update fields if provided
     if let Some(new_name) = name {
-        if new_name.len() < 2 || new_name.len() > 100 {
-            return Err("Institution name must be between 2 and 100 characters".to_string());
-        }
+        crate::utils::validate_string_length(&new_name, 2, 100, "Institution name")?;
         institution.name = new_name;
     }
 
     if let Some(new_email) = email {
-        if new_email.len() < 5 || new_email.len() > 100 {
-            return Err("Email must be between 5 and 100 characters".to_string());
-        }
+        crate::utils::validate_email(&new_email)?;
         institution.email = new_email;
     }
 
-    INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().insert(institution_id, institution_to_bytes(&institution));
-    });
+    crate::storage::update_institution_safe(&institution_id, &institution)?;
 
     Ok(())
 }
@@ -96,11 +77,8 @@ pub fn update_institution(
 pub fn delete_institution(institution_id: String) -> Result<(), String> {
     let caller = caller();
     
-    let institution = INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-            .ok_or("Institution not found")
-    })?;
+    let institution = crate::storage::get_institution_safe(&institution_id)
+        .ok_or("Institution not found")?;
 
     // Check ownership
     if institution.owner != caller {
@@ -119,27 +97,6 @@ pub fn delete_institution(institution_id: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Get institution metadata
-#[query]
-pub fn get_institution(institution_id: String) -> Option<Institution> {
-    INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-    })
-}
-
-/// List all institutions
-#[query]
-pub fn list_all_institutions() -> Vec<Institution> {
-    INSTITUTIONS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes))
-            .collect()
-    })
-}
-
-
-
 /// Add a collection to an institution
 #[update]
 pub fn add_collection_to_institution(
@@ -149,22 +106,15 @@ pub fn add_collection_to_institution(
     let caller = caller();
     
     // Check if institution exists and caller owns it
-    let mut institution = match INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-    }) {
-        Some(inst) => inst,
-        None => return Err("Institution not found".to_string()),
-    };
+    let mut institution = crate::storage::get_institution_safe(&institution_id)
+        .ok_or("Institution not found")?;
 
     if institution.owner != caller {
         return Err("Only the institution owner can add collections".to_string());
     }
 
     // Check if collection exists
-    let collection_exists = COLLECTIONS.with(|storage| {
-        storage.borrow().contains_key(&collection_id)
-    });
+    let collection_exists = crate::storage::get_collection_safe(&collection_id).is_some();
     
     if !collection_exists {
         return Err("Collection does not exist".to_string());
@@ -179,24 +129,15 @@ pub fn add_collection_to_institution(
     institution.collections.push(collection_id.clone());
 
     // Update collection's institution_id
-    let collection_data = COLLECTIONS.with(|storage| {
-        storage.borrow().get(&collection_id).map(|bytes| bytes.clone())
-    });
-    
-    if let Some(collection_bytes) = collection_data {
-        if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-            collection.institution_id = institution_id.clone();
-            let updated_bytes = collection_to_bytes(&collection);
-            COLLECTIONS.with(|storage| {
-                storage.borrow_mut().insert(collection_id, updated_bytes);
-            });
+    if let Some(mut collection) = crate::storage::get_collection_safe(&collection_id) {
+        collection.institution_id = institution_id.clone();
+        if let Err(e) = crate::storage::update_collection_safe(&collection_id, &collection) {
+            return Err(format!("Failed to update collection: {}", e));
         }
     }
 
     // Update institution
-    INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().insert(institution_id, institution_to_bytes(&institution));
-    });
+    crate::storage::update_institution_safe(&institution_id, &institution)?;
 
     Ok(())
 }
@@ -210,11 +151,8 @@ pub fn remove_collection_from_institution(
     let caller = caller();
     
     // Check if institution exists and caller owns it
-    let mut institution = INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-            .ok_or("Institution not found")
-    })?;
+    let mut institution = crate::storage::get_institution_safe(&institution_id)
+        .ok_or("Institution not found")?;
 
     if institution.owner != caller {
         return Err("Only the institution owner can remove collections".to_string());
@@ -229,24 +167,15 @@ pub fn remove_collection_from_institution(
     institution.collections.retain(|id| id != &collection_id);
 
     // Clear collection's institution_id
-    let collection_data = COLLECTIONS.with(|storage| {
-        storage.borrow().get(&collection_id).map(|bytes| bytes.clone())
-    });
-    
-    if let Some(collection_bytes) = collection_data {
-        if let Some(mut collection) = bytes_to_collection(&collection_bytes) {
-            collection.institution_id = String::new();
-            let updated_bytes = collection_to_bytes(&collection);
-            COLLECTIONS.with(|storage| {
-                storage.borrow_mut().insert(collection_id, updated_bytes);
-            });
+    if let Some(mut collection) = crate::storage::get_collection_safe(&collection_id) {
+        collection.institution_id = String::new();
+        if let Err(e) = crate::storage::update_collection_safe(&collection_id, &collection) {
+            return Err(format!("Failed to update collection: {}", e));
         }
     }
 
     // Update institution
-    INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().insert(institution_id, institution_to_bytes(&institution));
-    });
+    crate::storage::update_institution_safe(&institution_id, &institution)?;
 
     Ok(())
 }
