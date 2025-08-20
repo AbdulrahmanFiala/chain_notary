@@ -20,33 +20,37 @@ upload_file_and_create_nft : (vec nat8, text, DocumentMetadata) -> (NFTResponse)
 ```
 
 **Parameters:**
-- `file_data : vec nat8` - Binary file data
-- `file_type : text` - MIME type (e.g., "image/jpeg")
-- `metadata : DocumentMetadata` - Document metadata including owner, name, description, etc.
+- `metadata : Document` - Complete document metadata including file data, type, and all required fields
 
-**DocumentMetadata Structure:**
+**Supported File Types:**
+- Images: JPEG, PNG
+- Documents: PDF, Text files
+- Spreadsheets: Excel (.xls, .xlsx, .xlsm, .xltm, .xlam, .xlsb)
+
+**Document Structure:**
 ```candid
-type DocumentMetadata = record {
+type Document = record {
+    institution_id : opt text;   // Optional institution ID
     collection_id : opt text;    // Optional collection ID
-    document_id : opt text;      // Will be set by the canister
+    document_id : text;          // Will be set by the canister
     owner : principal;           // Owner's principal ID
     name : text;                 // Document name
     description : opt text;      // Document description
-    image_url : opt text;        // Image URL
-    document_hash : text;        // Will be calculated by the canister
-    file_size : nat64;          // Will be set by the canister
-    file_type : text;           // MIME type (will be overridden)
-    uploaded_at : nat64;        // Will be set by the canister
+    document_hash : text;        // Must match calculated file hash
+    document_data : DocumentType; // Document type and data
+    file_size : nat64;          // File size in bytes
+    file_type : text;           // MIME type (e.g., "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    file_data : opt vec nat8;   // Binary file data
 };
 ```
 
 **Response Structure:**
 ```candid
-type NFTResponse = record {
+type DocumentResponse = record {
     success : bool;              // Operation success status
-    token_id : opt text;        // Generated token ID
+    document_id : opt text;      // Generated document ID
     error_message : opt text;    // Error message if failed
-    ipfs_hash : opt text;       // File hash (IPFS hash in production)
+    document_hash : opt text;    // File hash for verification
 };
 ```
 
