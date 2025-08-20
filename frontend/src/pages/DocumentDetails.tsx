@@ -1,6 +1,8 @@
 import LoadingSpinner from '@/components/shared/LoadingSpinner.tsx';
 import getDocumentDetails from '@/services/documents/getDocumentDetails';
+import { Principal } from '@dfinity/principal';
 import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
+import type { Document } from 'declarations/backend/backend.did';
 import { isEmpty } from 'lodash';
 import { Check, Cross, Home } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -9,10 +11,35 @@ import { useNavigate, useSearchParams } from 'react-router';
 const DocumentDetails: React.FC = () => {
 
   const navigate = useNavigate();
-  const [nftDetails, setNftDetails] = useState({
+  const [documentDetails, setDocumentDetails] = useState<Document>({
     document_id: '',
-    description: '',
-    recipient: [{ name: '', id: '', email: '' }]
+    document_hash: [''],
+    name: '',
+    description: [''],
+    collection_id: [],
+    owner: Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID),
+    file_data: [],
+    file_size: BigInt(0),
+    file_type: '', document_data: {
+      EarningRelease: {
+        earning_release_id: '',
+        consolidated_balance_sheet_data: {
+          total_assets: 0,
+          total_equity: 0,
+          total_liabilities_and_equity: 0,
+          total_liabilities: 0
+        },
+        consolidated_income_data: {
+          ebitda: 0,
+          gross_profit: 0,
+          net_profit: 0,
+          operating_profit: 0,
+          profit_before_tax: 0
+        },
+        quarter: 0,
+        year: 0
+      }
+    }, institution_id: []
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchParams] = useSearchParams();
@@ -28,7 +55,7 @@ const DocumentDetails: React.FC = () => {
     try {
       setIsLoading(true);
       const resposeData = await getDocumentDetails(document_id || '');
-      if (!isEmpty(resposeData)) setNftDetails(resposeData);
+      if (resposeData.length) setDocumentDetails(resposeData[0]);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching NFT details:', error);
@@ -46,107 +73,102 @@ const DocumentDetails: React.FC = () => {
   return (<div className="min-h-screen bg-gray-50 py-12" >
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <div className={`w-16 h-16 ${!isEmpty(nftDetails) ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+        <div className={`w-16 h-16 ${!isEmpty(documentDetails) ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
 
-          {!isEmpty(nftDetails) ? <Check className="w-8 h-8 text-white" /> : <Cross className="w-8 h-8 text-white rotate-45" />}
+          {!isEmpty(documentDetails) ? <Check className="w-8 h-8 text-white" /> : <Cross className="w-8 h-8 text-white rotate-45" />}
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          {!isEmpty(nftDetails) ? "NFT Minted Successfully" : "NFT Minting Failed"}
+          {!isEmpty(documentDetails) ? "NFT Minted Successfully" : "NFT Minting Failed"}
         </h2>
         <p className="text-gray-600 mb-8">
-          {!isEmpty(nftDetails) ? "Your document has been successfully minted as an NFT on the blockchain." : "There was an error minting your document as an NFT. Please try again later."}
+          {!isEmpty(documentDetails) ? "Your document has been successfully minted as an NFT on the blockchain." : "There was an error minting your document as an NFT. Please try again later."}
         </p>
-        {!isEmpty(nftDetails) && <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        {!isEmpty(documentDetails) && <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <div className="text-left space-y-6">
-
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-500">National ID Number</p>
-                    <p className="text-gray-900">1234567890</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Birth Date</p>
-                    <p className="text-gray-900">Jan 1, 1990</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Birthplace</p>
-                    <p className="text-gray-900">Cairo, Egypt</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Nationality</p>
-                    <p className="text-gray-900">Egyptian</p>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Academic Information</h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-gray-500">NFT Name</p>
-                    <p className="text-gray-900">Bachelor of Engineering</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Specialization</p>
-                    <p className="text-gray-900">Computer Science</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">GPA</p>
-                    <p className="text-gray-900">3.8/4.0</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Graduation Project GPA</p>
-                    <p className="text-gray-900">4.0/4.0</p>
-                  </div>
-                </div>
-              </div>
-            </div> */}
             <div>
               <Row gutter={[16, 16]}>
                 <Col xs={{ order: 2, span: 24 }} md={{ order: 1, span: 12 }}>
                   <Typography.Title level={4} className='text-center md:text-left'>Blockchain Information</Typography.Title>
                   <Row gutter={[16, 16]}>
                     <Col span={24}>
-                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">NFT ID</p>
-                      <Typography.Paragraph copyable className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{nftDetails.document_id}</Typography.Paragraph>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Document ID</p>
+                      <Typography.Paragraph copyable className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{documentDetails.document_id}</Typography.Paragraph>
                     </Col>
-                    {nftDetails.description && <Col span={24}>
-                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">NFT Description</p>
-                      <p className="text-gray-900 font-mono text-center md:text-left">{nftDetails.description}</p>
+                    {documentDetails.description[0] && <Col span={24}>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Document Description</p>
+                      <p className="text-gray-900 font-mono text-center md:text-left">{documentDetails.description[0]}</p>
                     </Col>}
                   </Row>
                 </Col>
                 <Col xs={{ order: 1, span: 24 }} md={{ order: 2, span: 12 }}>
                   <div className="flex align-start md:justify-end justify-center">
-                    <QRCode className="w-full" value={`${window.location.host}/certificate-success?document_id=${nftDetails.document_id}`} />
+                    <QRCode className="w-full" value={`${window.location.host}/document-details?document_id=${documentDetails.document_id}`} />
                   </div>
                 </Col>
               </Row>
 
-
               <Divider orientation='center' />
-              <Typography.Title level={4} className='text-center md:text-left'>Recipient Information</Typography.Title>
+              <Typography.Title level={4} className='text-center md:text-left'>Consolidated Income Information</Typography.Title>
               <Row gutter={[16, 16]}>
-                {nftDetails.recipient[0].name && <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Name</p>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">EBITDA</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {nftDetails.recipient[0].name}
+                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.ebitda}
                   </p>
-                </Col>}
-                {nftDetails.recipient[0].id && <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">ID</p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Gross Profit</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {nftDetails.recipient[0].id}
+                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.gross_profit}
                   </p>
-                </Col>}
-                {nftDetails.recipient[0].email && <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Email Address</p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Net Profit</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {nftDetails.recipient[0].email}
+                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.net_profit}
                   </p>
-                </Col>}
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Operating Profit</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.operating_profit}
+                  </p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Profit Before Tax</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.profit_before_tax}
+                  </p>
+                </Col>
+              </Row>
+                <Divider orientation='center' />
+              <Typography.Title level={4} className='text-center md:text-left'>Consolidated Balance Sheet Information</Typography.Title>
+
+              <Row gutter={[16,16]}>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Equity</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_equity}
+                  </p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Liabilities and Equity</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities_and_equity}
+                  </p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Assets</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_assets}
+                  </p>
+                </Col>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Liabilities</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities}
+                  </p>
+                </Col>
               </Row>
 
             </div>

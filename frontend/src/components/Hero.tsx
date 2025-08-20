@@ -1,5 +1,4 @@
 import { NavLink } from "react-router";
-import React from "react";
 
 const Hero = () => {
   return (
@@ -14,7 +13,7 @@ const Hero = () => {
         </p>
         <div className="flex justify-center items-center space-x-4">
           <NavLink
-            to="/create-certificate"
+            to="/create-document"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
           >
             Create Certificate NFT
