@@ -7,16 +7,11 @@ use crate::storage::{COLLECTIONS, bytes_to_collection};
 // COLLECTION QUERY FUNCTIONS
 // ============================================================================
 
-/// Get collection metadata by collection ID
 #[query]
 pub fn get_collection_metadata(collection_id: String) -> Option<CollectionMetadata> {
-    COLLECTIONS.with(|storage| {
-        storage.borrow().get(&collection_id)
-            .and_then(|bytes| bytes_to_collection(&bytes))
-    })
+    crate::storage::get_collection_safe(&collection_id)
 }
 
-/// Get all collection IDs
 #[query]
 pub fn get_all_collection_ids() -> Vec<String> {
     COLLECTIONS.with(|storage| {
@@ -29,28 +24,26 @@ pub fn get_all_collection_ids() -> Vec<String> {
 pub fn get_all_collections() -> Vec<CollectionMetadata> {
     COLLECTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
             .collect()
     })
 }
 
-/// Get collections by owner
 #[query]
 pub fn get_collections_by_owner(owner: Principal) -> Vec<CollectionMetadata> {
     COLLECTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
             .filter(|collection| collection.owner == owner)
             .collect()
     })
 }
 
-/// Get collections by institution
 #[query]
 pub fn get_collections_by_institution(institution_id: String) -> Vec<CollectionMetadata> {
     COLLECTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
             .filter(|collection| collection.institution_id == institution_id)
             .collect()
     })

@@ -10,10 +10,7 @@ use crate::storage::{INSTITUTIONS, bytes_to_institution};
 /// Get institution metadata by institution ID
 #[query]
 pub fn get_institution_metadata(institution_id: String) -> Option<Institution> {
-    INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id)
-            .and_then(|bytes| bytes_to_institution(&bytes))
-    })
+    crate::storage::get_institution_safe(&institution_id)
 }
 
 /// Get all institutions with full metadata
@@ -21,7 +18,7 @@ pub fn get_institution_metadata(institution_id: String) -> Option<Institution> {
 pub fn get_all_institutions() -> Vec<Institution> {
     INSTITUTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_institution(&bytes).ok())
             .collect()
     })
 }
@@ -31,7 +28,7 @@ pub fn get_all_institutions() -> Vec<Institution> {
 pub fn get_institutions_by_owner(owner: Principal) -> Vec<Institution> {
     INSTITUTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_institution(&bytes).ok())
             .filter(|institution| institution.owner == owner)
             .collect()
     })

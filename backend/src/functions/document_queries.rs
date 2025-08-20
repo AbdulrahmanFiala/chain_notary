@@ -1,6 +1,6 @@
 use ic_cdk::query;
 use candid::Principal;
-use crate::types::{Document, CollectionCategory};
+use crate::types::{Document, CollectionCategory, DocumentType};
 use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, bytes_to_document, bytes_to_collection, principal_to_bytes, bytes_to_tokens};
 
 // ============================================================================
@@ -10,9 +10,7 @@ use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, bytes_to_document, by
 /// Get document metadata by document ID (fast query, no file data)
 #[query]
 pub fn get_document_metadata(document_id: String) -> Option<Document> {
-    DOCUMENTS.with(|storage| {
-        storage.borrow().get(&document_id).and_then(|bytes| bytes_to_document(&bytes))
-    })
+    crate::storage::get_document_safe(&document_id)
 }
 
 /// Get document file data by document ID (loads file data)
@@ -20,7 +18,7 @@ pub fn get_document_metadata(document_id: String) -> Option<Document> {
 pub fn get_document_file(document_id: String) -> Option<Vec<u8>> {
     DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
-            bytes_to_document(&bytes).map(|document| document.file_data.unwrap_or_default())
+            bytes_to_document(&bytes).ok().and_then(|document| document.file_data)
         })
     })
 }
@@ -33,9 +31,9 @@ pub fn get_complete_document(document_id: String) -> Option<(Document, Vec<u8>)>
     Some((metadata, file_data))
 }
 
-/// List all document IDs (fast query)
+/// Get all document IDs (fast query)
 #[query]
-pub fn list_all_documents() -> Vec<String> {
+pub fn get_all_document_ids() -> Vec<String> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter().map(|(k, _)| k.clone()).collect()
     })
@@ -46,7 +44,9 @@ pub fn list_all_documents() -> Vec<String> {
 pub fn get_documents_by_owner(owner: Principal) -> Vec<String> {
     OWNER_TOKENS.with(|owner_tokens| {
         let owner_bytes = principal_to_bytes(&owner);
-        owner_tokens.borrow().get(&owner_bytes).map(|bytes| bytes_to_tokens(&bytes)).unwrap_or_default()
+        owner_tokens.borrow().get(&owner_bytes)
+            .and_then(|bytes| bytes_to_tokens(&bytes).ok())
+            .unwrap_or_default()
     })
 }
 
@@ -63,8 +63,8 @@ pub fn get_document_count() -> u64 {
 pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
-            .filter(|metadata| metadata.collection_id == Some(collection_id.clone()))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
+            .filter(|metadata| metadata.collection_id.as_ref() == Some(&collection_id))
             .collect()
     })
 }
@@ -75,7 +75,7 @@ pub fn get_documents_by_collection_category(category: CollectionCategory) -> Vec
     // Get all collections with this category
     let collections = COLLECTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
             .filter(|collection| collection.category.as_ref() == Some(&category))
             .collect::<Vec<_>>()
     });
@@ -93,33 +93,31 @@ pub fn get_documents_by_collection_category(category: CollectionCategory) -> Vec
     documents
 }
 
-/// Get documents by recipient email
+/// Get documents by document type
 #[query]
-pub fn get_documents_by_recipient_email(recipient_email: String) -> Vec<Document> {
+pub fn get_documents_by_type(document_type: String) -> Vec<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
             .filter(|doc| {
-                doc.recipient.as_ref()
-                    .and_then(|r| r.email.as_ref())
-                    .map(|email| email == &recipient_email)
-                    .unwrap_or(false)
+                match &doc.document_data {
+                    DocumentType::EarningRelease(_) => document_type == "EarningRelease",
+                }
             })
             .collect()
     })
 }
 
-/// Get documents by recipient ID
+/// Get documents by earning release quarter and year
 #[query]
-pub fn get_documents_by_recipient_id(recipient_id: String) -> Vec<Document> {
+pub fn get_documents_by_quarter_year(quarter: u8, year: u16) -> Vec<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes))
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
             .filter(|doc| {
-                doc.recipient.as_ref()
-                    .and_then(|r| r.id.as_ref())
-                    .map(|id| id == &recipient_id)
-                    .unwrap_or(false)
+                match &doc.document_data {
+                    DocumentType::EarningRelease(data) => data.quarter == quarter && data.year == year,
+                }
             })
             .collect()
     })
@@ -135,7 +133,7 @@ pub fn get_documents_by_institution(institution_id: String) -> Vec<Document> {
     let mut documents = Vec::new();
     for collection in collections {
         for document_id in &collection.documents {
-            if let Some(document) = get_document_metadata(document_id.clone()) {
+            if let Some(document) = crate::storage::get_document_safe(document_id) {
                 documents.push(document);
             }
         }

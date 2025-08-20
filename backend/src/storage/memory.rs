@@ -46,38 +46,95 @@ pub fn principal_to_bytes(principal: &Principal) -> Vec<u8> {
     principal.as_slice().to_vec()
 }
 
-pub fn bytes_to_principal(bytes: &[u8]) -> Principal {
-    Principal::from_slice(bytes)
+pub fn bytes_to_principal(bytes: &[u8]) -> Result<Principal, String> {
+    match Principal::try_from_slice(bytes) {
+        Ok(principal) => Ok(principal),
+        Err(_) => Err("Invalid principal bytes".to_string())
+    }
 }
 
-pub fn document_to_bytes(document: &Document) -> Vec<u8> {
-    serde_json::to_vec(document).unwrap_or_default()
+// Helper function to safely get and deserialize a document
+pub fn get_document_safe(document_id: &str) -> Option<Document> {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().get(&document_id.to_string())
+            .and_then(|bytes| bytes_to_document(&bytes).ok())
+    })
 }
 
-pub fn bytes_to_document(bytes: &[u8]) -> Option<Document> {
-    serde_json::from_slice(bytes).ok()
+// Helper function to safely get and deserialize a collection
+pub fn get_collection_safe(collection_id: &str) -> Option<CollectionMetadata> {
+    COLLECTIONS.with(|storage| {
+        storage.borrow().get(&collection_id.to_string())
+            .and_then(|bytes| bytes_to_collection(&bytes).ok())
+    })
 }
 
-pub fn collection_to_bytes(collection: &CollectionMetadata) -> Vec<u8> {
-    serde_json::to_vec(collection).unwrap_or_default()
+// Helper function to safely get and deserialize an institution
+pub fn get_institution_safe(institution_id: &str) -> Option<Institution> {
+    INSTITUTIONS.with(|storage| {
+        storage.borrow().get(&institution_id.to_string())
+            .and_then(|bytes| bytes_to_institution(&bytes).ok())
+    })
 }
 
-pub fn bytes_to_collection(bytes: &[u8]) -> Option<CollectionMetadata> {
-    serde_json::from_slice(bytes).ok()
+// Helper function to safely update a document
+pub fn update_document_safe(document_id: &str, document: &Document) -> Result<(), String> {
+    let document_bytes = document_to_bytes(document)
+        .map_err(|e| format!("Failed to serialize document: {}", e))?;
+    DOCUMENTS.with(|storage| {
+        storage.borrow_mut().insert(document_id.to_string(), document_bytes);
+    });
+    Ok(())
 }
 
-pub fn tokens_to_bytes(tokens: &[String]) -> Vec<u8> {
-    serde_json::to_vec(tokens).unwrap_or_default()
+// Helper function to safely update a collection
+pub fn update_collection_safe(collection_id: &str, collection: &CollectionMetadata) -> Result<(), String> {
+    let collection_bytes = collection_to_bytes(collection)
+        .map_err(|e| format!("Failed to serialize collection: {}", e))?;
+    COLLECTIONS.with(|storage| {
+        storage.borrow_mut().insert(collection_id.to_string(), collection_bytes);
+    });
+    Ok(())
 }
 
-pub fn bytes_to_tokens(bytes: &[u8]) -> Vec<String> {
-    serde_json::from_slice(bytes).unwrap_or_default()
+// Helper function to safely update an institution
+pub fn update_institution_safe(institution_id: &str, institution: &Institution) -> Result<(), String> {
+    let institution_bytes = institution_to_bytes(institution)
+        .map_err(|e| format!("Failed to serialize institution: {}", e))?;
+    INSTITUTIONS.with(|storage| {
+        storage.borrow_mut().insert(institution_id.to_string(), institution_bytes);
+    });
+    Ok(())
 }
 
-pub fn institution_to_bytes(institution: &Institution) -> Vec<u8> {
-    serde_json::to_vec(institution).unwrap_or_default()
+pub fn document_to_bytes(document: &Document) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(document).map_err(|e| format!("Failed to serialize document: {}", e))
 }
 
-pub fn bytes_to_institution(bytes: &[u8]) -> Option<Institution> {
-    serde_json::from_slice(bytes).ok()
+pub fn bytes_to_document(bytes: &[u8]) -> Result<Document, String> {
+    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize document: {}", e))
+}
+
+pub fn collection_to_bytes(collection: &CollectionMetadata) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(collection).map_err(|e| format!("Failed to serialize collection: {}", e))
+}
+
+pub fn bytes_to_collection(bytes: &[u8]) -> Result<CollectionMetadata, String> {
+    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize collection: {}", e))
+}
+
+pub fn tokens_to_bytes(tokens: &[String]) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(tokens).map_err(|e| format!("Failed to serialize tokens: {}", e))
+}
+
+pub fn bytes_to_tokens(bytes: &[u8]) -> Result<Vec<String>, String> {
+    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize tokens: {}", e))
+}
+
+pub fn institution_to_bytes(institution: &Institution) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(institution).map_err(|e| format!("Failed to serialize institution: {}", e))
+}
+
+pub fn bytes_to_institution(bytes: &[u8]) -> Result<Institution, String> {
+    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize institution: {}", e))
 } 
