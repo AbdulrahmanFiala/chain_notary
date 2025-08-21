@@ -16,13 +16,13 @@ const Hero = () => {
             to="/create-document"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
           >
-            Create Certificate NFT
+            Publish Earning release
           </NavLink>
           <NavLink
             to="/query-document"
             className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg shadow hover:bg-gray-300 transition duration-300"
           >
-            Query Document
+            Query Earning release
           </NavLink>
         </div>
       </div>

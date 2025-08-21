@@ -26,14 +26,14 @@ const CreateDocument: React.FC = () => {
       if (status === 'done') {
         const file_data = await getUint8Array(originFileObj as File)
         const document_hash = await computeFileHash(file_data);
-        form.setFieldsValue({ file_data: [file_data], file_type, file_size: BigInt(size || 0), document_hash: [document_hash], name: info.file.uid });
+        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), document_hash, name: info.file.uid });
         message.success(`${info.file.name} file uploaded successfully.`);
       } else if (status === 'error') {
         message.error(`${info.file.name} file upload failed.`);
       }
     },
     onRemove() {
-      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), document_hash: [], name: '' });
+      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), document_hash: '', name: '' });
     }
   };
 
@@ -58,11 +58,11 @@ const CreateDocument: React.FC = () => {
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-lg shadow-sm p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Create Certificate NFT
+              Publish Earning Release
             </h2>
 
             <Form className="form space-y-6" layout='vertical' onFinish={handleSubmit} form={form}>
-              <Row gutter={[16, 16]}>
+              <Row gutter={[16, 16]} className='mb-0'>
                 <Col span={24}>
                   <Form.Item
                     name="file_data"
@@ -82,7 +82,7 @@ const CreateDocument: React.FC = () => {
                 </Col>
                 <Col span={24}>
                   <Form.Item
-                    label="NFT Name"
+                    label="Earning Release Name"
                     name="name"
                     hasFeedback
                     rules={[{ required: true, message: 'Please input the NFT name!' }]}
@@ -92,9 +92,9 @@ const CreateDocument: React.FC = () => {
                 </Col>
                 <Col span={24}>
                   <Form.Item
-                    label="NFT Description"
+                    label="Earning Release Description"
                     name="description"
-                    initialValue={['']}
+                    initialValue={''}
                     hasFeedback
                   >
                     <Input.TextArea rows={4} />
@@ -102,8 +102,38 @@ const CreateDocument: React.FC = () => {
                 </Col>
                 <Col span={24}>
                   <div className='bg-gray-50 p-4! rounded-lg'>
-                    <Typography.Title level={5} className='mb-4'>Consolidated Balance Sheet</Typography.Title>
+                    <Typography.Title level={5} className='mb-4'>Earning Release Data</Typography.Title>
                     <Row gutter={[16, 16]}>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Company Name"
+                          name="company_name"
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the company name!' }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                        <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                          <Form.Item
+                            label="Quarter"
+                            name={['document_data', 'EarningRelease', 'quarter']}
+                            hasFeedback
+                            rules={[{ required: true, message: 'Please input the quarter!' }]}
+                          >
+                            <InputNumber className='w-full!' min={1} max={4} />
+                          </Form.Item>
+                        </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Year"
+                          name={['document_data', 'EarningRelease', 'year']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the year!' }]}
+                        >
+                          <InputNumber className='w-full!' min={2000} max={new Date().getFullYear()} />
+                        </Form.Item>
+                      </Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
                           label="Total Equity"
@@ -146,13 +176,6 @@ const CreateDocument: React.FC = () => {
                           />
                         </Form.Item>
                       </Col>
-                    </Row>
-                  </div>
-                </Col>
-                <Col span={24}>
-                  <div className='bg-gray-50 p-4! rounded-lg'>
-                    <Typography.Title level={5} className='mb-4'>Consolidated Income</Typography.Title>
-                    <Row gutter={[16, 16]}>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
                           label="EBITDA"
@@ -211,36 +234,6 @@ const CreateDocument: React.FC = () => {
                   </div>
                 </Col>
                 <Col span={24}>
-                  <div
-                    className='bg-gray-50 p-4! rounded-lg'
-                  >
-                    <Typography.Title level={5} className='mb-4'>Earning Release</Typography.Title>
-                    <Row gutter={[16, 16]}>
-                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                        <Form.Item
-                          label="Quarter"
-                          name={['document_data', 'EarningRelease', 'quarter']}
-                          hasFeedback
-                          rules={[{ required: true, message: 'Please input the quarter!' }]}
-                        >
-                          <InputNumber className='w-full!' min={1} max={4} />
-                        </Form.Item>
-                      </Col>
-                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                        <Form.Item
-                          label="Year"
-                          name={['document_data', 'EarningRelease', 'year']}
-                          hasFeedback
-                          rules={[{ required: true, message: 'Please input the year!' }]}
-                        >
-                          <InputNumber className='w-full!' min={2000} max={new Date().getFullYear()} />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                  </div>
-                </Col>
-
-                <Col span={24}>
                   <Form.Item className='mb-0!'>
                     <Flex gap="small" align="center" justify='space-between' wrap>
                       <Button
@@ -271,12 +264,12 @@ const CreateDocument: React.FC = () => {
               <Form.Item
                 name="institution_id"
                 hidden
-                initialValue={[]}
+                initialValue={''}
               ></Form.Item>
               <Form.Item
                 name="document_hash"
                 hidden
-                initialValue={['']}
+                initialValue={''}
               ></Form.Item>
               <Form.Item
                 name="file_size"

@@ -32,7 +32,7 @@ function QueryDocument() {
             </Button>
           </Form.Item>
         </Form>
-      </div>
+      </div >
     </>
   )
 }

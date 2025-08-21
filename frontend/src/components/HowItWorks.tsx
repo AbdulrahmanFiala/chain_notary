@@ -1,5 +1,4 @@
-import React from 'react';
-import { FileText, Shield, Share2 } from 'lucide-react';
+import { FileText, Share2, Shield } from 'lucide-react';
 
 const HowItWorks = () => {
   const steps = [
@@ -26,7 +25,7 @@ const HowItWorks = () => {
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
           How It Works
         </h2>
-        
+
         <div className="grid md:grid-cols-3 gap-12">
           {steps.map((step, index) => (
             <div key={index} className="text-center bg-gray-50 p-8 rounded-lg">
