@@ -17,9 +17,9 @@ pub fn get_document_metadata(document_id: String) -> Option<Document> {
 #[query]
 pub fn get_document_file(document_id: String) -> Option<Vec<u8>> {
     DOCUMENTS.with(|storage| {
-        storage.borrow().get(&document_id).and_then(|bytes| {
-            bytes_to_document(&bytes).ok().and_then(|document| Some(document.file_data))
-        })
+        storage.borrow().get(&document_id)
+            .and_then(|bytes| bytes_to_document(&bytes).ok())
+            .map(|document| document.file_data)
     })
 }
 
