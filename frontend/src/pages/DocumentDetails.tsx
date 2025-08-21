@@ -38,7 +38,7 @@ const DocumentDetails: React.FC = () => {
         quarter: 0,
         year: 0
       }
-    }, institution_id: ''
+    }, institution_id: '', company_name: ''
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchParams] = useSearchParams();
@@ -93,9 +93,9 @@ const DocumentDetails: React.FC = () => {
                       <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">ID</p>
                       <Typography.Paragraph copyable className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{documentDetails.document_id}</Typography.Paragraph>
                     </Col>
-                    {documentDetails.description[0] && <Col span={24}>
+                    {documentDetails.description && <Col span={24}>
                       <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Description</p>
-                      <p className="text-gray-900 font-mono text-center md:text-left">{documentDetails.description[0]}</p>
+                      <p className="text-gray-900 font-mono text-center md:text-left">{documentDetails.description}</p>
                     </Col>}
                   </Row>
                 </Col>
