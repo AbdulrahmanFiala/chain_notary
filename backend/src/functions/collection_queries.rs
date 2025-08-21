@@ -41,10 +41,21 @@ pub fn get_collections_by_owner(owner: Principal) -> Vec<CollectionMetadata> {
 
 #[query]
 pub fn get_collections_by_institution(institution_id: String) -> Vec<CollectionMetadata> {
+    // Normalize the institution_id by trimming whitespace
+    let normalized_institution_id = institution_id.trim();
+    
     COLLECTIONS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
-            .filter(|collection| collection.institution_id == institution_id)
+            .filter(|collection| {
+                if normalized_institution_id.is_empty() {
+                    // If institution_id is empty or whitespace-only, return collections with no institution
+                    collection.institution_id.trim().is_empty()
+                } else {
+                    // Otherwise, return collections that match the institution_id (after trimming)
+                    collection.institution_id.trim() == normalized_institution_id
+                }
+            })
             .collect()
     })
 }

@@ -43,8 +43,8 @@ pub fn create_institution(
 #[update]
 pub fn update_institution(
     institution_id: String,
-    name: Option<String>,
-    email: Option<String>,
+    name: String,
+    email: String,
 ) -> Result<(), String> {
     let caller = caller();
     
@@ -56,16 +56,11 @@ pub fn update_institution(
         return Err("Only the institution owner can update metadata".to_string());
     }
 
-    // Update fields if provided
-    if let Some(new_name) = name {
-        crate::utils::validate_string_length(&new_name, 2, 100, "Institution name")?;
-        institution.name = new_name;
-    }
-
-    if let Some(new_email) = email {
-        crate::utils::validate_email(&new_email)?;
-        institution.email = new_email;
-    }
+    // Update fields
+    crate::utils::validate_string_length(&name, 2, 100, "Institution name")?;
+    institution.name = name;
+    crate::utils::validate_email(&email)?;
+    institution.email = email;
 
     crate::storage::update_institution_safe(&institution_id, &institution)?;
 

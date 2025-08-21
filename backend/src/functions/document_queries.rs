@@ -18,7 +18,7 @@ pub fn get_document_metadata(document_id: String) -> Option<Document> {
 pub fn get_document_file(document_id: String) -> Option<Vec<u8>> {
     DOCUMENTS.with(|storage| {
         storage.borrow().get(&document_id).and_then(|bytes| {
-            bytes_to_document(&bytes).ok().and_then(|document| document.file_data)
+            bytes_to_document(&bytes).ok().and_then(|document| Some(document.file_data))
         })
     })
 }
@@ -61,10 +61,21 @@ pub fn get_document_count() -> u64 {
 /// Get documents by collection ID (fast query)
 #[query]
 pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
+    // Normalize the collection_id by trimming whitespace
+    let normalized_collection_id = collection_id.trim();
+    
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
-            .filter(|metadata| metadata.collection_id.as_ref() == Some(&collection_id))
+            .filter(|metadata| {
+                if normalized_collection_id.is_empty() {
+                    // If collection_id is empty or whitespace-only, return documents with no collection
+                    metadata.collection_id.trim().is_empty()
+                } else {
+                    // Otherwise, return documents that match the collection_id (after trimming)
+                    metadata.collection_id.trim() == normalized_collection_id
+                }
+            })
             .collect()
     })
 }
@@ -76,7 +87,7 @@ pub fn get_documents_by_collection_category(category: CollectionCategory) -> Vec
     let collections = COLLECTIONS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
-            .filter(|collection| collection.category.as_ref() == Some(&category))
+            .filter(|collection| collection.category == category)
             .collect::<Vec<_>>()
     });
     
