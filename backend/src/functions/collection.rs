@@ -6,10 +6,10 @@ use crate::storage::{COLLECTIONS, DOCUMENTS, bytes_to_collection};
 pub fn create_collection(
     collection_id: String,
     name: String,
-    description: Option<String>,
-    external_url: Option<String>,
-    category: Option<CollectionCategory>,
-    institution_id: Option<String>, 
+    description: String,
+    external_url: String,
+    category: CollectionCategory,
+    institution_id: String, 
 ) -> Result<(), String> {
     let caller = caller();
     
@@ -24,17 +24,17 @@ pub fn create_collection(
     // Validate name
     crate::utils::validate_string_length(&name, 1, 200, "Collection name")?;
     
-    // Validate institution if provided
-    let final_institution_id = if let Some(inst_id) = institution_id {
-        if inst_id.is_empty() {
-            return Err("Institution ID cannot be empty if provided".to_string());
-        }
+    // Normalize and validate institution_id (trim whitespace and check if empty)
+    let normalized_institution_id = institution_id.trim().to_string();
+    
+    // Validate institution if provided (non-empty institution_id after trimming)
+    let final_institution_id = if !normalized_institution_id.is_empty() {
         // Check if institution exists
-        let institution_exists = crate::storage::get_institution_safe(&inst_id).is_some();
+        let institution_exists = crate::storage::get_institution_safe(&normalized_institution_id).is_some();
         if !institution_exists {
             return Err("Specified institution does not exist".to_string());
         }
-        inst_id
+        normalized_institution_id
     } else {
         String::new() // No institution linked
     };
@@ -74,10 +74,10 @@ pub fn create_collection(
 #[update]
 pub fn update_collection(
     collection_id: String,
-    name: Option<String>,
-    description: Option<String>,
-    external_url: Option<String>,
-    category: Option<CollectionCategory>,
+    name: String,
+    description: String,
+    external_url: String,
+    category: CollectionCategory,
 ) -> Result<(), String> {
     let caller = caller();
     
@@ -90,25 +90,12 @@ pub fn update_collection(
         return Err("Only collection owner can update collection".to_string());
     }
     
-    // Update fields if provided
-    if let Some(new_name) = name {
-        crate::utils::validate_string_length(&new_name, 1, 200, "Collection name")?;
-        collection.name = new_name;
-    }
-    
-    if let Some(new_description) = description {
-        collection.description = Some(new_description);
-    }
-    
-
-    
-    if let Some(new_external_url) = external_url {
-        collection.external_url = Some(new_external_url);
-    }
-    
-    if let Some(new_category) = category {
-        collection.category = Some(new_category);
-    }
+    // Update fields
+    crate::utils::validate_string_length(&name, 1, 200, "Collection name")?;
+    collection.name = name;
+    collection.description = description;
+    collection.external_url = external_url;
+    collection.category = category;
     
     // Update timestamp
     collection.updated_at = ic_cdk::api::time();
@@ -181,7 +168,7 @@ pub fn add_document_to_collection(collection_id: String, document_id: String) ->
     
     // Update document's collection_id field
     let mut updated_document = document;
-    updated_document.collection_id = Some(collection_id.clone());
+    updated_document.collection_id = collection_id.clone();
     
     crate::storage::update_document_safe(&document_id, &updated_document)?;
     
@@ -213,10 +200,10 @@ pub fn remove_document_from_collection(collection_id: String, document_id: Strin
         // Update collection
         crate::storage::update_collection_safe(&collection_id, &collection)?;
         
-        // Update document's collection_id field to None
+        // Update document's collection_id field to empty string
         if let Some(document) = crate::storage::get_document_safe(&document_id) {
             let mut updated_document = document;
-            updated_document.collection_id = None;
+            updated_document.collection_id = String::new();
             
             crate::storage::update_document_safe(&document_id, &updated_document)?;
         }

@@ -9,21 +9,12 @@ pub async fn upload_file_and_publish_document(
     metadata: Document,
 ) -> DocumentResponse {
     // Validate file size (max 10MB for Excel and other document types)
-    if let Some(ref file_data) = metadata.file_data {
-        if let Err(e) = crate::utils::validate_file_size(file_data.len(), 10) {
-            return DocumentResponse {
-                success: false,
-                document_id: None,
-                error_message: Some(e),
-                document_hash: None,
-            };
-        }
-    } else {
+    if let Err(e) = crate::utils::validate_file_size(metadata.file_data.len(), 10) {
         return DocumentResponse {
             success: false,
-            document_id: None,
-            error_message: Some("File data is required".to_string()),
-            document_hash: None,
+            document_id: String::new(),
+            error_message: e,
+            document_hash: String::new(),
         };
     }
 
@@ -43,27 +34,45 @@ pub async fn upload_file_and_publish_document(
     if let Err(e) = crate::utils::validate_file_type(&metadata.file_type, &allowed_types) {
         return DocumentResponse {
             success: false,
-            document_id: None,
-            error_message: Some(e),
-            document_hash: None,
+            document_id: String::new(),
+            error_message: e,
+            document_hash: String::new(),
         };
     }
 
-    // Validate that collection exists if specified
-    if let Some(ref collection_id) = metadata.collection_id {
-        if !collection_id.is_empty() {
-            let collection_exists = COLLECTIONS.with(|storage| {
-                storage.borrow().contains_key(collection_id)
-            });
-            
-            if !collection_exists {
-                return DocumentResponse {
-                    success: false,
-                    document_id: None,
-                    error_message: Some("Specified collection does not exist".to_string()),
-                    document_hash: None,
-                };
-            }
+    // Normalize and validate collection_id (trim whitespace and check if empty)
+    let normalized_collection_id = metadata.collection_id.trim().to_string();
+    
+    // Validate that collection exists if specified (non-empty collection_id after trimming)
+    if !normalized_collection_id.is_empty() {
+        let collection_exists = COLLECTIONS.with(|storage| {
+            storage.borrow().contains_key(&normalized_collection_id)
+        });
+        
+        if !collection_exists {
+            return DocumentResponse {
+                success: false,
+                document_id: String::new(),
+                error_message: "Specified collection does not exist".to_string(),
+                document_hash: String::new(),
+            };
+        }
+    }
+
+    // Normalize and validate institution_id (trim whitespace and check if empty)
+    let normalized_institution_id = metadata.institution_id.trim().to_string();
+    
+    // Validate that institution exists if specified (non-empty institution_id after trimming)
+    if !normalized_institution_id.is_empty() {
+        let institution_exists = crate::storage::get_institution_safe(&normalized_institution_id).is_some();
+        
+        if !institution_exists {
+            return DocumentResponse {
+                success: false,
+                document_id: String::new(),
+                error_message: "Specified institution does not exist".to_string(),
+                document_hash: String::new(),
+            };
         }
     }
 
@@ -71,16 +80,17 @@ pub async fn upload_file_and_publish_document(
     let document_id = generate_token_id();
     
     // Calculate file hash for integrity verification and storage
-    let calculated_hash = calculate_file_hash(&metadata.file_data.as_ref().unwrap());
+    let calculated_hash = calculate_file_hash(&metadata.file_data);
     
     // Get current timestamp
     let uploaded_at = ic_cdk::api::time();
 
-    // Create complete document with file data and calculated hash
+    // Create complete document with file data and calculated hash, using normalized IDs
     let mut document = metadata;
     document.document_id = document_id.clone();
-    document.document_hash = Some(calculated_hash.clone()); // Set the calculated hash
-    // No need to set file_size, file_type, or file_data since they're already in metadata
+    document.document_hash = calculated_hash.clone();
+    document.collection_id = normalized_collection_id;
+    document.institution_id = normalized_institution_id;
 
     // Store the complete document in single storage
     let document_bytes = match document_to_bytes(&document) {
@@ -88,9 +98,9 @@ pub async fn upload_file_and_publish_document(
         Err(e) => {
             return DocumentResponse {
                 success: false,
-                document_id: None,
-                error_message: Some(format!("Failed to serialize document: {}", e)),
-                document_hash: None,
+                document_id: String::new(),
+                error_message: format!("Failed to serialize document: {}", e),
+                document_hash: String::new(),
             };
         }
     };
@@ -99,19 +109,17 @@ pub async fn upload_file_and_publish_document(
     });
 
     // If document belongs to a collection, add it to the collection's documents list
-    if let Some(ref collection_id) = document.collection_id {
-        if !collection_id.is_empty() {
-            if let Some(mut collection) = crate::storage::get_collection_safe(collection_id) {
-                collection.documents.push(document_id.clone());
-                collection.updated_at = uploaded_at;
-                if let Err(e) = crate::storage::update_collection_safe(collection_id, &collection) {
-                    return DocumentResponse {
-                        success: false,
-                        document_id: None,
-                        error_message: Some(format!("Failed to update collection: {}", e)),
-                        document_hash: None,
-                    };
-                }
+    if !document.collection_id.is_empty() {
+        if let Some(mut collection) = crate::storage::get_collection_safe(&document.collection_id) {
+            collection.documents.push(document_id.clone());
+            collection.updated_at = uploaded_at;
+            if let Err(e) = crate::storage::update_collection_safe(&document.collection_id, &collection) {
+                return DocumentResponse {
+                    success: false,
+                    document_id: String::new(),
+                    error_message: format!("Failed to update collection: {}", e),
+                    document_hash: String::new(),
+                };
             }
         }
     }
@@ -131,8 +139,8 @@ pub async fn upload_file_and_publish_document(
     // Return success response
     DocumentResponse {
         success: true,
-        document_id: Some(document_id),
-        error_message: None,
-        document_hash: Some(calculated_hash),
+        document_id,
+        error_message: String::new(),
+        document_hash: calculated_hash,
     }
 } 

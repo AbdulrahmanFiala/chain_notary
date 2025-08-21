@@ -15,20 +15,22 @@ pub fn generate_token_id() -> String {
     format!("document_{}", timestamp)
 }
 
-/// Validate string length with min and max bounds
+/// Validate string length with min and max bounds (after trimming whitespace)
 pub fn validate_string_length(value: &str, min: usize, max: usize, field_name: &str) -> Result<(), String> {
-    if value.len() < min || value.len() > max {
-        return Err(format!("{} must be between {} and {} characters", field_name, min, max));
+    let trimmed_value = value.trim();
+    if trimmed_value.len() < min || trimmed_value.len() > max {
+        return Err(format!("{} must be between {} and {} characters (after trimming whitespace)", field_name, min, max));
     }
     Ok(())
 }
 
-/// Validate email format (basic validation)
+/// Validate email format (basic validation, after trimming whitespace)
 pub fn validate_email(email: &str) -> Result<(), String> {
-    if email.len() < 5 || email.len() > 100 {
-        return Err("Email must be between 5 and 100 characters".to_string());
+    let trimmed_email = email.trim();
+    if trimmed_email.len() < 5 || trimmed_email.len() > 100 {
+        return Err("Email must be between 5 and 100 characters (after trimming whitespace)".to_string());
     }
-    if !email.contains('@') || !email.contains('.') {
+    if !trimmed_email.contains('@') || !trimmed_email.contains('.') {
         return Err("Invalid email format".to_string());
     }
     Ok(())
@@ -36,7 +38,8 @@ pub fn validate_email(email: &str) -> Result<(), String> {
 
 /// Validate file type against allowed types
 pub fn validate_file_type(file_type: &str, allowed_types: &[&str]) -> Result<(), String> {
-    if !allowed_types.contains(&file_type) {
+    let trimmed_file_type = file_type.trim();
+    if !allowed_types.contains(&trimmed_file_type) {
         return Err(format!("Unsupported file type. Allowed types: {}", allowed_types.join(", ")));
     }
     Ok(())
