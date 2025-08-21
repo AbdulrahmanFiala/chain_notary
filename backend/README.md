@@ -1,46 +1,116 @@
-# NFT Backend API
+# Chain Notary Backend API
 
-This backend provides NFT (Non-Fungible Token) functionality for the Internet Computer (IC) blockchain. It allows users to upload files and create NFTs with metadata.
+This backend provides a comprehensive document management system for the Internet Computer (IC) blockchain. It allows institutions to create collections and publish documents with structured metadata, particularly focused on financial documents like earning releases.
 
 ## Features
 
-- File upload and NFT creation
-- Metadata storage with standard NFT metadata format
-- File type validation (JPEG, PNG, GIF, WebP)
-- File size validation (max 2MB)
-- Owner-based NFT tracking
-- File hash calculation for integrity
-- Query endpoints for NFT retrieval
+- **Institution Management**: Create and manage financial institutions
+- **Collection Management**: Organize documents into themed collections
+- **Document Publishing**: Upload and publish documents with structured metadata
+- **Financial Data Support**: Specialized support for earning release documents
+- **File Validation**: File type and size validation
+- **Access Control**: Owner-based permissions for all operations
+- **Search & Query**: Comprehensive querying across institutions, collections, and documents
 
 ## API Endpoints
 
-### Upload and Create NFT
+### Institution Management
+
+#### Create Institution
 ```candid
-upload_file_and_create_nft : (vec nat8, text, DocumentMetadata) -> (NFTResponse)
+create_institution : (text, text, text) -> (Result)
+```
+**Parameters:**
+- `institution_id : text` - Unique identifier for the institution
+- `name : text` - Institution name
+- `email : text` - Institution email address
+
+#### Update Institution
+```candid
+update_institution : (text, text, text) -> (Result)
 ```
 
-**Parameters:**
-- `metadata : Document` - Complete document metadata including file data, type, and all required fields
+#### Delete Institution
+```candid
+delete_institution : (text) -> (Result)
+```
 
-**Supported File Types:**
-- Images: JPEG, PNG
-- Documents: PDF, Text files
-- Spreadsheets: Excel (.xls, .xlsx, .xlsm, .xltm, .xlam, .xlsb)
+#### Add/Remove Collection from Institution
+```candid
+add_collection_to_institution : (text, text) -> (Result)
+remove_collection_from_institution : (text, text) -> (Result)
+```
+
+### Collection Management
+
+#### Create Collection
+```candid
+create_collection : (text, text, text, text, CollectionCategory, text) -> (Result)
+```
+**Parameters:**
+- `collection_id : text` - Unique identifier for the collection
+- `name : text` - Collection name
+- `description : text` - Collection description
+- `external_url : text` - External URL for the collection
+- `category : CollectionCategory` - Collection category (currently supports EarningRelease)
+- `institution_id : text` - Institution ID (can be empty for standalone collections)
+
+#### Update Collection
+```candid
+update_collection : (text, text, text, text, CollectionCategory) -> (Result)
+```
+
+#### Delete Collection
+```candid
+delete_collection : (text) -> (Result)
+```
+
+#### Add/Remove Document from Collection
+```candid
+add_document_to_collection : (text, text) -> (Result)
+remove_document_from_collection : (text, text) -> (Result)
+```
+
+### Document Management
+
+#### Upload and Publish Document
+```candid
+upload_file_and_publish_document : (Document) -> (DocumentResponse)
+```
 
 **Document Structure:**
 ```candid
 type Document = record {
-    institution_id : opt text;   // Optional institution ID
-    collection_id : opt text;    // Optional collection ID
+    institution_id : text;       // Institution ID (can be empty)
+    collection_id : text;        // Collection ID (can be empty)
     document_id : text;          // Will be set by the canister
     owner : principal;           // Owner's principal ID
     name : text;                 // Document name
-    description : opt text;      // Document description
+    company_name : text;         // Company name
+    description : text;          // Document description
     document_hash : text;        // Must match calculated file hash
-    document_data : DocumentType; // Document type and data
+    document_data : DocumentType; // Document type and structured data
     file_size : nat64;          // File size in bytes
-    file_type : text;           // MIME type (e.g., "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    file_data : opt vec nat8;   // Binary file data
+    file_type : text;           // MIME type
+    file_data : blob;           // Binary file data
+};
+```
+
+**Supported Document Types:**
+```candid
+type DocumentType = variant {
+    EarningRelease : EarningReleaseData
+};
+```
+
+**Earning Release Data Structure:**
+```candid
+type EarningReleaseData = record {
+    earning_release_id : text;
+    quarter : nat8;
+    year : nat16;
+    consolidated_income_data : ConsolidatedIncomeData;
+    consolidated_balance_sheet_data : ConsolidatedBalanceSheetData;
 };
 ```
 
@@ -48,75 +118,83 @@ type Document = record {
 ```candid
 type DocumentResponse = record {
     success : bool;              // Operation success status
-    document_id : opt text;      // Generated document ID
-    error_message : opt text;    // Error message if failed
-    document_hash : opt text;    // File hash for verification
+    document_id : text;          // Generated document ID
+    error_message : text;        // Error message if failed
+    document_hash : text;        // File hash for verification
 };
 ```
 
 ### Query Endpoints
 
-#### Get NFT Metadata
+#### Institution Queries
 ```candid
-get_nft_metadata : (text) -> (opt NFTInfo) query
+get_institution_metadata : (text) -> (opt Institution) query
+get_all_institutions : () -> (vec Institution) query
+get_institutions_by_owner : (principal) -> (vec Institution) query
+get_institution_count : () -> (nat64) query
+search_institutions_by_name : (text) -> (vec Institution) query
 ```
 
-#### Get NFT File Data
+#### Collection Queries
 ```candid
-get_nft_file : (text) -> (opt vec nat8) query
+get_collection_metadata : (text) -> (opt CollectionMetadata) query
+get_all_collections : () -> (vec CollectionMetadata) query
+get_collections_by_institution : (text) -> (vec CollectionMetadata) query
+get_collections_by_owner : (principal) -> (vec CollectionMetadata) query
+get_collection_count : () -> (nat64) query
+search_collections_by_name : (text) -> (vec CollectionMetadata) query
 ```
 
-#### List All NFTs
+#### Document Queries
 ```candid
-list_all_nfts : () -> (vec text) query
-```
-
-#### Get NFTs by Owner
-```candid
-get_nfts_by_owner : (principal) -> (vec text) query
-```
-
-#### Get NFT Count
-```candid
-get_nft_count : () -> (nat64) query
-```
-
-#### Get Total Supply
-```candid
-get_total_supply : () -> (nat64) query
+get_document_metadata : (text) -> (opt Document) query
+get_document_file : (text) -> (opt blob) query
+get_complete_document : (text) -> (opt record { Document; blob }) query
+get_all_document_ids : () -> (vec text) query
+get_documents_by_owner : (principal) -> (vec text) query
+get_document_count : () -> (nat64) query
+get_documents_by_collection : (text) -> (vec Document) query
+get_documents_by_collection_category : (CollectionCategory) -> (vec Document) query
+get_documents_by_institution : (text) -> (vec Document) query
+get_documents_by_type : (text) -> (vec Document) query
+get_documents_by_quarter_year : (nat8, nat16) -> (vec Document) query
+search_documents_by_name : (text) -> (vec Document) query
 ```
 
 ## Data Structures
 
-### NFT Metadata
+### Institution
 ```candid
-type NFTMetadata = record {
-    name : text;                 // NFT name
-    description : text;          // NFT description
-    image_url : text;           // Image URL
-    external_url : opt text;    // External URL
-    attributes : vec Attribute;  // NFT attributes
-    properties : opt Properties; // Additional properties
+type Institution = record {
+    institution_id : text;
+    owner : principal;
+    name : text;
+    email : text;
+    created_at : nat64;
+    collections : vec text;
 };
 ```
 
-### Attribute
+### Collection Metadata
 ```candid
-type Attribute = record {
-    trait_type : text;          // Attribute type
-    value : text;               // Attribute value
-    display_type : opt text;    // Display type
+type CollectionMetadata = record {
+    institution_id : text;
+    collection_id : text;
+    owner : principal;
+    name : text;
+    description : text;
+    external_url : text;
+    created_at : nat64;
+    updated_at : nat64;
+    category : CollectionCategory;
+    documents : vec text;
 };
 ```
 
-### NFT Info
+### Collection Category
 ```candid
-type NFTInfo = record {
-    token_id : text;            // Unique token ID
-    metadata : NFTMetadata;     // NFT metadata
-    owner : principal;          // Owner's principal
-    created_at : nat64;        // Creation timestamp
-    file_hash : text;          // File hash
+type CollectionCategory = variant {
+    EarningRelease
 };
 ```
 
@@ -125,52 +203,90 @@ type NFTInfo = record {
 ### Frontend Integration
 
 ```javascript
-// Example of uploading a file and creating an NFT
-const uploadNFT = async (file, owner) => {
+// Example of creating an institution
+const createInstitution = async (institutionId, name, email) => {
+    try {
+        const result = await backend.create_institution(institutionId, name, email);
+        if (result.Ok) {
+            console.log('Institution created successfully');
+        } else {
+            console.error('Failed to create institution:', result.Err);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+// Example of uploading a document
+const uploadDocument = async (file, metadata) => {
     const fileData = await file.arrayBuffer();
     const fileBytes = Array.from(new Uint8Array(fileData));
     
-    const metadata = {
-        collection_id: null,
-        document_id: null,  // Will be set by the canister
-        owner: owner,
+    const document = {
+        institution_id: "INST001",
+        collection_id: "COLL001",
+        document_id: "",  // Will be set by the canister
+        owner: "2vxsx-fae", // Anonymous principal
         name: file.name,
-        description: "A unique digital document",
-        image_url: null,
+        company_name: "Example Corp",
+        description: "Q1 2024 Earning Release",
         document_hash: "",  // Will be calculated by the canister
-        file_size: 0,      // Will be set by the canister
+        document_data: {
+            EarningRelease: {
+                earning_release_id: "ER001",
+                quarter: 1,
+                year: 2024,
+                consolidated_income_data: {
+                    gross_profit: 1000000.0,
+                    operating_profit: 800000.0,
+                    ebitda: 900000.0,
+                    profit_before_tax: 700000.0,
+                    net_profit: 500000.0
+                },
+                consolidated_balance_sheet_data: {
+                    total_assets: 5000000.0,
+                    total_equity: 3000000.0,
+                    total_liabilities: 2000000.0,
+                    total_liabilities_and_equity: 5000000.0
+                }
+            }
+        },
+        file_size: file.size,
         file_type: file.type,
-        uploaded_at: 0     // Will be set by the canister
+        file_data: fileBytes
     };
 
-    const response = await backend.upload_file_and_create_nft(fileBytes, file.type, metadata);
-    return response;
+    try {
+        const response = await backend.upload_file_and_publish_document(document);
+        if (response.success) {
+            console.log('Document uploaded successfully:', response.document_id);
+        } else {
+            console.error('Upload failed:', response.error_message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
 };
 ```
 
 ## Validation Rules
 
-1. **File Size**: Maximum 2MB per file
-2. **File Types**: Only JPEG, PNG, GIF, and WebP are supported
-3. **Metadata**: Must include name, description, and image_url
-4. **Owner**: Must be a valid principal ID
+1. **File Size**: Maximum 10MB per file
+2. **File Types**: Supports images (JPEG, PNG), documents (PDF, text), and Excel files (.xls, .xlsx, .xlsm, .xltm, .xlam, .xlsb)
+3. **Institution ID**: 3-50 characters
+4. **Institution Name**: 2-100 characters
+5. **Collection ID**: 1-100 characters
+6. **Collection Name**: 1-200 characters
+7. **Email**: Must be valid email format
 
 ## Storage
 
 The backend uses stable memory to store:
-- NFT metadata and information
-- File binary data
-- Owner-to-token mappings
+- Institution metadata and relationships
+- Collection metadata and document lists
+- Document metadata and file data
+- Owner-to-document mappings
 
-## Production Considerations
-
-For production deployment, consider:
-1. Implementing proper IPFS integration for file storage
-2. Adding support for NFT standards (EXT, DIP721)
-3. Implementing transfer functionality
-4. Adding access control and permissions
-5. Implementing proper error handling and logging
-6. Adding rate limiting and spam protection
 
 ## Building and Deploying
 
