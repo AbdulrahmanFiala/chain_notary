@@ -1,5 +1,4 @@
-import React from 'react';
-import { Building2, GraduationCap, Award } from 'lucide-react';
+import { Award, Building2, Coins } from 'lucide-react';
 
 const WhoWeServe = () => {
   const services = [
@@ -9,8 +8,8 @@ const WhoWeServe = () => {
       description: 'Issue official documents and certificates with blockchain security'
     },
     {
-      icon: GraduationCap,
-      title: 'Educational Institutions',
+      icon: Coins,
+      title: 'Financial Institutions',
       description: 'Secure degree certificates and academic credentials'
     },
     {
@@ -26,7 +25,7 @@ const WhoWeServe = () => {
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-16">
           Who We Serve
         </h2>
-        
+
         <div className="grid md:grid-cols-3 gap-12">
           {services.map((service, index) => (
             <div key={index} className="text-center bg-white p-8 rounded-lg">

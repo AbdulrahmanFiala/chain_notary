@@ -3,7 +3,6 @@ import getDocumentDetails from '@/services/documents/getDocumentDetails';
 import { Principal } from '@dfinity/principal';
 import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
 import type { Document } from 'declarations/backend/backend.did';
-import { isEmpty } from 'lodash';
 import { Check, Cross, Home } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -13,10 +12,10 @@ const DocumentDetails: React.FC = () => {
   const navigate = useNavigate();
   const [documentDetails, setDocumentDetails] = useState<Document>({
     document_id: '',
-    document_hash: [''],
+    document_hash: '',
     name: '',
-    description: [''],
-    collection_id: [],
+    description: '',
+    collection_id: '',
     owner: Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID),
     file_data: [],
     file_size: BigInt(0),
@@ -39,7 +38,7 @@ const DocumentDetails: React.FC = () => {
         quarter: 0,
         year: 0
       }
-    }, institution_id: []
+    }, institution_id: ''
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchParams] = useSearchParams();
@@ -73,29 +72,29 @@ const DocumentDetails: React.FC = () => {
   return (<div className="min-h-screen bg-gray-50 py-12" >
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <div className={`w-16 h-16 ${!isEmpty(documentDetails) ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
+        <div className={`w-16 h-16 ${documentDetails.document_id ? 'bg-green-500' : 'bg-red-500'} rounded-full flex items-center justify-center mx-auto mb-6`}>
 
-          {!isEmpty(documentDetails) ? <Check className="w-8 h-8 text-white" /> : <Cross className="w-8 h-8 text-white rotate-45" />}
+          {documentDetails.document_id ? <Check className="w-8 h-8 text-white" /> : <Cross className="w-8 h-8 text-white rotate-45" />}
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          {!isEmpty(documentDetails) ? "NFT Minted Successfully" : "NFT Minting Failed"}
+          {documentDetails.document_id ? "Document Published Successfully" : "Document Publishing Failed"}
         </h2>
         <p className="text-gray-600 mb-8">
-          {!isEmpty(documentDetails) ? "Your document has been successfully minted as an NFT on the blockchain." : "There was an error minting your document as an NFT. Please try again later."}
+          {documentDetails.document_id ? "Your document has been successfully published on the blockchain." : "There was an error publishing your document. Please try again later."}
         </p>
-        {!isEmpty(documentDetails) && <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        {documentDetails.document_id && <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <div className="text-left space-y-6">
             <div>
               <Row gutter={[16, 16]}>
                 <Col xs={{ order: 2, span: 24 }} md={{ order: 1, span: 12 }}>
-                  <Typography.Title level={4} className='text-center md:text-left'>Blockchain Information</Typography.Title>
+                  <Typography.Title level={4} className='text-center md:text-left'>Document Information</Typography.Title>
                   <Row gutter={[16, 16]}>
                     <Col span={24}>
-                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Document ID</p>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">ID</p>
                       <Typography.Paragraph copyable className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{documentDetails.document_id}</Typography.Paragraph>
                     </Col>
                     {documentDetails.description[0] && <Col span={24}>
-                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Document Description</p>
+                      <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Description</p>
                       <p className="text-gray-900 font-mono text-center md:text-left">{documentDetails.description[0]}</p>
                     </Col>}
                   </Row>
@@ -108,8 +107,14 @@ const DocumentDetails: React.FC = () => {
               </Row>
 
               <Divider orientation='center' />
-              <Typography.Title level={4} className='text-center md:text-left'>Consolidated Income Information</Typography.Title>
+              <Typography.Title level={4} className='text-center md:text-left'>Earning Release Data</Typography.Title>
               <Row gutter={[16, 16]}>
+                <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                  <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Company Name</p>
+                  <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
+                    {documentDetails?.company_name}
+                  </p>
+                </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">EBITDA</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
@@ -140,11 +145,6 @@ const DocumentDetails: React.FC = () => {
                     {documentDetails?.document_data.EarningRelease.consolidated_income_data.profit_before_tax}
                   </p>
                 </Col>
-              </Row>
-                <Divider orientation='center' />
-              <Typography.Title level={4} className='text-center md:text-left'>Consolidated Balance Sheet Information</Typography.Title>
-
-              <Row gutter={[16,16]}>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Equity</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
@@ -170,7 +170,6 @@ const DocumentDetails: React.FC = () => {
                   </p>
                 </Col>
               </Row>
-
             </div>
           </div>
         </div>}

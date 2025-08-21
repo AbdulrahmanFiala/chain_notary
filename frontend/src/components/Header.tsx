@@ -10,10 +10,10 @@ const Header = () => {
             <nav>
               <ul className="flex space-x-4">
                 <li>
-                  <NavLink to="/" className="text-gray-600 hover:text-blue-600">Home</NavLink>
+                  <NavLink to="/create-document" className="text-gray-50 bg-blue-600 px-4 py-2 rounded hover:text-gray-200">Publish Document</NavLink>
                 </li>
                 <li>
-                  <NavLink to="/create-document" className="text-gray-600 hover:text-blue-600">Create Certificate</NavLink>
+                  <NavLink to="/query-document" className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:text-blue-600">Query Doument</NavLink>
                 </li>
               </ul>
             </nav>

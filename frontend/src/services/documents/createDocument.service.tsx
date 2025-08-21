@@ -6,7 +6,7 @@ const createDocumentService = async (data: Document) => {
   const ownerPrincipal = Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID);  
   const mintedFile = await backend.upload_file_and_publish_document(
     {
-      collection_id: [],
+      collection_id: '',
       document_id: data.document_id,
       owner: ownerPrincipal,
       name: data.name,
@@ -36,7 +36,7 @@ const createDocumentService = async (data: Document) => {
 
         }
       },
-      institution_id: [],
+      institution_id: '',
     }
   );
   return mintedFile;
