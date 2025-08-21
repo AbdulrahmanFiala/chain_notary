@@ -3,7 +3,7 @@ import { backend } from "declarations/backend";
 import type { Document } from "declarations/backend/backend.did";
 
 const createDocumentService = async (data: Document) => {
-  const ownerPrincipal = Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID);  
+  const ownerPrincipal = Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID);
   const mintedFile = await backend.upload_file_and_publish_document(
     {
       collection_id: '',
@@ -37,6 +37,7 @@ const createDocumentService = async (data: Document) => {
         }
       },
       institution_id: '',
+      company_name: data.company_name || ''
     }
   );
   return mintedFile;
