@@ -37,6 +37,7 @@ pub struct Document {
     pub document_id: String,
     pub owner: Principal,
     pub name: String,
+    pub company_name: String,
     pub description: String,
     pub document_hash: String,
     pub document_data: DocumentType,
