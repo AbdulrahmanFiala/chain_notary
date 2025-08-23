@@ -63,7 +63,7 @@ pub struct DocumentNft {
     #[serde(flatten)]
     pub document_base_data: DocumentBase,
     pub created_at: u64,        // NFT creation timestamp
-    pub tx_id: String,          // Blockchain transaction ID
+    pub tx_id: Option<String>,  // Blockchain transaction ID (None initially, Some(tx_id) after confirmation)
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -102,7 +102,6 @@ pub struct NFTResponse {
     pub success: bool,
     pub token_id: String,
     pub error_message: String,
-    pub document_hash: String,
 }
 
 // Response type

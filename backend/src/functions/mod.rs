@@ -2,6 +2,7 @@ pub mod document;
 pub mod collection;
 pub mod institution;
 pub mod analytics;
+pub mod document_nft;
 
 // Query submodules
 pub mod document_queries;
@@ -12,4 +13,5 @@ pub mod search_queries;
 pub use document::*;
 pub use collection::*;
 pub use institution::*;
-pub use analytics::*; 
+pub use analytics::*;
+pub use document_nft::*; 
