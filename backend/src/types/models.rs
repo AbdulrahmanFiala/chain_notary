@@ -11,7 +11,7 @@ pub struct Institution {
     pub collections: Vec<String>, 
 }
 
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct CollectionMetadata {
     pub institution_id: String, 
     pub collection_id: String, 
@@ -30,8 +30,9 @@ pub enum CollectionCategory {
     EarningRelease,
 }
 
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
-pub struct Document {
+// Base document structure shared between Document and NFT
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct DocumentBase {
     pub institution_id: String, 
     pub collection_id: String, 
     pub document_id: String,
@@ -39,11 +40,30 @@ pub struct Document {
     pub name: String,
     pub company_name: String,
     pub description: String,
-    pub document_hash: String,
+    pub base_hash: String,
+    pub document_file_hash: String,
     pub document_data: DocumentType,
+}
+
+// Full document with file data
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct Document {
+    #[serde(flatten)]
+    pub document_base_data: DocumentBase,
+    pub published_at: u64,
+    pub updated_at: u64,
     pub file_size: u64,        
     pub file_type: String,    
     pub file_data: Vec<u8>,     
+}
+
+// NFT version without file data
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct DocumentNft {
+    #[serde(flatten)]
+    pub document_base_data: DocumentBase,
+    pub created_at: u64,        // NFT creation timestamp
+    pub tx_id: String,          // Blockchain transaction ID
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -51,7 +71,7 @@ pub enum DocumentType {
     EarningRelease(EarningReleaseData),
 }
 
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct EarningReleaseData {
     pub earning_release_id: String,
     pub quarter: u8,
@@ -75,6 +95,14 @@ pub struct ConsolidatedBalanceSheetData {
     pub total_equity: f64,
     pub total_liabilities: f64,
     pub total_liabilities_and_equity: f64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct NFTResponse {
+    pub success: bool,
+    pub token_id: String,
+    pub error_message: String,
+    pub document_hash: String,
 }
 
 // Response type
