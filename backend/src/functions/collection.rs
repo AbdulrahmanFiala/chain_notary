@@ -4,12 +4,12 @@ use crate::storage::{COLLECTIONS, DOCUMENTS, bytes_to_collection};
 
 #[update]
 pub fn create_collection(
+    institution_id: String,
     collection_id: String,
     name: String,
     description: String,
-    external_url: String,
     category: CollectionCategory,
-    institution_id: String, 
+    external_url: String,
 ) -> Result<(), String> {
     let caller = caller();
     
@@ -125,6 +125,16 @@ pub fn delete_collection(collection_id: String) -> Result<(), String> {
         return Err("Cannot delete collection with existing documents. Remove all documents first.".to_string());
     }
     
+    // Remove collection reference from institution if it exists
+    if !collection.institution_id.is_empty() {
+        if let Some(mut institution) = crate::storage::get_institution_safe(&collection.institution_id) {
+            institution.collections.retain(|id| id != &collection_id);
+            if let Err(e) = crate::storage::update_institution_safe(&collection.institution_id, &institution) {
+                return Err(format!("Failed to update institution: {}", e));
+            }
+        }
+    }
+    
     // Delete the collection
     COLLECTIONS.with(|storage| {
         storage.borrow_mut().remove(&collection_id);
@@ -168,7 +178,7 @@ pub fn add_document_to_collection(collection_id: String, document_id: String) ->
     
     // Update document's collection_id field
     let mut updated_document = document;
-    updated_document.collection_id = collection_id.clone();
+    updated_document.document_base_data.collection_id = collection_id.clone();
     
     crate::storage::update_document_safe(&document_id, &updated_document)?;
     
@@ -200,10 +210,10 @@ pub fn remove_document_from_collection(collection_id: String, document_id: Strin
         // Update collection
         crate::storage::update_collection_safe(&collection_id, &collection)?;
         
-        // Update document's collection_id field to empty string
-        if let Some(document) = crate::storage::get_document_safe(&document_id) {
-            let mut updated_document = document;
-            updated_document.collection_id = String::new();
+                    // Update document's collection_id field to empty string
+            if let Some(document) = crate::storage::get_document_safe(&document_id) {
+                let mut updated_document = document;
+                updated_document.document_base_data.collection_id = String::new();
             
             crate::storage::update_document_safe(&document_id, &updated_document)?;
         }

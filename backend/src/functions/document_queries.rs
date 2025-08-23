@@ -70,10 +70,10 @@ pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
             .filter(|metadata| {
                 if normalized_collection_id.is_empty() {
                     // If collection_id is empty or whitespace-only, return documents with no collection
-                    metadata.collection_id.trim().is_empty()
+                    metadata.document_base_data.collection_id.trim().is_empty()
                 } else {
                     // Otherwise, return documents that match the collection_id (after trimming)
-                    metadata.collection_id.trim() == normalized_collection_id
+                    metadata.document_base_data.collection_id.trim() == normalized_collection_id
                 }
             })
             .collect()
@@ -111,7 +111,7 @@ pub fn get_documents_by_type(document_type: String) -> Vec<Document> {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
             .filter(|doc| {
-                match &doc.document_data {
+                match &doc.document_base_data.document_data {
                     DocumentType::EarningRelease(_) => document_type == "EarningRelease",
                 }
             })
@@ -126,7 +126,7 @@ pub fn get_documents_by_quarter_year(quarter: u8, year: u16) -> Vec<Document> {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
             .filter(|doc| {
-                match &doc.document_data {
+                match &doc.document_base_data.document_data {
                     DocumentType::EarningRelease(data) => data.quarter == quarter && data.year == year,
                 }
             })

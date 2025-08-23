@@ -13,7 +13,7 @@ pub fn search_documents_by_name(search_term: String) -> Vec<Document> {
     DOCUMENTS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
-            .filter(|doc| doc.name.to_lowercase().contains(&search_term_lower))
+            .filter(|doc| doc.document_base_data.name.to_lowercase().contains(&search_term_lower))
             .collect()
     })
 }

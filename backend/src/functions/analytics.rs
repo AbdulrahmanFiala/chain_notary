@@ -216,16 +216,16 @@ fn extract_document_content(document: &Document) -> String {
         None
     };
 
-    match &document.document_data {
+    match &document.document_base_data.document_data {
         DocumentType::EarningRelease(earning_data) => {
             let mut content = format!(
                 "Financial Document Analysis for: {}\n\
                 Company: {}\n\
                 Description: {}\n\
                 Quarter: Q{} {}\n\n",
-                document.company_name,
-                document.company_name,
-                document.description,
+                document.document_base_data.company_name,
+                document.document_base_data.company_name,
+                document.document_base_data.description,
                 earning_data.quarter,
                 earning_data.year
             );
@@ -269,7 +269,7 @@ fn extract_document_content(document: &Document) -> String {
                 earning_data.consolidated_balance_sheet_data.total_equity,
                 earning_data.consolidated_balance_sheet_data.total_liabilities,
                 earning_data.consolidated_balance_sheet_data.total_liabilities_and_equity,
-                document.name,
+                document.document_base_data.name,
                 document.file_type,
                 document.file_size,
                 if pdf_content.is_some() { "PDF text content + structured data" } else { "structured data only" }

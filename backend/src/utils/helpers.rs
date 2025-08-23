@@ -8,6 +8,54 @@ pub fn calculate_file_hash(file_data: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
+/// Calculate base hash from DocumentBase attributes for integrity verification
+pub fn calculate_base_hash(
+    institution_id: &str,
+    collection_id: &str,
+    document_id: &str,
+    owner: &Principal,
+    name: &str,
+    company_name: &str,
+    description: &str,
+    document_data: &crate::types::DocumentType,
+) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(institution_id.as_bytes());
+    hasher.update(collection_id.as_bytes());
+    hasher.update(document_id.as_bytes());
+    hasher.update(owner.as_slice());
+    hasher.update(name.as_bytes());
+    hasher.update(company_name.as_bytes());
+    hasher.update(description.as_bytes());
+    
+    // Include document_data and all its sub-data in the hash
+    match document_data {
+        crate::types::DocumentType::EarningRelease(earning_data) => {
+            // Hash earning_release_id
+            hasher.update(earning_data.earning_release_id.as_bytes());
+            
+            // Hash quarter and year
+            hasher.update(&earning_data.quarter.to_le_bytes());
+            hasher.update(&earning_data.year.to_le_bytes());
+            
+            // Hash consolidated income data
+            hasher.update(&earning_data.consolidated_income_data.gross_profit.to_le_bytes());
+            hasher.update(&earning_data.consolidated_income_data.operating_profit.to_le_bytes());
+            hasher.update(&earning_data.consolidated_income_data.ebitda.to_le_bytes());
+            hasher.update(&earning_data.consolidated_income_data.profit_before_tax.to_le_bytes());
+            hasher.update(&earning_data.consolidated_income_data.net_profit.to_le_bytes());
+            
+            // Hash consolidated balance sheet data
+            hasher.update(&earning_data.consolidated_balance_sheet_data.total_assets.to_le_bytes());
+            hasher.update(&earning_data.consolidated_balance_sheet_data.total_equity.to_le_bytes());
+            hasher.update(&earning_data.consolidated_balance_sheet_data.total_liabilities.to_le_bytes());
+            hasher.update(&earning_data.consolidated_balance_sheet_data.total_liabilities_and_equity.to_le_bytes());
+        }
+    }
+    
+    hex::encode(hasher.finalize())
+}
+
 /// Generate unique token ID using timestamp
 pub fn generate_token_id() -> String {
     // Use timestamp and a simple counter for unique IDs
