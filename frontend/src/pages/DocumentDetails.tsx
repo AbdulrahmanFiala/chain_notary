@@ -3,7 +3,7 @@ import getDocumentDetails from '@/services/documents/getDocumentDetails';
 import { Principal } from '@dfinity/principal';
 import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
 import type { Document } from 'declarations/backend/backend.did';
-import { Check, Cross, Home } from 'lucide-react';
+import { Check, Cross, Home, Brain } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -46,6 +46,10 @@ const DocumentDetails: React.FC = () => {
 
   const onBackToHome = () => {
     navigate('/');
+  }
+
+  const onViewAnalytics = () => {
+    navigate(`/document-analytics?document_id=${document_id}`);
   }
 
   const getNFTDetails = useCallback(async () => {
@@ -174,16 +178,16 @@ const DocumentDetails: React.FC = () => {
           </div>
         </div>}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {/* <Button className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <Download className="w-4 h-4 mr-2" />
-            Download Metadata
-          </Button> */}
-          {/* <Button onClick={() => {
-            window.open(`https://www.icpexplorer.org/#/search/${nftDetails.document_hash}`, '_blank');
-          }} className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            <ExternalLink className="w-4 h-4 mr-2" />
-            View on Explorer
-          </Button> */}
+          {documentDetails.document_id && (
+            <Button
+              onClick={onViewAnalytics}
+              type="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              AI Analytics
+            </Button>
+          )}
           <Button
             onClick={onBackToHome}
           >
