@@ -16,7 +16,7 @@ const Hero = () => {
             to="/create-document"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
           >
-            Publish Earning release
+            Publish Earning Release
           </NavLink>
           <NavLink
             to="/query-document"
