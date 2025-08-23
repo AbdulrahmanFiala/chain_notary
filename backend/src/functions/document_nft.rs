@@ -4,8 +4,14 @@ use crate::types::{DocumentNft, NFTResponse};
 use crate::storage::{create_document_nft_safe, link_document_to_nft, get_document_safe, get_nft_by_document_id};
 
 /// Mint an NFT for an existing document using ICP's native transaction system
+/// 
+/// Note: This is a placeholder implementation for development/testing purposes.
+/// In a real ICP deployment, you would need to:
+/// 1. Implement the actual blockchain transaction submission
+/// 2. Use the appropriate ICP transaction confirmation mechanism
+/// 3. Handle real blockchain fees and gas costs
 #[update]
-pub async fn mint_document_nft(
+pub fn mint_document_nft(
     document_id: String,
 ) -> NFTResponse {
     // Validate that the document exists
@@ -34,62 +40,33 @@ pub async fn mint_document_nft(
 
     // Create the DocumentNft from the document (without tx_id yet)
     let mut document_nft = DocumentNft {
-        document_base_data: crate::types::DocumentBase {
-            institution_id: document.document_base_data.institution_id.clone(),
-            collection_id: document.document_base_data.collection_id.clone(),
-            document_id: document.document_base_data.document_id.clone(),
-            owner: document.document_base_data.owner.clone(),
-            name: document.document_base_data.name.clone(),
-            company_name: document.document_base_data.company_name.clone(),
-            description: document.document_base_data.description.clone(),
-            base_hash: document.document_base_data.base_hash.clone(),
-            document_file_hash: document.document_base_data.document_file_hash.clone(),
-            document_data: document.document_base_data.document_data.clone(),
-        },
+        document_base_data: document.document_base_data.clone(),
         created_at,
         tx_id: None, // Will be set to Some(real_tx_id) after blockchain confirmation
     };
 
     // Prepare NFT data for blockchain transaction
-    let nft_payload = match serde_cbor::to_vec(&document_nft) {
-        Ok(payload) => payload,
-        Err(e) => {
-            return NFTResponse {
-                success: false,
-                token_id: String::new(),
-                error_message: format!("Failed to serialize NFT data: {}", e),
-            };
-        }
-    };
+    // Note: In a real implementation, you would serialize the NFT data for blockchain submission
+    // For development/testing, we'll skip the actual serialization since we're using mock transaction IDs
 
     // Submit NFT to ICP blockchain using native transaction system
-    let tx_result = match api::call_with_payment(
-        Principal::management_canister(),
-        "submit_nft_transaction",
-        (nft_payload,),
-        0, // No payment needed for this transaction
-    ).await {
-        Ok(result) => result,
-        Err(e) => {
-            return NFTResponse {
-                success: false,
-                token_id: String::new(),
-                error_message: format!("Failed to submit NFT transaction: {}", e),
-            };
-        }
-    };
+    // Note: This is a placeholder implementation - in a real ICP deployment,
+    // you would use the appropriate ICP transaction submission method
+    // For now, we'll simulate a successful transaction with a mock transaction ID
+    let mock_tx_id = format!("mock_tx_{}", ic_cdk::api::time());
+    
+    // In a real implementation, you would make an actual ICP call like:
+    // let tx_result: Vec<u8> = match ic_cdk::call(
+    //     Principal::management_canister(),
+    //     "submit_nft_transaction",
+    //     (nft_payload,),
+    // ).await { ... }
+    
+    // For development/testing, we'll use the mock transaction ID directly
+    let tx_id = mock_tx_id;
 
-    // Wait for transaction to be included in a block
-    let tx_id = match wait_for_block_confirmation(&tx_result).await {
-        Ok(confirmed_tx_id) => confirmed_tx_id,
-        Err(e) => {
-            return NFTResponse {
-                success: false,
-                token_id: String::new(),
-                error_message: format!("Transaction confirmation failed: {}", e),
-            };
-        }
-    };
+    // In a real implementation, you would wait for blockchain confirmation here
+    // For development/testing, we're using the mock transaction ID directly
 
     // Now update the NFT with the confirmed blockchain transaction ID
     document_nft.tx_id = Some(tx_id.clone());
@@ -120,23 +97,5 @@ pub async fn mint_document_nft(
     }
 }
 
-/// Wait for transaction to be included in a block
-async fn wait_for_block_confirmation(tx_result: &[u8]) -> Result<String, String> {
-    // Parse transaction result to get transaction ID
-    let tx_id = match serde_cbor::from_slice::<String>(tx_result) {
-        Ok(id) => id,
-        Err(_) => return Err("Invalid transaction result format".to_string()),
-    };
-
-    // Wait for block confirmation (this would need to be implemented based on ICP's confirmation mechanism)
-    // For now, we'll simulate waiting for confirmation
-    // In a real implementation, you would:
-    // 1. Query the blockchain for transaction status
-    // 2. Wait until transaction is included in a confirmed block
-    // 3. Return the confirmed transaction ID
-    
-    // TODO: Implement actual block confirmation waiting
-    // This is a placeholder - you'll need to implement the actual ICP confirmation mechanism
-
-    Ok(tx_id)
-}
+// Note: In a real ICP deployment, you would implement blockchain transaction confirmation here
+// For development/testing purposes, we're using mock transaction IDs
