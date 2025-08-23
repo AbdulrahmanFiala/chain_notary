@@ -10,7 +10,7 @@ function QueryDocument() {
   const { isValid } = useFormValidation(form);
 
   const handleSubmit = (values: { documentId: string, query: string }) => {
-    navigate(`/document-details?document_id=${values.documentId}`);
+    navigate(`/document-details?query_document_id=${values.documentId}`);
   };
 
   return (

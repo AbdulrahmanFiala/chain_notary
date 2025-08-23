@@ -1,7 +1,7 @@
-import LoadingSpinner from '@/components/shared/LoadingSpinner.tsx';
+import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import getAnalytics, { getAnalysisFocusOptions, type AnalyticsResponse } from '@/services/analytics/getAnalytics';
 import { Alert, Button, Card, Col, Row, Select, Typography } from 'antd';
-import { ArrowLeft, Brain, FileText, TrendingUp, PieChart } from 'lucide-react';
+import { ArrowLeft, Brain, FileText, PieChart, TrendingUp } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
@@ -37,7 +37,7 @@ const DocumentAnalytics: React.FC = () => {
   const [focusOptions, setFocusOptions] = useState<string[]>([]);
 
   const onBackToDocument = () => {
-    navigate(`/document-details?document_id=${document_id}`);
+    navigate(`/document-details?query_document_id=${document_id}`);
   };
 
   const loadFocusOptions = useCallback(async () => {
@@ -59,13 +59,13 @@ const DocumentAnalytics: React.FC = () => {
 
     setIsLoading(true);
     setError('');
-    
+
     try {
       const response = await getAnalytics({
         document_id: document_id,
         analysis_focus: analysisFocus,
       });
-      
+
       if (response.success) {
         setAnalyticsData(response);
       } else {
@@ -123,7 +123,7 @@ const DocumentAnalytics: React.FC = () => {
           <ul key={index} className="mb-4 ml-4">
             {items.map((item, itemIndex) => (
               <li key={itemIndex} className="mb-1">
-                {item.replace(/^[•\-]\s*/, '')}
+                {item.replace(/^[•-]\s*/, '')}
               </li>
             ))}
           </ul>
