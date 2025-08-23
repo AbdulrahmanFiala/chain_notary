@@ -40,15 +40,14 @@ pub struct DocumentBase {
     pub name: String,
     pub company_name: String,
     pub description: String,
-    pub base_hash: String,
-    pub document_file_hash: String,
     pub document_data: DocumentType,
+    pub base_hash: String,     // Hash of all DocumentBase attributes
+    pub document_file_hash: String, // Hash of the uploaded document file
 }
 
 // Full document with file data
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct Document {
-    #[serde(flatten)]
     pub document_base_data: DocumentBase,
     pub published_at: u64,
     pub updated_at: u64,
@@ -60,7 +59,6 @@ pub struct Document {
 // NFT version without file data
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DocumentNft {
-    #[serde(flatten)]
     pub document_base_data: DocumentBase,
     pub created_at: u64,        // NFT creation timestamp
     pub tx_id: Option<String>,  // Blockchain transaction ID (None initially, Some(tx_id) after confirmation)
@@ -110,5 +108,5 @@ pub struct DocumentResponse {
     pub success: bool,
     pub document_id: String,
     pub error_message: String,
-    pub document_hash: String,
+    pub file_hash: String, // Hash of the uploaded file for integrity verification
 }
