@@ -1,6 +1,7 @@
 import App from "@/App";
 import CreateDocument from "@/pages/CreateDocument";
 import DocumentDetails from "@/pages/DocumentDetails";
+import DocumentAnalytics from "@/pages/DocumentAnalytics";
 import QueryDocument from "@/pages/QueryDocument";
 import {
   createBrowserRouter
@@ -24,6 +25,11 @@ const router = createBrowserRouter([
   {
     path: "/document-details",
     Component: DocumentDetails,
+    loader,
+  },
+  {
+    path: "/document-analytics",
+    Component: DocumentAnalytics,
     loader,
   }, {
     path: "/query-document",
