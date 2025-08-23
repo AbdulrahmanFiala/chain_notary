@@ -350,24 +350,86 @@ async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, S
 
 /// Create analysis prompt based on focus area
 fn create_analysis_prompt(content: &str, focus: &str) -> String {
-    let base_instruction = "You are a professional financial analyst with expertise in earnings releases and financial statements. You have been provided with both extracted PDF content and structured financial data. Provide a comprehensive, structured analysis.";
+    let base_instruction = "You are a professional financial analyst with expertise in earnings releases and financial statements. You have been provided with both extracted PDF content and structured financial data.";
     
-    let focus_instruction = match focus {
-        "financial_summary" => "Focus on key financial metrics, trends, and overall financial health. Provide insights on profitability, liquidity, and operational efficiency. Compare the PDF content with the structured data for consistency.",
-        "risk_assessment" => "Focus on identifying potential risks, warning signs, and areas of concern. Analyze debt levels, cash flow, and market vulnerabilities mentioned in both the PDF content and structured data.",
-        "market_insights" => "Focus on market positioning, competitive advantages, growth prospects, and industry comparisons. Use both the narrative content from the PDF and the quantitative data provided.",
-        "investment_analysis" => "Focus on investment attractiveness, valuation insights, and recommendations for potential investors. Synthesize information from both the PDF narrative and structured financial metrics.",
-        _ => "Provide a balanced analysis covering financial performance, risks, and opportunities using all available data sources.",
-    };
+    let (focus_instruction, analysis_instructions) = match focus {
+        "financial_summary" => (
+            "Provide a CONCISE financial summary of the document. Focus on the most important financial metrics and key takeaways.",
+            "
+SUMMARY GUIDELINES:
+- Keep the response concise and focused (max 300 words)
+- Highlight the top 3-4 most important financial metrics
+- Provide clear, actionable insights
+- Use bullet points for key findings
+- Compare PDF content with structured data for accuracy
+- End with a brief overall assessment (Strong/Good/Concerning/Poor)"
+        ),
+        "investment_insights" => (
+            "Provide structured investment insights based on the financial data. Focus on investment attractiveness, growth potential, and recommendations.",
+            "
+INVESTMENT ANALYSIS STRUCTURE:
+## Investment Highlights
+- List 3-4 key strengths that make this attractive to investors
 
-    let analysis_instructions = "
+## Financial Performance Analysis  
+- Revenue and profitability trends
+- Balance sheet strength
+- Cash flow analysis
+
+## Growth Prospects
+- Market opportunities
+- Competitive positioning
+- Future outlook
+
+## Investment Recommendation
+- Clear recommendation (Strong Buy/Buy/Hold/Sell)
+- Target investor profile
+- Key risks to monitor
+
+Use specific numbers and percentages. Structure with clear headings and bullet points."
+        ),
+        "analysis_chart" => (
+            "Generate data for creating 2-3 financial visualization charts. Provide the data in a structured format that can be used to create pie charts and other visualizations.",
+            "
+CHART DATA REQUIREMENTS:
+You must provide chart data in this EXACT JSON format within your response:
+
+```json
+{
+  \"charts\": [
+    {
+      \"title\": \"Revenue Breakdown\",
+      \"type\": \"pie\",
+      \"data\": [
+        {\"label\": \"Operating Revenue\", \"value\": 85, \"color\": \"#3B82F6\"},
+        {\"label\": \"Other Income\", \"value\": 15, \"color\": \"#10B981\"}
+      ]
+    },
+    {
+      \"title\": \"Asset Allocation\",
+      \"type\": \"pie\", 
+      \"data\": [
+        {\"label\": \"Current Assets\", \"value\": 60, \"color\": \"#8B5CF6\"},
+        {\"label\": \"Fixed Assets\", \"value\": 40, \"color\": \"#F59E0B\"}
+      ]
+    }
+  ]
+}
+```
+
+Create 2-3 relevant charts based on the financial data. Use percentages for pie charts. Include brief analysis text explaining the charts."
+        ),
+        _ => (
+            "Provide a balanced analysis covering financial performance, risks, and opportunities using all available data sources.",
+            "
 ANALYSIS GUIDELINES:
 - Use both PDF content and structured data in your analysis
 - Highlight any discrepancies between PDF narrative and structured data
 - Provide specific numbers and percentages where available
 - Structure your response with clear headings and bullet points
-- Include actionable insights and recommendations
-- If PDF content is truncated, note this limitation in your analysis";
+- Include actionable insights and recommendations"
+        ),
+    };
 
     format!(
         "{}\n\n{}\n\n{}\n\nFinancial Data to Analyze:\n{}",
@@ -410,9 +472,8 @@ fn handle_gemini_response(response: HttpResponse) -> Result<String, String> {
 pub fn get_analysis_focus_options() -> Vec<String> {
     vec![
         "financial_summary".to_string(),
-        "risk_assessment".to_string(),
-        "market_insights".to_string(),
-        "investment_analysis".to_string(),
+        "investment_insights".to_string(),
+        "analysis_chart".to_string(),
     ]
 }
 

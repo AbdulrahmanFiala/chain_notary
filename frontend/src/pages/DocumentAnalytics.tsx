@@ -1,12 +1,29 @@
 import LoadingSpinner from '@/components/shared/LoadingSpinner.tsx';
 import getAnalytics, { getAnalysisFocusOptions, type AnalyticsResponse } from '@/services/analytics/getAnalytics';
 import { Alert, Button, Card, Col, Row, Select, Typography } from 'antd';
-import { ArrowLeft, Brain, FileText, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Brain, FileText, TrendingUp, PieChart } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 
 const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
+
+// Chart data types
+interface ChartDataPoint {
+  label: string;
+  value: number;
+  color: string;
+}
+
+interface ChartConfig {
+  title: string;
+  type: string;
+  data: ChartDataPoint[];
+}
+
+interface ChartsData {
+  charts: ChartConfig[];
+}
 
 const DocumentAnalytics: React.FC = () => {
   const navigate = useNavigate();
@@ -81,7 +98,7 @@ const DocumentAnalytics: React.FC = () => {
         const level = paragraph.match(/^#+/)?.[0].length || 1;
         const headerText = paragraph.replace(/^#+\s*/, '');
         return (
-          <Title key={index} level={Math.min(level + 1, 5)} className="mt-6 mb-3">
+          <Title key={index} level={Math.min(level + 1, 5) as 1 | 2 | 3 | 4 | 5} className="mt-6 mb-3">
             {headerText}
           </Title>
         );
@@ -113,13 +130,13 @@ const DocumentAnalytics: React.FC = () => {
   const getAnalysisIcon = (analysisType: string) => {
     switch (analysisType) {
       case 'financial_summary':
-        return <TrendingUp className="w-5 h-5 text-blue-500" />;
-      case 'risk_assessment':
-        return <FileText className="w-5 h-5 text-red-500" />;
-      case 'market_insights':
-        return <Brain className="w-5 h-5 text-green-500" />;
-      default:
+        return <FileText className="w-5 h-5 text-blue-500" />;
+      case 'investment_insights':
+        return <TrendingUp className="w-5 h-5 text-green-500" />;
+      case 'analysis_chart':
         return <Brain className="w-5 h-5 text-purple-500" />;
+      default:
+        return <Brain className="w-5 h-5 text-gray-500" />;
     }
   };
 
@@ -127,15 +144,99 @@ const DocumentAnalytics: React.FC = () => {
     switch (focus) {
       case 'financial_summary':
         return 'Financial Summary';
-      case 'risk_assessment':
-        return 'Risk Assessment';
-      case 'market_insights':
-        return 'Market Insights';
-      case 'investment_analysis':
-        return 'Investment Analysis';
+      case 'investment_insights':
+        return 'Investment Insights';
+      case 'analysis_chart':
+        return 'Analysis Charts';
       default:
         return focus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
+  };
+
+  // Parse chart data from AI response
+  const parseChartData = (analysisText: string): ChartsData | null => {
+    try {
+      // Look for JSON data in the response
+      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        const chartData = JSON.parse(jsonMatch[1]);
+        return chartData as ChartsData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to parse chart data:', error);
+      return null;
+    }
+  };
+
+  // Render a pie chart using CSS and HTML
+  const renderPieChart = (chart: ChartConfig) => {
+    const total = chart.data.reduce((sum, item) => sum + item.value, 0);
+    let currentAngle = 0;
+
+    const segments = chart.data.map((item) => {
+      const percentage = (item.value / total) * 100;
+      const angle = (item.value / total) * 360;
+      const startAngle = currentAngle;
+      currentAngle += angle;
+
+      // Create conic gradient segment
+      const gradientStop = `${item.color} ${startAngle}deg ${currentAngle}deg`;
+      
+      return {
+        ...item,
+        percentage: percentage.toFixed(1),
+        gradientStop
+      };
+    });
+
+    const conicGradient = `conic-gradient(${segments.map(s => s.gradientStop).join(', ')})`;
+
+    return (
+      <Card key={chart.title} className="mb-6">
+        <Title level={4} className="text-center mb-4">
+          <PieChart className="w-5 h-5 inline-block mr-2" />
+          {chart.title}
+        </Title>
+        
+        <Row gutter={[24, 24]} align="middle">
+          <Col xs={24} md={12}>
+            <div className="flex justify-center">
+              <div
+                className="w-48 h-48 rounded-full border-4 border-gray-200 relative"
+                style={{
+                  background: conicGradient,
+                }}
+              >
+                <div className="absolute inset-4 bg-white rounded-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-700">100%</div>
+                    <div className="text-sm text-gray-500">Total</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Col>
+          
+          <Col xs={24} md={12}>
+            <div className="space-y-3">
+              {segments.map((segment, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-3"
+                      style={{ backgroundColor: segment.color }}
+                    />
+                    <Text>{segment.label}</Text>
+                  </div>
+                  <Text strong>{segment.percentage}%</Text>
+                </div>
+              ))}
+            </div>
+          </Col>
+        </Row>
+      </Card>
+    );
   };
 
   if (!document_id) {
@@ -239,45 +340,58 @@ const DocumentAnalytics: React.FC = () => {
 
         {/* Analytics Results */}
         {analyticsData && analyticsData.success && !isLoading && (
-          <Card>
-            <div className="mb-6">
-              <div className="flex items-center space-x-3 mb-4">
-                {getAnalysisIcon(analysisFocus)}
-                <Title level={3} className="mb-0">
-                  {getAnalysisFocusLabel(analysisFocus)} Analysis
-                </Title>
+          <>
+            <Card className="mb-6">
+              <div className="mb-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  {getAnalysisIcon(analysisFocus)}
+                  <Title level={3} className="mb-0">
+                    {getAnalysisFocusLabel(analysisFocus)} Analysis
+                  </Title>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <Text className="text-blue-700">
+                    Analysis Type: <Text strong>{analyticsData.analysis_type}</Text>
+                    {analyticsData.analysis_type === 'pdf_analysis' && (
+                      <div className="mt-2">
+                        <Text className="text-green-600 text-sm">
+                          ✓ Includes extracted PDF content + structured data
+                        </Text>
+                      </div>
+                    )}
+                    {analyticsData.analysis_type === 'data_analysis' && (
+                      <div className="mt-2">
+                        <Text className="text-orange-600 text-sm">
+                          ⚠ Based on structured data only (PDF extraction not available)
+                        </Text>
+                      </div>
+                    )}
+                  </Text>
+                </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <Text className="text-blue-700">
-                  Analysis Type: <Text strong>{analyticsData.analysis_type}</Text>
-                  {analyticsData.analysis_type === 'pdf_analysis' && (
-                    <div className="mt-2">
-                      <Text className="text-green-600 text-sm">
-                        ✓ Includes extracted PDF content + structured data
-                      </Text>
-                    </div>
-                  )}
-                  {analyticsData.analysis_type === 'data_analysis' && (
-                    <div className="mt-2">
-                      <Text className="text-orange-600 text-sm">
-                        ⚠ Based on structured data only (PDF extraction not available)
-                      </Text>
-                    </div>
-                  )}
+
+              {/* Render Charts if analysis_chart is selected */}
+              {analysisFocus === 'analysis_chart' && (() => {
+                const chartData = parseChartData(analyticsData.analysis);
+                return chartData ? (
+                  <div className="mb-6">
+                    <Title level={4} className="mb-4">Financial Visualization Charts</Title>
+                    {chartData.charts.map((chart) => renderPieChart(chart))}
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="prose max-w-none">
+                {formatAnalysisText(analyticsData.analysis)}
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <Text className="text-sm text-gray-500">
+                  Analysis generated using AI. Please verify important financial decisions with professional advisors.
                 </Text>
               </div>
-            </div>
-
-            <div className="prose max-w-none">
-              {formatAnalysisText(analyticsData.analysis)}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <Text className="text-sm text-gray-500">
-                Analysis generated using AI. Please verify important financial decisions with professional advisors.
-              </Text>
-            </div>
-          </Card>
+            </Card>
+          </>
         )}
 
         {/* Empty State */}
