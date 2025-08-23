@@ -88,11 +88,23 @@ const DocumentAnalytics: React.FC = () => {
     }
   }, [document_id, focusOptions.length, performAnalysis]);
 
-  const formatAnalysisText = (text: string) => {
+  const formatAnalysisText = (text: string, hideJsonBlocks: boolean = false) => {
+    let processedText = text;
+    
+    // Remove JSON code blocks if hideJsonBlocks is true
+    if (hideJsonBlocks) {
+      processedText = text.replace(/```json\n[\s\S]*?\n```/g, '').trim();
+    }
+    
     // Split by double newlines for paragraphs
-    const paragraphs = text.split('\n\n');
+    const paragraphs = processedText.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
+      // Skip empty paragraphs
+      if (!paragraph.trim()) {
+        return null;
+      }
+      
       // Check if it's a header (starts with ##, ###, etc.)
       if (paragraph.trim().startsWith('#')) {
         const level = paragraph.match(/^#+/)?.[0].length || 1;
@@ -124,7 +136,7 @@ const DocumentAnalytics: React.FC = () => {
           {paragraph}
         </Paragraph>
       );
-    });
+    }).filter(Boolean); // Remove null values
   };
 
   const getAnalysisIcon = (analysisType: string) => {
@@ -382,7 +394,7 @@ const DocumentAnalytics: React.FC = () => {
               })()}
 
               <div className="prose max-w-none">
-                {formatAnalysisText(analyticsData.analysis)}
+                {formatAnalysisText(analyticsData.analysis, analysisFocus === 'analysis_chart')}
               </div>
 
               <div className="mt-8 pt-6 border-t border-gray-200">

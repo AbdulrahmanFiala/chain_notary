@@ -354,39 +354,51 @@ fn create_analysis_prompt(content: &str, focus: &str) -> String {
     
     let (focus_instruction, analysis_instructions) = match focus {
         "financial_summary" => (
-            "Provide a CONCISE financial summary of the document. Focus on the most important financial metrics and key takeaways.",
+            "Provide a DETAILED financial summary of the document. Focus on comprehensive analysis of financial performance, trends, and key insights.",
             "
-SUMMARY GUIDELINES:
-- Keep the response concise and focused (max 300 words)
-- Highlight the top 3-4 most important financial metrics
-- Provide clear, actionable insights
-- Use bullet points for key findings
+DETAILED SUMMARY GUIDELINES:
+- Provide comprehensive financial analysis (aim for 400-600 words)
+- Include detailed breakdown of all major financial metrics
+- Analyze revenue trends, profitability ratios, and growth rates
+- Examine balance sheet strength including liquidity and solvency ratios
+- Discuss cash flow patterns and working capital management
+- Compare current period with previous periods if data available
+- Identify key financial strengths and areas of concern
+- Provide sector/industry context where relevant
+- Include percentage changes and financial ratios
+- Use clear headings and bullet points for organization
 - Compare PDF content with structured data for accuracy
-- End with a brief overall assessment (Strong/Good/Concerning/Poor)"
+- End with detailed overall assessment and outlook (Strong/Good/Concerning/Poor)"
         ),
         "investment_insights" => (
-            "Provide structured investment insights based on the financial data. Focus on investment attractiveness, growth potential, and recommendations.",
+            "Provide structured investment insights based on the financial data. Focus on investment attractiveness, growth potential, and recommendations. DO NOT use any markdown formatting like ** ** or ## in your response.",
             "
 INVESTMENT ANALYSIS STRUCTURE:
-## Investment Highlights
+Investment Highlights
 - List 3-4 key strengths that make this attractive to investors
 
-## Financial Performance Analysis  
+Financial Performance Analysis  
 - Revenue and profitability trends
 - Balance sheet strength
 - Cash flow analysis
 
-## Growth Prospects
+Growth Prospects
 - Market opportunities
 - Competitive positioning
 - Future outlook
 
-## Investment Recommendation
+Investment Recommendation
 - Clear recommendation (Strong Buy/Buy/Hold/Sell)
 - Target investor profile
 - Key risks to monitor
 
-Use specific numbers and percentages. Structure with clear headings and bullet points."
+FORMATTING RULES:
+- Use plain text only, no markdown formatting
+- Use clear section headings without ## or **
+- Use bullet points with - for lists
+- Use specific numbers and percentages
+- Structure with clear headings and bullet points
+- Do not use bold (**text**) or italic (*text*) formatting"
         ),
         "analysis_chart" => (
             "Generate data for creating 2-3 financial visualization charts. Provide the data in a structured format that can be used to create pie charts and other visualizations.",
