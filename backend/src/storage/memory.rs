@@ -4,7 +4,7 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{Document, CollectionMetadata, Institution};
+use crate::types::{Document, CollectionMetadata, Institution, DocumentNft};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -37,6 +37,20 @@ thread_local! {
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
+        )
+    );
+
+    // Store DocumentNfts separately from documents
+    pub static DOCUMENT_NFTS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4)))
+        )
+    );
+
+    // Store mapping from document IDs to NFT transaction IDs
+    pub static DOCUMENT_TO_NFT: RefCell<StableBTreeMap<String, String, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(5)))
         )
     );
 }
@@ -133,8 +147,46 @@ pub fn bytes_to_tokens(bytes: &[u8]) -> Result<Vec<String>, String> {
 
 pub fn institution_to_bytes(institution: &Institution) -> Result<Vec<u8>, String> {
     serde_json::to_vec(institution).map_err(|e| format!("Failed to serialize institution: {}", e))
-}
+} 
 
 pub fn bytes_to_institution(bytes: &[u8]) -> Result<Institution, String> {
     serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize institution: {}", e))
+}
+
+// Helper functions for DocumentNft storage operations
+pub fn get_document_nft_safe(tx_id: &str) -> Option<DocumentNft> {
+    DOCUMENT_NFTS.with(|storage| {
+        storage.borrow().get(&tx_id.to_string())
+            .and_then(|bytes| bytes_to_document_nft(&bytes).ok())
+    })
+}
+
+pub fn get_nft_by_document_id(document_id: &str) -> Option<String> {
+    DOCUMENT_TO_NFT.with(|mapping| {
+        mapping.borrow().get(&document_id.to_string())
+    })
+}
+
+pub fn create_document_nft_safe(tx_id: &str, nft: &DocumentNft) -> Result<(), String> {
+    let nft_bytes = document_nft_to_bytes(nft)
+        .map_err(|e| format!("Failed to serialize document nft: {}", e))?;
+    DOCUMENT_NFTS.with(|storage| {
+        storage.borrow_mut().insert(tx_id.to_string(), nft_bytes);
+    });
+    Ok(())
+}
+
+pub fn link_document_to_nft(document_id: &str, tx_id: &str) -> Result<(), String> {
+    DOCUMENT_TO_NFT.with(|mapping| {
+        mapping.borrow_mut().insert(document_id.to_string(), tx_id.to_string());
+    });
+    Ok(())
+}
+
+pub fn document_nft_to_bytes(nft: &DocumentNft) -> Result<Vec<u8>, String> {
+    serde_json::to_vec(nft).map_err(|e| format!("Failed to serialize document nft: {}", e))
+}
+
+pub fn bytes_to_document_nft(bytes: &[u8]) -> Result<DocumentNft, String> {
+    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize document nft: {}", e))
 } 
