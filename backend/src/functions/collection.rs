@@ -176,9 +176,18 @@ pub fn add_document_to_collection(collection_id: String, document_id: String) ->
     // Update collection
     crate::storage::update_collection_safe(&collection_id, &collection)?;
     
-    // Update document's collection_id field
+    // Update document's collection_id field and recalculate hashes
     let mut updated_document = document;
     updated_document.document_base_data.collection_id = collection_id.clone();
+    updated_document.updated_at = ic_cdk::api::time();
+    
+    // Recalculate hashes since collection_id (metadata) has changed
+    let base_hash = crate::utils::calculate_base_hash(&updated_document);
+    let file_hash = crate::utils::calculate_document_file_hash(&updated_document.file_data);
+    
+    // Update the hashes in the document
+    updated_document.document_base_data.base_hash = base_hash;
+    updated_document.document_base_data.document_file_hash = file_hash;
     
     crate::storage::update_document_safe(&document_id, &updated_document)?;
     
@@ -210,10 +219,19 @@ pub fn remove_document_from_collection(collection_id: String, document_id: Strin
         // Update collection
         crate::storage::update_collection_safe(&collection_id, &collection)?;
         
-                    // Update document's collection_id field to empty string
-            if let Some(document) = crate::storage::get_document_safe(&document_id) {
-                let mut updated_document = document;
-                updated_document.document_base_data.collection_id = String::new();
+        // Update document's collection_id field to empty string and recalculate hashes
+        if let Some(document) = crate::storage::get_document_safe(&document_id) {
+            let mut updated_document = document;
+            updated_document.document_base_data.collection_id = String::new();
+            updated_document.updated_at = ic_cdk::api::time();
+            
+            // Recalculate hashes since collection_id (metadata) has changed
+            let base_hash = crate::utils::calculate_base_hash(&updated_document);
+            let file_hash = crate::utils::calculate_document_file_hash(&updated_document.file_data);
+            
+            // Update the hashes in the document
+            updated_document.document_base_data.base_hash = base_hash;
+            updated_document.document_base_data.document_file_hash = file_hash;
             
             crate::storage::update_document_safe(&document_id, &updated_document)?;
         }

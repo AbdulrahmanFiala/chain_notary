@@ -9,27 +9,18 @@ pub fn calculate_file_hash(file_data: &[u8]) -> String {
 }
 
 /// Calculate base hash from DocumentBase attributes for integrity verification
-pub fn calculate_base_hash(
-    institution_id: &str,
-    collection_id: &str,
-    document_id: &str,
-    owner: &Principal,
-    name: &str,
-    company_name: &str,
-    description: &str,
-    document_data: &crate::types::DocumentType,
-) -> String {
+pub fn calculate_base_hash(document: &crate::types::Document) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(institution_id.as_bytes());
-    hasher.update(collection_id.as_bytes());
-    hasher.update(document_id.as_bytes());
-    hasher.update(owner.as_slice());
-    hasher.update(name.as_bytes());
-    hasher.update(company_name.as_bytes());
-    hasher.update(description.as_bytes());
+    hasher.update(document.document_base_data.institution_id.as_bytes());
+    hasher.update(document.document_base_data.collection_id.as_bytes());
+    hasher.update(document.document_base_data.document_id.as_bytes());
+    hasher.update(document.document_base_data.owner.as_slice());
+    hasher.update(document.document_base_data.name.as_bytes());
+    hasher.update(document.document_base_data.company_name.as_bytes());
+    hasher.update(document.document_base_data.description.as_bytes());
     
     // Include document_data and all its sub-data in the hash
-    match document_data {
+    match &document.document_base_data.document_data {
         crate::types::DocumentType::EarningRelease(earning_data) => {
             // Hash earning_release_id
             hasher.update(earning_data.earning_release_id.as_bytes());
@@ -53,6 +44,19 @@ pub fn calculate_base_hash(
         }
     }
     
+    hex::encode(hasher.finalize())
+}
+
+/// Calculate document file hash - wrapper around calculate_file_hash for consistency
+pub fn calculate_document_file_hash(file_data: &[u8]) -> String {
+    calculate_file_hash(file_data)
+}
+
+/// Calculate combined hash from base hash and file hash for overall document integrity
+pub fn calculate_combined_document_hash(base_hash: &str, file_hash: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(base_hash.as_bytes());
+    hasher.update(file_hash.as_bytes());
     hex::encode(hasher.finalize())
 }
 
