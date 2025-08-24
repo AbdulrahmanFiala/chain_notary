@@ -279,7 +279,7 @@ const uploadDocument = async (file, metadata) => {
 6. **Collection Name**: 1-200 characters
 7. **Email**: Must be valid email format
 
-## Storage
+## Storage & Architecture
 
 The backend uses stable memory to store:
 - Institution metadata and relationships
@@ -287,9 +287,36 @@ The backend uses stable memory to store:
 - Document metadata and file data
 - Owner-to-document mappings
 
+### **System Architecture**
+
+The system follows a hierarchical structure: **Institution → Collections → Documents**
+
+- **Institutions** represent universities, schools, or organizations
+- **Collections** belong to institutions and group related documents  
+- **Documents** belong to collections and represent individual certificates/credentials
+
+### **Key Relationships**
+- **Institution → Collections**: One-to-many relationship
+- **Collection → Documents**: One-to-many relationship
+- **Ownership**: Each level has proper access control
+- **Validation**: Prevents orphaned records and maintains data integrity
+
+
+## Query System Organization
+
+The query functions are organized into specialized modules for better maintainability:
+- **`document_queries.rs`** - Document-related queries
+- **`collection_queries.rs`** - Collection-related queries  
+- **`institution_queries.rs`** - Institution-related queries
+- **`search_queries.rs`** - Search and discovery functions
+
+All functions maintain the same public API for backward compatibility.
 
 ## Building and Deploying
 
+For detailed build and deployment instructions, see the main [BUILD.md](../BUILD.md) file.
+
+**Quick Commands:**
 ```bash
 # Build the canister
 dfx build backend
