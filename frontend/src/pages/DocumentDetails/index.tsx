@@ -204,7 +204,7 @@ const DocumentDetails: React.FC = () => {
           </div>
         </div>}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          {documentDetails.document_id && <DownLoadButton type='primary' file_data={documentDetails.file_data} file_type={documentDetails.file_type} file_name={documentDetails.document_id} />}
+          {documentDetails.document_id && <DownLoadButton type='primary' file_data={documentDetails.file_data} file_type={documentDetails.file_type} file_name={documentDetails.document_id} >Download</DownLoadButton>}
           {/* <Button onClick={() => {
             window.open(`https://www.icpexplorer.org/#/search/${nftDetails.document_hash}`, '_blank');
           }} className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">

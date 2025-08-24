@@ -20,9 +20,10 @@ const Dragger: FC<Props> = ({ form }) => {
     onChange: async (info) => {
       const { status, size, type: file_type, originFileObj } = info.file;
       if (status === 'done') {
+        const name = form.getFieldValue('name');
         const file_data = await getUint8Array(originFileObj as File)
         const document_hash = await computeFileHash(file_data);
-        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), document_hash, name: form.getFieldValue('name') ?? info.file.uid });
+        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), document_hash, name: name || info.file.uid });
         message.success(`${info.file.name} file uploaded successfully.`);
       } else if (status === 'error') {
         message.error(`${info.file.name} file upload failed.`);

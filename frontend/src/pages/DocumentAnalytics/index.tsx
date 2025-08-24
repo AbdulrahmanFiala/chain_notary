@@ -3,7 +3,9 @@ import getAnalytics, { getAnalysisFocusOptions, type AnalyticsResponse } from '@
 import { Alert, Button, Card, Col, Row, Select, Typography } from 'antd';
 import { ArrowLeft, Brain, FileText, PieChart, TrendingUp } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import Markdown from 'react-markdown';
 import { useNavigate, useSearchParams } from 'react-router';
+import './style.css';
 
 const { Title, Paragraph, Text } = Typography;
 const { Option } = Select;
@@ -29,7 +31,7 @@ const DocumentAnalytics: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const document_id = searchParams?.get('document_id');
-  
+
   const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -90,52 +92,27 @@ const DocumentAnalytics: React.FC = () => {
 
   const formatAnalysisText = (text: string, hideJsonBlocks: boolean = false) => {
     let processedText = text;
-    
+
     // Remove JSON code blocks if hideJsonBlocks is true
     if (hideJsonBlocks) {
       processedText = text.replace(/```json\n[\s\S]*?\n```/g, '').trim();
     }
-    
+
     // Split by double newlines for paragraphs
     const paragraphs = processedText.split('\n\n');
-    
+
     return paragraphs.map((paragraph, index) => {
       // Skip empty paragraphs
       if (!paragraph.trim()) {
-        return null;
+        return "";
       }
-      
-      // Check if it's a header (starts with ##, ###, etc.)
-      if (paragraph.trim().startsWith('#')) {
-        const level = paragraph.match(/^#+/)?.[0].length || 1;
-        const headerText = paragraph.replace(/^#+\s*/, '');
-        return (
-          <Title key={index} level={Math.min(level + 1, 5) as 1 | 2 | 3 | 4 | 5} className="mt-6 mb-3">
-            {headerText}
-          </Title>
-        );
-      }
-      
-      // Check if it's a bullet point
-      if (paragraph.trim().startsWith('•') || paragraph.trim().startsWith('-')) {
-        const items = paragraph.split('\n').filter(item => item.trim());
-        return (
-          <ul key={index} className="mb-4 ml-4">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="mb-1">
-                {item.replace(/^[•-]\s*/, '')}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-      
-      // Regular paragraph
+
       return (
-        <Paragraph key={index} className="mb-4 text-gray-700">
+        <Markdown key={index}>
           {paragraph}
-        </Paragraph>
+        </Markdown>
       );
+
     }).filter(Boolean); // Remove null values
   };
 
@@ -194,7 +171,7 @@ const DocumentAnalytics: React.FC = () => {
 
       // Create conic gradient segment
       const gradientStop = `${item.color} ${startAngle}deg ${currentAngle}deg`;
-      
+
       return {
         ...item,
         percentage: percentage.toFixed(1),
@@ -205,12 +182,12 @@ const DocumentAnalytics: React.FC = () => {
     const conicGradient = `conic-gradient(${segments.map(s => s.gradientStop).join(', ')})`;
 
     return (
-      <Card key={chart.title} className="mb-6">
+      <Card key={chart.title} className="mb-6!">
         <Title level={4} className="text-center mb-4">
           <PieChart className="w-5 h-5 inline-block mr-2" />
           {chart.title}
         </Title>
-        
+
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} md={12}>
             <div className="flex justify-center">
@@ -229,7 +206,7 @@ const DocumentAnalytics: React.FC = () => {
               </div>
             </div>
           </Col>
-          
+
           <Col xs={24} md={12}>
             <div className="space-y-3">
               {segments.map((segment, index) => (
@@ -353,7 +330,7 @@ const DocumentAnalytics: React.FC = () => {
         {/* Analytics Results */}
         {analyticsData && analyticsData.success && !isLoading && (
           <>
-            <Card className="mb-6">
+            <div className="mb-6">
               <div className="mb-6">
                 <div className="flex items-center space-x-3 mb-4">
                   {getAnalysisIcon(analysisFocus)}
@@ -392,17 +369,15 @@ const DocumentAnalytics: React.FC = () => {
                   </div>
                 ) : null;
               })()}
-
-              <div className="prose max-w-none">
+              <div className='analysis-container'>
                 {formatAnalysisText(analyticsData.analysis, analysisFocus === 'analysis_chart')}
               </div>
-
               <div className="mt-8 pt-6 border-t border-gray-200">
                 <Text className="text-sm text-gray-500">
                   Analysis generated using AI. Please verify important financial decisions with professional advisors.
                 </Text>
               </div>
-            </Card>
+            </div>
           </>
         )}
 
