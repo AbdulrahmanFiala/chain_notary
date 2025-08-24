@@ -84,12 +84,47 @@ Your identity will have a principal ID associated with it, which is used to iden
 
 Install dependencies and deploy to your local environment:
 
+**Option 1: Automated Deployment (Recommended)**
+Use the included deployment script that automatically sets up environment variables:
+
 ```bash
 npm install
+chmod +x deploy.sh
+./deploy.sh
+```
+
+**Option 2: Manual Deployment**
+If you prefer manual control, you'll need to manually set the principal ID:
+
+```bash
+npm install
+# Get your principal ID first
+dfx identity get-principal
+# Set the environment variable manually (replace YOUR_PRINCIPAL_ID with the actual value)
+export VITE_PRINCIPAL_ID="YOUR_PRINCIPAL_ID"
 dfx deploy
 ```
 
+> **Important:** With manual deployment, you must manually set `VITE_PRINCIPAL_ID` environment variable before running `dfx deploy`. The automated script handles this automatically.
+
+
+
 Your project will be hosted on your local machine. The terminal will display the local canister URLs for your project. Open these URLs in your web browser to view the local instance of Chain Notary.
+
+### 4.1. About the Deployment Script
+
+The `deploy.sh` script automates several important steps:
+
+- **Automatic Principal ID Detection**: Automatically retrieves your current DFX identity's principal ID
+- **Environment Variable Setup**: Sets `VITE_PRINCIPAL_ID` for your frontend application
+- **One-Command Deployment**: Handles the entire deployment process with a single command
+- **Error Handling**: Includes proper error checking and user feedback
+
+**Script Features:**
+- Sets `VITE_PRINCIPAL_ID` environment variable automatically
+- Provides clear status messages throughout the process
+- Exits gracefully if any step fails
+- Works seamlessly with the existing DFX configuration
 
 ## Production Deployment
 
@@ -123,9 +158,47 @@ After deployment, your project will continuously require cycles to pay for resou
 
 ## Troubleshooting
 
+### Common Issues and Solutions
+
+**Permission Issues:**
 - If you encounter permission issues, ensure your user owns the project directory
+- Make sure the deployment script is executable: `chmod +x deploy.sh`
+
+**Deployment Script Issues:**
+- If `./deploy.sh` fails, check that DFX is running: `dfx start --background`
+- Verify your identity is set: `dfx identity whoami`
+- Ensure you're in the correct project directory
+
+**Build Errors:**
 - For build errors, verify all dependencies are installed correctly
+- Check that Rust toolchain is properly installed: `rustc --version`
+- Verify candid-extractor is installed: `cargo install candid-extractor`
+
+**General Issues:**
 - Check the [DFINITY documentation](https://internetcomputer.org/docs) for detailed guides
+- Ensure your local network is running: `dfx ping`
+
+## Quick Reference
+
+### Local Development Commands
+
+```bash
+# Start local network
+dfx start --background
+
+# Automated deployment (recommended)
+./deploy.sh
+
+# Manual deployment (requires manual VITE_PRINCIPAL_ID setup)
+dfx deploy
+
+# Check network status
+dfx ping
+
+# View canister info
+dfx canister status backend
+dfx canister status frontend
+```
 
 ## Additional Resources
 
