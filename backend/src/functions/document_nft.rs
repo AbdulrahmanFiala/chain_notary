@@ -20,6 +20,7 @@ pub fn mint_document_nft(
         None => {
             return NFTResponse {
                 success: false,
+                tx_id: String::new(),
                 token_id: String::new(),
                 error_message: "Document not found".to_string(),
             };
@@ -30,6 +31,7 @@ pub fn mint_document_nft(
     if let Some(existing_tx_id) = get_nft_by_document_id(&document_id) {
         return NFTResponse {
             success: false,
+            tx_id: String::new(),
             token_id: String::new(),
             error_message: format!("Document already has an NFT with transaction ID: {}", existing_tx_id),
         };
@@ -38,9 +40,13 @@ pub fn mint_document_nft(
     // Get current timestamp for NFT creation
     let created_at = api::time();
 
+    // Generate a unique token ID for this NFT
+    let token_id = format!("token_{}", ic_cdk::api::time());
+
     // Create the DocumentNft from the document (without tx_id yet)
     let mut document_nft = DocumentNft {
         document_base_data: document.document_base_data.clone(),
+        token_id: token_id.clone(),
         created_at,
         tx_id: None, // Will be set to Some(real_tx_id) after blockchain confirmation
     };
@@ -75,6 +81,7 @@ pub fn mint_document_nft(
     if let Err(e) = create_document_nft_safe(&tx_id, &document_nft) {
         return NFTResponse {
             success: false,
+            tx_id: String::new(),
             token_id: String::new(),
             error_message: format!("Failed to store NFT: {}", e),
         };
@@ -84,15 +91,17 @@ pub fn mint_document_nft(
     if let Err(e) = link_document_to_nft(&document_id, &tx_id) {
         return NFTResponse {
             success: false,
+            tx_id: String::new(),
             token_id: String::new(),
             error_message: format!("Failed to link document to NFT: {}", e),
         };
     }
 
-    // Return success response with the actual blockchain transaction ID
+    // Return success response with the token ID
     NFTResponse {
         success: true,
-        token_id: tx_id,
+        tx_id: tx_id,
+        token_id: token_id,
         error_message: String::new(),
     }
 }

@@ -60,6 +60,7 @@ pub struct Document {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct DocumentNft {
     pub document_base_data: DocumentBase,
+    pub token_id: String,
     pub created_at: u64,        // NFT creation timestamp
     pub tx_id: Option<String>,  // Blockchain transaction ID (None initially, Some(tx_id) after confirmation)
 }
@@ -98,6 +99,7 @@ pub struct ConsolidatedBalanceSheetData {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct NFTResponse {
     pub success: bool,
+    pub tx_id: String,
     pub token_id: String,
     pub error_message: String,
 }
