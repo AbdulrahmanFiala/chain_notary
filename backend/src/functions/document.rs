@@ -15,6 +15,7 @@ pub fn upload_file_and_publish_document(
             document_id: String::new(),
             error_message: e,
             file_hash: String::new(),
+            base_hash: String::new(),
         };
     }
 
@@ -37,6 +38,7 @@ pub fn upload_file_and_publish_document(
             document_id: String::new(),
             error_message: e,
             file_hash: String::new(),
+            base_hash: String::new(),
         };
     }
 
@@ -55,6 +57,7 @@ pub fn upload_file_and_publish_document(
                 document_id: String::new(),
                 error_message: "Specified collection does not exist".to_string(),
                 file_hash: String::new(),
+                base_hash: String::new(),
             };
         }
     }
@@ -72,6 +75,7 @@ pub fn upload_file_and_publish_document(
                 document_id: String::new(),
                 error_message: "Specified institution does not exist".to_string(),
                 file_hash: String::new(),
+                base_hash: String::new(),
             };
         }
     }
@@ -114,6 +118,7 @@ pub fn upload_file_and_publish_document(
                 document_id: String::new(),
                 error_message: format!("Failed to serialize document: {}", e),
                 file_hash: String::new(),
+                base_hash: String::new(),
             };
         }
     };
@@ -132,6 +137,7 @@ pub fn upload_file_and_publish_document(
                     document_id: String::new(),
                     error_message: format!("Failed to update collection: {}", e),
                     file_hash: String::new(),
+                    base_hash: String::new(),
                 };
             }
         }
@@ -155,5 +161,6 @@ pub fn upload_file_and_publish_document(
         document_id,
         error_message: String::new(),
         file_hash: calculated_hash,
+        base_hash: document.document_base_data.base_hash.clone(),
     }
 } 

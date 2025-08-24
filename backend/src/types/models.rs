@@ -111,4 +111,5 @@ pub struct DocumentResponse {
     pub document_id: String,
     pub error_message: String,
     pub file_hash: String, // Hash of the uploaded file for integrity verification
+    pub base_hash: String, // Hash of all DocumentBase attributes for integrity verification
 }
