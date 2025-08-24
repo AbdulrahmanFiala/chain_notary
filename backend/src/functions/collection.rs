@@ -125,6 +125,19 @@ pub fn delete_collection(collection_id: String) -> Result<(), String> {
         return Err("Cannot delete collection with existing documents. Remove all documents first.".to_string());
     }
     
+    // If collection is associated with an institution, remove it from the institution's collection list
+    if !collection.institution_id.is_empty() {
+        if let Some(mut institution) = crate::storage::get_institution_safe(&collection.institution_id) {
+            // Remove collection from institution's collections list
+            institution.collections.retain(|id| id != &collection_id);
+            
+            // Update the institution
+            if let Err(e) = crate::storage::update_institution_safe(&collection.institution_id, &institution) {
+                return Err(format!("Failed to update institution during collection deletion: {}", e));
+            }
+        }
+    }
+    
     // Delete the collection
     COLLECTIONS.with(|storage| {
         storage.borrow_mut().remove(&collection_id);
