@@ -59,7 +59,7 @@ const CreateDocument: React.FC = () => {
                           label="Earning Release Name"
                           name="name"
                           hasFeedback
-                          rules={[{ required: true, message: 'Please input the NFT name!' }]}
+                          rules={[{ required: true, message: 'Please input the name!' }]}
                         >
                           <Input />
                         </Form.Item>
