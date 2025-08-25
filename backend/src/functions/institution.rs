@@ -1,28 +1,30 @@
 use ic_cdk::{update, caller};
 use crate::types::{Institution, CollectionMetadata};
 use crate::storage::{INSTITUTIONS, COLLECTIONS};
+use crate::utils::generate_institution_id;
 
 /// Create a new institution
 #[update]
 pub fn create_institution(
-    institution_id: String,
     name: String,
     email: String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     // Validate inputs
-    crate::utils::validate_string_length(&institution_id, 3, 50, "Institution ID")?;
     crate::utils::validate_string_length(&name, 2, 100, "Institution name")?;
     crate::utils::validate_email(&email)?;
 
     let caller = caller();
     
-    // Check if institution already exists
+    // Generate unique institution ID
+    let institution_id = generate_institution_id();
+    
+    // Check if institution already exists (shouldn't happen with timestamp-based IDs, but safety check)
     let exists = INSTITUTIONS.with(|storage| {
         storage.borrow().contains_key(&institution_id)
     });
     
     if exists {
-        return Err("Institution with this ID already exists".to_string());
+        return Err("Generated institution ID already exists. Please try again.".to_string());
     }
 
     let institution = Institution {
@@ -36,7 +38,7 @@ pub fn create_institution(
 
     crate::storage::update_institution_safe(&institution_id, &institution)?;
 
-    Ok(())
+    Ok(institution_id)
 }
 
 /// Update institution metadata (only owner can update)

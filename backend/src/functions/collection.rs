@@ -1,25 +1,25 @@
 use ic_cdk::{update, caller};
 use crate::types::{CollectionMetadata, CollectionCategory};
 use crate::storage::{COLLECTIONS, DOCUMENTS, bytes_to_collection};
+use crate::utils::generate_collection_id;
 
 #[update]
 pub fn create_collection(
-    collection_id: String,
     name: String,
     description: String,
     external_url: String,
     category: CollectionCategory,
     institution_id: String, 
-) -> Result<(), String> {
+) -> Result<String, String> {
     let caller = caller();
     
-    // Check if collection already exists
-    if COLLECTIONS.with(|storage| storage.borrow().contains_key(&collection_id)) {
-        return Err("Collection with this ID already exists".to_string());
-    }
+    // Generate unique collection ID
+    let collection_id = generate_collection_id();
     
-    // Validate collection ID format
-    crate::utils::validate_string_length(&collection_id, 1, 100, "Collection ID")?;
+    // Check if collection already exists (shouldn't happen with timestamp-based IDs, but safety check)
+    if COLLECTIONS.with(|storage| storage.borrow().contains_key(&collection_id)) {
+        return Err("Generated collection ID already exists. Please try again.".to_string());
+    }
     
     // Validate name
     crate::utils::validate_string_length(&name, 1, 200, "Collection name")?;
@@ -67,7 +67,7 @@ pub fn create_collection(
         }
     }
     
-    Ok(())
+    Ok(collection_id)
 }
 
 /// Update collection metadata

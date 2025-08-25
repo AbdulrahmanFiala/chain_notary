@@ -15,6 +15,20 @@ pub fn generate_token_id() -> String {
     format!("document_{}", timestamp)
 }
 
+/// Generate unique institution ID using timestamp
+pub fn generate_institution_id() -> String {
+    // Use timestamp for unique institution IDs
+    let timestamp = ic_cdk::api::time();
+    format!("INST_{}", timestamp)
+}
+
+/// Generate unique collection ID using timestamp
+pub fn generate_collection_id() -> String {
+    // Use timestamp for unique collection IDs
+    let timestamp = ic_cdk::api::time();
+    format!("COLL_{}", timestamp)
+}
+
 /// Validate string length with min and max bounds (after trimming whitespace)
 pub fn validate_string_length(value: &str, min: usize, max: usize, field_name: &str) -> Result<(), String> {
     let trimmed_value = value.trim();
