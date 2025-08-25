@@ -235,7 +235,7 @@ const CreateDocument: React.FC = () => {
                         color='primary'
                         htmlType='submit'
                       >
-                        {!isLoading && 'Mint NFT'}
+                        {!isLoading && 'Publish'}
                       </Button>
                     </Flex>
                   </Form.Item>
