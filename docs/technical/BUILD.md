@@ -88,15 +88,21 @@ Install dependencies and deploy to your local environment:
 Use the included deployment script that automatically sets up environment variables:
 
 ```bash
+# Navigate to your project directory
+cd /path/to/chain_notary
+
 npm install
-chmod +x deploy.sh
-./deploy.sh
+chmod +x docs/technical/deploy.sh
+./docs/technical/deploy.sh
 ```
 
 **Option 2: Manual Deployment**
 If you prefer manual control, you'll need to manually set the principal ID:
 
 ```bash
+# Navigate to your project directory
+cd /path/to/chain_notary
+
 npm install
 # Get your principal ID first
 dfx identity get-principal
@@ -187,10 +193,11 @@ After deployment, your project will continuously require cycles to pay for resou
 dfx start --background
 
 # Automated deployment (recommended)
-./deploy.sh
+./docs/technical/deploy.sh
 
 # Manual deployment (requires manual VITE_PRINCIPAL_ID setup)
 dfx deploy
+```
 
 # Check network status
 dfx ping
