@@ -11,7 +11,7 @@ type Props = {
 } & BaseButtonProps
 
 const DownLoadButton: FC<Props> = (props) => {
-  const { file_data, file_type, file_name } = props;
+  const { file_data, file_type, file_name, children } = props;
 
   const handleDownload = () => {
     if (!file_data || file_data.length === 0) {
@@ -54,7 +54,7 @@ const DownLoadButton: FC<Props> = (props) => {
 
   return (
     <Button className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" {...props} onClick={handleDownload} icon={<DownloadOutlined />}>
-      Download
+      {children}
     </Button>
   )
 }

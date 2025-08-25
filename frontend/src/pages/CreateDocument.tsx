@@ -37,9 +37,7 @@ const CreateDocument: React.FC = () => {
               Publish Earning Release
             </h2>
 
-            <Form className="form space-y-6" layout='vertical' onFinish={handleSubmit} form={form} onValuesChange={(_, values)=> {
-              console.log(values);
-            }}>
+            <Form className="form space-y-6" layout='vertical' onFinish={handleSubmit} form={form}>
               <Row gutter={[16, 16]} className='mb-0'>
                 <Col span={24}>
                   <Form.Item
