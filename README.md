@@ -10,6 +10,16 @@ ChainNotary is a blockchain-based document notarization platform built on the In
 
 The platform enables stakeholders to notarize financial documents on-chain, creating immutable, tamper-proof records that ensure transparency and trust across the Egyptian financial market. Each notarized document contains comprehensive metadata including financial metrics, company information, and timestamp data. The blockchain ensures permanent, tamper-proof authenticity while AI-powered analytics provide intelligent insights into financial performance and market trends, enhancing transparency and decision-making capabilities for all Egyptian market participants.
 
+## 🎥 Videos
+
+### Pitch Video
+Watch our pitch video to understand the vision and business model behind ChainNotary:
+[**Watch Pitch Video**](https://drive.google.com/file/d/1plt1AU_drM36-4NC27uegO3ciOltOUrP/view?usp=drive_link)
+
+### Product Demo
+See ChainNotary in action with our comprehensive product demonstration:
+[**Watch Product Demo**](https://drive.google.com/file/d/1xso6WM5MKwC06S_KcxHY5P0ESzXMSnxb/view?usp=drive_link)
+
 ## Vision
 
 To establish a trusted, transparent, and verifiable ecosystem for Egyptian financial market document notarization through blockchain technology. We envision a world where every financial document in the Egyptian market is instantly verifiable, permanently accessible, and enriched with AI-powered analytics that enhance transparency and drive informed decision-making for all Egyptian market participants.
