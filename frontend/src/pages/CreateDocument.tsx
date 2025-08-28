@@ -1,10 +1,8 @@
 import Header from '@/components/Header';
+import Dragger from '@/components/shared/Dragger';
 import useFormValidation from '@/hooks/useFormValidation';
 import createDocumentService from '@/services/documents/createDocument.service';
-import computeFileHash from '@/utils/compileFileHash';
-import getUint8Array from '@/utils/getUint8Array';
-import { InboxOutlined } from '@ant-design/icons';
-import { Button, Col, Flex, Form, Input, InputNumber, message, Row, Typography, Upload, type FormProps, type UploadProps } from 'antd';
+import { Button, Col, Flex, Form, Input, InputNumber, Row, Typography, type FormProps } from 'antd';
 import type { Document } from 'declarations/backend/backend.did';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -14,28 +12,6 @@ const CreateDocument: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm<Document>();
   const { isValid } = useFormValidation(form);
-
-  const props: UploadProps = {
-    name: 'file_data',
-    listType: 'picture',
-    multiple: false,
-    maxCount: 1,
-
-    onChange: async (info) => {
-      const { status, size, type: file_type, originFileObj } = info.file;
-      if (status === 'done') {
-        const file_data = await getUint8Array(originFileObj as File)
-        const document_hash = await computeFileHash(file_data);
-        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), document_hash, name: info.file.uid });
-        message.success(`${info.file.name} file uploaded successfully.`);
-      } else if (status === 'error') {
-        message.error(`${info.file.name} file upload failed.`);
-      }
-    },
-    onRemove() {
-      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), document_hash: '', name: '' });
-    }
-  };
 
   const handleSubmit: FormProps<Document>['onFinish'] = async (values) => {
     setIsLoading(true);
@@ -69,42 +45,26 @@ const CreateDocument: React.FC = () => {
                     hasFeedback
                     rules={[{ required: true, message: 'Please upload a document to notarize!' }]}
                   >
-                    <Upload.Dragger {...props}>
-                      <p className="ant-upload-drag-icon">
-                        <InboxOutlined />
-                      </p>
-                      <p className="ant-upload-text">Click or drag document to notarize it</p>
-                      <p className="ant-upload-hint">
-                        Support for a single upload. Strictly prohibit from uploading unpersonal data or other band files.
-                      </p>
-                    </Upload.Dragger>
+                    <Dragger form={form} />
                   </Form.Item>
                 </Col>
                 <Col span={24}>
-                  <Form.Item
-                    label="Earning Release Name"
-                    name="name"
-                    hasFeedback
-                    rules={[{ required: true, message: 'Please input the NFT name!' }]}
+                  <div
+                    className='bg-gray-50 p-4! rounded-lg'
                   >
-                    <Input />
-                  </Form.Item>
-                </Col>
-                <Col span={24}>
-                  <Form.Item
-                    label="Earning Release Description"
-                    name="description"
-                    initialValue={''}
-                    hasFeedback
-                  >
-                    <Input.TextArea rows={4} />
-                  </Form.Item>
-                </Col>
-                <Col span={24}>
-                  <div className='bg-gray-50 p-4! rounded-lg'>
-                    <Typography.Title level={5} className='mb-4'>Earning Release Data</Typography.Title>
+                    <Typography.Title level={5} className='mb-4'>Earning Release</Typography.Title>
                     <Row gutter={[16, 16]}>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Earning Release Name"
+                          name="name"
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the name!' }]}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }} >
                         <Form.Item
                           label="Company Name"
                           name="company_name"
@@ -114,16 +74,26 @@ const CreateDocument: React.FC = () => {
                           <Input />
                         </Form.Item>
                       </Col>
-                        <Col xs={{ span: 24 }} md={{ span: 12 }}>
-                          <Form.Item
-                            label="Quarter"
-                            name={['document_data', 'EarningRelease', 'quarter']}
-                            hasFeedback
-                            rules={[{ required: true, message: 'Please input the quarter!' }]}
-                          >
-                            <InputNumber className='w-full!' min={1} max={4} />
-                          </Form.Item>
-                        </Col>
+                      <Col span={24}>
+                        <Form.Item
+                          label="Earning Release Description"
+                          name="description"
+                          initialValue={''}
+                          hasFeedback
+                        >
+                          <Input.TextArea rows={4} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={{ span: 24 }} md={{ span: 12 }}>
+                        <Form.Item
+                          label="Quarter"
+                          name={['document_data', 'EarningRelease', 'quarter']}
+                          hasFeedback
+                          rules={[{ required: true, message: 'Please input the quarter!' }]}
+                        >
+                          <InputNumber className='w-full!' min={1} max={4} />
+                        </Form.Item>
+                      </Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
                           label="Year"
@@ -134,6 +104,15 @@ const CreateDocument: React.FC = () => {
                           <InputNumber className='w-full!' min={2000} max={new Date().getFullYear()} />
                         </Form.Item>
                       </Col>
+
+                    </Row>
+                  </div>
+                </Col>
+
+                <Col span={24}>
+                  <div className='bg-gray-50 p-4! rounded-lg'>
+                    <Typography.Title level={5} className='mb-4'>Consolidated Balance Sheet</Typography.Title>
+                    <Row gutter={[16, 16]}>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
                           label="Total Equity"
@@ -176,6 +155,13 @@ const CreateDocument: React.FC = () => {
                           />
                         </Form.Item>
                       </Col>
+                    </Row>
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <div className='bg-gray-50 p-4! rounded-lg'>
+                    <Typography.Title level={5} className='mb-4'>Consolidated Income</Typography.Title>
+                    <Row gutter={[16, 16]}>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
                           label="EBITDA"
@@ -249,7 +235,7 @@ const CreateDocument: React.FC = () => {
                         color='primary'
                         htmlType='submit'
                       >
-                        {!isLoading && 'Mint NFT'}
+                        {!isLoading && 'Publish'}
                       </Button>
                     </Flex>
                   </Form.Item>
@@ -290,9 +276,7 @@ const CreateDocument: React.FC = () => {
           </div >
         </div >
       </div >
-
     </>
-
   );
 };
 

@@ -1,25 +1,24 @@
 use ic_cdk::{update, caller};
 use crate::types::{CollectionMetadata, CollectionCategory};
 use crate::storage::{COLLECTIONS, DOCUMENTS, bytes_to_collection};
+use crate::utils::generate_collection_id;
 
 #[update]
 pub fn create_collection(
-    institution_id: String,
-    collection_id: String,
     name: String,
     description: String,
     category: CollectionCategory,
-    external_url: String,
-) -> Result<(), String> {
+    institution_id: String, 
+) -> Result<String, String> {
     let caller = caller();
     
-    // Check if collection already exists
-    if COLLECTIONS.with(|storage| storage.borrow().contains_key(&collection_id)) {
-        return Err("Collection with this ID already exists".to_string());
-    }
+    // Generate unique collection ID
+    let collection_id = generate_collection_id();
     
-    // Validate collection ID format
-    crate::utils::validate_string_length(&collection_id, 1, 100, "Collection ID")?;
+    // Check if collection already exists (shouldn't happen with timestamp-based IDs, but safety check)
+    if COLLECTIONS.with(|storage| storage.borrow().contains_key(&collection_id)) {
+        return Err("Generated collection ID already exists. Please try again.".to_string());
+    }
     
     // Validate name
     crate::utils::validate_string_length(&name, 1, 200, "Collection name")?;
@@ -67,7 +66,7 @@ pub fn create_collection(
         }
     }
     
-    Ok(())
+    Ok(collection_id)
 }
 
 /// Update collection metadata
@@ -125,12 +124,15 @@ pub fn delete_collection(collection_id: String) -> Result<(), String> {
         return Err("Cannot delete collection with existing documents. Remove all documents first.".to_string());
     }
     
-    // Remove collection reference from institution if it exists
+    // If collection is associated with an institution, remove it from the institution's collection list
     if !collection.institution_id.is_empty() {
         if let Some(mut institution) = crate::storage::get_institution_safe(&collection.institution_id) {
+            // Remove collection from institution's collections list
             institution.collections.retain(|id| id != &collection_id);
+            
+            // Update the institution
             if let Err(e) = crate::storage::update_institution_safe(&collection.institution_id, &institution) {
-                return Err(format!("Failed to update institution: {}", e));
+                return Err(format!("Failed to update institution during collection deletion: {}", e));
             }
         }
     }
