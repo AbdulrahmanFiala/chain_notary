@@ -4,13 +4,13 @@
 Blockchain-powered document notarization + AI analytics for Egyptian financial market transparency
 
 ## **Revenue Streams**
-- **Subscription Tiers**: Enterprise ($2K/mo), Professional ($500/mo), Starter ($150/mo)
-- **Pay-per-Use**: $5/document, $2/analysis
-- **Professional Services**: $5K-$25K implementation
+- **Subscription Tiers**: Enterprise, Professional, Starter
+- **Pay-per-Use**
+- **Professional Services**
 
 ## **Target Market**
-- **Primary**: 300+ EGX-listed companies
-- **Secondary**: Regulators, auditors, investors, analysts
+- **Primary**: 300+ EGX-listed companies, Regulatory Bodies, Audit Firms
+- **Secondary**: Financial Analysts, Investment Firms, Research Institutions
 
 ## **Key Resources**
 - ICP blockchain infrastructure
@@ -28,6 +28,3 @@ Blockchain-powered document notarization + AI analytics for Egyptian financial m
 **Market**: Egyptian Financial Ecosystem  
 **Competitive Edge**: First-mover + Regulatory Integration + AI Analytics
 
----
-
-*Perfect for 1-2 presentation slides - covers all essential business model elements*
