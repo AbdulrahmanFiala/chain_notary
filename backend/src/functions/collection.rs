@@ -7,6 +7,7 @@ use crate::utils::generate_collection_id;
 pub fn create_collection(
     name: String,
     description: String,
+    external_url: String,
     category: CollectionCategory,
     institution_id: String, 
 ) -> Result<String, String> {
