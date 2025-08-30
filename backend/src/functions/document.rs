@@ -92,6 +92,10 @@ pub async fn upload_file_and_publish_document(
     document.document_base_data.collection_id = normalized_collection_id;
     document.document_base_data.institution_id = normalized_institution_id;
     
+    // Set timestamp fields
+    document.published_at = uploaded_at;
+    document.updated_at = uploaded_at;
+    
     // Calculate all hashes after setting all metadata
     let base_hash = calculate_base_hash(&document);
     let file_hash = calculate_document_file_hash(&document.file_data);
