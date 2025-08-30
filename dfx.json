@@ -36,6 +36,10 @@
       "replica": {
         "subnet_type": "system"
       }
+    },
+    "ic": {
+      "providers": ["https://mainnet.dfinity.network"],
+      "type": "persistent"
     }
   },
   "output_env_file": ".env"
