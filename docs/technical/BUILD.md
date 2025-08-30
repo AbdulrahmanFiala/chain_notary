@@ -92,8 +92,8 @@ Use the included deployment script that automatically sets up environment variab
 cd /path/to/chain_notary
 
 npm install
-chmod +x docs/technical/deploy.sh
-./docs/technical/deploy.sh
+chmod +x docs/technical/local_deploy.sh
+./docs/technical/local_deploy.sh
 ```
 
 **Option 2: Manual Deployment**
@@ -117,9 +117,9 @@ dfx deploy
 
 Your project will be hosted on your local machine. The terminal will display the local canister URLs for your project. Open these URLs in your web browser to view the local instance of Chain Notary.
 
-### 4.1. About the Deployment Script
+### 4.1. About the Local Deployment Script
 
-The `deploy.sh` script automates several important steps:
+The `local_deploy.sh` script automates several important steps for local development:
 
 - **Automatic Principal ID Detection**: Automatically retrieves your current DFX identity's principal ID
 - **Environment Variable Setup**: Sets `VITE_PRINCIPAL_ID` for your frontend application
@@ -146,9 +146,22 @@ Obtain cycles by [converting ICP tokens using `dfx`](https://internetcomputer.or
 
 ### 6. Deploy to Mainnet
 
-Once you have cycles, deploy to the Internet Computer mainnet:
+Once you have cycles, you can deploy to the Internet Computer mainnet using either method:
+
+**Option 1: Automated Mainnet Deployment (Recommended)**
+Use the mainnet deployment script:
 
 ```bash
+chmod +x docs/technical/mainnet_deploy.sh
+./docs/technical/mainnet_deploy.sh
+```
+
+**Option 2: Manual Mainnet Deployment**
+Deploy manually with the network flag:
+
+```bash
+# Set environment variable
+export VITE_PRINCIPAL_ID="$(dfx identity get-principal)"
 dfx deploy --network ic
 ```
 
@@ -168,12 +181,13 @@ After deployment, your project will continuously require cycles to pay for resou
 
 **Permission Issues:**
 - If you encounter permission issues, ensure your user owns the project directory
-- Make sure the deployment script is executable: `chmod +x deploy.sh`
+- Make sure the deployment scripts are executable: `chmod +x docs/technical/local_deploy.sh` and `chmod +x docs/technical/mainnet_deploy.sh`
 
 **Deployment Script Issues:**
-- If `./deploy.sh` fails, check that DFX is running: `dfx start --background`
+- If `./local_deploy.sh` or `./mainnet_deploy.sh` fails, check that DFX is running: `dfx start --background`
 - Verify your identity is set: `dfx identity whoami`
 - Ensure you're in the correct project directory
+- For mainnet deployment, ensure you have sufficient cycles
 
 **Build Errors:**
 - For build errors, verify all dependencies are installed correctly
@@ -192,12 +206,11 @@ After deployment, your project will continuously require cycles to pay for resou
 # Start local network
 dfx start --background
 
-# Automated deployment (recommended)
-./docs/technical/deploy.sh
+# Local automated deployment (recommended)
+./docs/technical/local_deploy.sh
 
-# Manual deployment (requires manual VITE_PRINCIPAL_ID setup)
+# Manual local deployment (requires manual VITE_PRINCIPAL_ID setup)
 dfx deploy
-```
 
 # Check network status
 dfx ping
@@ -205,6 +218,21 @@ dfx ping
 # View canister info
 dfx canister status backend
 dfx canister status frontend
+```
+
+### Mainnet Deployment Commands
+
+```bash
+# Mainnet automated deployment (recommended)
+./docs/technical/mainnet_deploy.sh
+
+# Manual mainnet deployment
+export VITE_PRINCIPAL_ID="$(dfx identity get-principal)"
+dfx deploy --network ic
+
+# View mainnet canister info
+dfx canister status backend --network ic
+dfx canister status frontend --network ic
 ```
 
 ## Additional Resources
