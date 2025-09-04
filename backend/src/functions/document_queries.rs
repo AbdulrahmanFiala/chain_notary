@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
-use crate::types::{Document, CollectionCategory, DocumentType};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, bytes_to_document, bytes_to_collection, principal_to_bytes, bytes_to_tokens};
+use crate::types::{Document, DocumentType};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, bytes_to_document, principal_to_bytes, bytes_to_tokens};
 
 // ============================================================================
 // DOCUMENT QUERY FUNCTIONS
@@ -58,51 +58,6 @@ pub fn get_document_count() -> u64 {
     })
 }
 
-/// Get documents by collection ID (fast query)
-#[query]
-pub fn get_documents_by_collection(collection_id: String) -> Vec<Document> {
-    // Normalize the collection_id by trimming whitespace
-    let normalized_collection_id = collection_id.trim();
-    
-    DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
-            .filter(|metadata| {
-                if normalized_collection_id.is_empty() {
-                    // If collection_id is empty or whitespace-only, return documents with no collection
-                    metadata.collection_id.trim().is_empty()
-                } else {
-                    // Otherwise, return documents that match the collection_id (after trimming)
-                    metadata.collection_id.trim() == normalized_collection_id
-                }
-            })
-            .collect()
-    })
-}
-
-/// Get documents by category
-#[query]
-pub fn get_documents_by_collection_category(category: CollectionCategory) -> Vec<Document> {
-    // Get all collections with this category
-    let collections = COLLECTIONS.with(|storage| {
-        storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_collection(&bytes).ok())
-            .filter(|collection| collection.category == category)
-            .collect::<Vec<_>>()
-    });
-    
-    // Get all documents from these collections
-    let mut documents = Vec::new();
-    for collection in collections {
-        for document_id in &collection.documents {
-            if let Some(document) = get_document_metadata(document_id.clone()) {
-                documents.push(document);
-            }
-        }
-    }
-    
-    documents
-}
 
 /// Get documents by document type
 #[query]
@@ -134,21 +89,24 @@ pub fn get_documents_by_quarter_year(quarter: u8, year: u16) -> Vec<Document> {
     })
 }
 
-/// Get documents by institution (through collections)
+/// Get documents by institution
 #[query]
 pub fn get_documents_by_institution(institution_id: String) -> Vec<Document> {
-    // Get all collections for this institution
-    let collections = crate::functions::collection_queries::get_collections_by_institution(institution_id);
+    // Normalize the institution_id by trimming whitespace
+    let normalized_institution_id = institution_id.trim();
     
-    // Get all documents from these collections
-    let mut documents = Vec::new();
-    for collection in collections {
-        for document_id in &collection.documents {
-            if let Some(document) = crate::storage::get_document_safe(document_id) {
-                documents.push(document);
-            }
-        }
-    }
-    
-    documents
+    DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .filter_map(|(_, bytes)| bytes_to_document(&bytes).ok())
+            .filter(|document| {
+                if normalized_institution_id.is_empty() {
+                    // If institution_id is empty or whitespace-only, return documents with no institution
+                    document.institution_id.trim().is_empty()
+                } else {
+                    // Otherwise, return documents that match the institution_id (after trimming)
+                    document.institution_id.trim() == normalized_institution_id
+                }
+            })
+            .collect()
+    })
 }

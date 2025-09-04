@@ -8,21 +8,6 @@ pub struct Institution {
     pub name: String,
     pub email: String,
     pub created_at: u64,
-    pub collections: Vec<String>, 
-}
-
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
-pub struct CollectionMetadata {
-    pub institution_id: String, 
-    pub collection_id: String, 
-    pub owner: Principal,
-    pub name: String,
-    pub description: String,
-    pub external_url: String,
-    pub created_at: u64,
-    pub updated_at: u64,
-    pub category: CollectionCategory,
-    pub documents: Vec<String>, 
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -33,14 +18,14 @@ pub enum CollectionCategory {
 #[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
 pub struct Document {
     pub institution_id: String, 
-    pub collection_id: String, 
     pub document_id: String,
     pub owner: Principal,
     pub name: String,
     pub company_name: String,
     pub description: String,
-    pub document_hash: String,
     pub document_data: DocumentType,
+    pub document_category: CollectionCategory,
+    pub file_hash: String,
     pub file_size: u64,        
     pub file_type: String,    
     pub file_data: Vec<u8>,     
@@ -83,5 +68,5 @@ pub struct DocumentResponse {
     pub success: bool,
     pub document_id: String,
     pub error_message: String,
-    pub document_hash: String,
+    pub file_hash: String,
 }

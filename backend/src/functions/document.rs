@@ -1,6 +1,6 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, document_to_bytes};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, document_to_bytes};
 use crate::utils::{calculate_file_hash, generate_token_id};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
@@ -14,7 +14,7 @@ pub async fn upload_file_and_publish_document(
             success: false,
             document_id: String::new(),
             error_message: e,
-            document_hash: String::new(),
+            file_hash: String::new(),
         };
     }
 
@@ -36,28 +36,10 @@ pub async fn upload_file_and_publish_document(
             success: false,
             document_id: String::new(),
             error_message: e,
-            document_hash: String::new(),
+            file_hash: String::new(),
         };
     }
 
-    // Normalize and validate collection_id (trim whitespace and check if empty)
-    let normalized_collection_id = metadata.collection_id.trim().to_string();
-    
-    // Validate that collection exists if specified (non-empty collection_id after trimming)
-    if !normalized_collection_id.is_empty() {
-        let collection_exists = COLLECTIONS.with(|storage| {
-            storage.borrow().contains_key(&normalized_collection_id)
-        });
-        
-        if !collection_exists {
-            return DocumentResponse {
-                success: false,
-                document_id: String::new(),
-                error_message: "Specified collection does not exist".to_string(),
-                document_hash: String::new(),
-            };
-        }
-    }
 
     // Normalize and validate institution_id (trim whitespace and check if empty)
     let normalized_institution_id = metadata.institution_id.trim().to_string();
@@ -71,25 +53,24 @@ pub async fn upload_file_and_publish_document(
                 success: false,
                 document_id: String::new(),
                 error_message: "Specified institution does not exist".to_string(),
-                document_hash: String::new(),
+                file_hash: String::new(),
             };
         }
     }
 
     // Generate unique document ID
-    let document_id = generate_token_id();
+    let document_id = generate_document_id();
     
     // Calculate file hash for integrity verification and storage
     let calculated_hash = calculate_file_hash(&metadata.file_data);
     
-    // Get current timestamp
-    let uploaded_at = ic_cdk::api::time();
+    // Get current timestamp (for potential future use)
+    let _uploaded_at = ic_cdk::api::time();
 
     // Create complete document with file data and calculated hash, using normalized IDs
     let mut document = metadata;
     document.document_id = document_id.clone();
-    document.document_hash = calculated_hash.clone();
-    document.collection_id = normalized_collection_id;
+    document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
 
     // Store the complete document in single storage
@@ -100,7 +81,7 @@ pub async fn upload_file_and_publish_document(
                 success: false,
                 document_id: String::new(),
                 error_message: format!("Failed to serialize document: {}", e),
-                document_hash: String::new(),
+                file_hash: String::new(),
             };
         }
     };
@@ -108,21 +89,6 @@ pub async fn upload_file_and_publish_document(
         storage.borrow_mut().insert(document_id.clone(), document_bytes);
     });
 
-    // If document belongs to a collection, add it to the collection's documents list
-    if !document.collection_id.is_empty() {
-        if let Some(mut collection) = crate::storage::get_collection_safe(&document.collection_id) {
-            collection.documents.push(document_id.clone());
-            collection.updated_at = uploaded_at;
-            if let Err(e) = crate::storage::update_collection_safe(&document.collection_id, &collection) {
-                return DocumentResponse {
-                    success: false,
-                    document_id: String::new(),
-                    error_message: format!("Failed to update collection: {}", e),
-                    document_hash: String::new(),
-                };
-            }
-        }
-    }
 
     // Store owner token mapping
     OWNER_TOKENS.with(|storage| {
@@ -141,6 +107,6 @@ pub async fn upload_file_and_publish_document(
         success: true,
         document_id,
         error_message: String::new(),
-        document_hash: calculated_hash,
+        file_hash: calculated_hash,
     }
 } 

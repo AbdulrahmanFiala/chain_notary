@@ -4,7 +4,7 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{Document, CollectionMetadata, Institution};
+use crate::types::{Document, Institution};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -19,24 +19,17 @@ thread_local! {
         )
     );
 
-    // Store collections separately from documents
-    pub static COLLECTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
-        )
-    );
-
-    // Store institutions separately from collections
+    // Store institutions separately from documents
     pub static INSTITUTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
         )
     );
 
     // Store owner mappings as JSON strings
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
         )
     );
 }
@@ -61,13 +54,6 @@ pub fn get_document_safe(document_id: &str) -> Option<Document> {
     })
 }
 
-// Helper function to safely get and deserialize a collection
-pub fn get_collection_safe(collection_id: &str) -> Option<CollectionMetadata> {
-    COLLECTIONS.with(|storage| {
-        storage.borrow().get(&collection_id.to_string())
-            .and_then(|bytes| bytes_to_collection(&bytes).ok())
-    })
-}
 
 // Helper function to safely get and deserialize an institution
 pub fn get_institution_safe(institution_id: &str) -> Option<Institution> {
@@ -77,25 +63,6 @@ pub fn get_institution_safe(institution_id: &str) -> Option<Institution> {
     })
 }
 
-// Helper function to safely update a document
-pub fn update_document_safe(document_id: &str, document: &Document) -> Result<(), String> {
-    let document_bytes = document_to_bytes(document)
-        .map_err(|e| format!("Failed to serialize document: {}", e))?;
-    DOCUMENTS.with(|storage| {
-        storage.borrow_mut().insert(document_id.to_string(), document_bytes);
-    });
-    Ok(())
-}
-
-// Helper function to safely update a collection
-pub fn update_collection_safe(collection_id: &str, collection: &CollectionMetadata) -> Result<(), String> {
-    let collection_bytes = collection_to_bytes(collection)
-        .map_err(|e| format!("Failed to serialize collection: {}", e))?;
-    COLLECTIONS.with(|storage| {
-        storage.borrow_mut().insert(collection_id.to_string(), collection_bytes);
-    });
-    Ok(())
-}
 
 // Helper function to safely update an institution
 pub fn update_institution_safe(institution_id: &str, institution: &Institution) -> Result<(), String> {
@@ -115,13 +82,6 @@ pub fn bytes_to_document(bytes: &[u8]) -> Result<Document, String> {
     serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize document: {}", e))
 }
 
-pub fn collection_to_bytes(collection: &CollectionMetadata) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(collection).map_err(|e| format!("Failed to serialize collection: {}", e))
-}
-
-pub fn bytes_to_collection(bytes: &[u8]) -> Result<CollectionMetadata, String> {
-    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize collection: {}", e))
-}
 
 pub fn tokens_to_bytes(tokens: &[String]) -> Result<Vec<u8>, String> {
     serde_json::to_vec(tokens).map_err(|e| format!("Failed to serialize tokens: {}", e))
@@ -151,13 +111,11 @@ pub fn save_stable_data() -> Result<(), String> {
 
     // Serialize the count of each storage type first for restoration
     let document_count = DOCUMENTS.with(|storage| storage.borrow().len() as u64);
-    let collection_count = COLLECTIONS.with(|storage| storage.borrow().len() as u64);
     let institution_count = INSTITUTIONS.with(|storage| storage.borrow().len() as u64);
     let owner_token_count = OWNER_TOKENS.with(|storage| storage.borrow().len() as u64);
 
     // Write counts
     writer.write(&document_count.to_le_bytes()).map_err(|e| format!("Failed to write document count: {:?}", e))?;
-    writer.write(&collection_count.to_le_bytes()).map_err(|e| format!("Failed to write collection count: {:?}", e))?;
     writer.write(&institution_count.to_le_bytes()).map_err(|e| format!("Failed to write institution count: {:?}", e))?;
     writer.write(&owner_token_count.to_le_bytes()).map_err(|e| format!("Failed to write owner token count: {:?}", e))?;
 
@@ -176,20 +134,6 @@ pub fn save_stable_data() -> Result<(), String> {
         Ok::<(), String>(())
     })?;
 
-    // Save all collections
-    COLLECTIONS.with(|storage| {
-        for (key, value) in storage.borrow().iter() {
-            let key_bytes = key.as_bytes();
-            let key_len = (key_bytes.len() as u32).to_le_bytes();
-            let value_len = (value.len() as u32).to_le_bytes();
-            
-            writer.write(&key_len).map_err(|e| format!("Failed to write key length: {:?}", e))?;
-            writer.write(key_bytes).map_err(|e| format!("Failed to write key: {:?}", e))?;
-            writer.write(&value_len).map_err(|e| format!("Failed to write value length: {:?}", e))?;
-            writer.write(&value).map_err(|e| format!("Failed to write value: {:?}", e))?;
-        }
-        Ok::<(), String>(())
-    })?;
 
     // Save all institutions
     INSTITUTIONS.with(|storage| {
@@ -243,20 +187,11 @@ pub fn restore_stable_data() -> Result<(), String> {
     }
     let document_count = u64::from_le_bytes(count_buf);
 
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read collection count: {:?}", e))?;
-    let collection_count = u64::from_le_bytes(count_buf);
-
     reader.read(&mut count_buf).map_err(|e| format!("Failed to read institution count: {:?}", e))?;
     let institution_count = u64::from_le_bytes(count_buf);
 
     reader.read(&mut count_buf).map_err(|e| format!("Failed to read owner token count: {:?}", e))?;
     let owner_token_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read document nft count: {:?}", e))?;
-    let document_nft_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read doc to nft count: {:?}", e))?;
-    let doc_to_nft_count = u64::from_le_bytes(count_buf);
 
     // Restore documents
     for _ in 0..document_count {
@@ -267,14 +202,6 @@ pub fn restore_stable_data() -> Result<(), String> {
         });
     }
 
-    // Restore collections
-    for _ in 0..collection_count {
-        let (key, value) = read_key_value_bytes(&mut reader)?;
-        let key_str = String::from_utf8(key).map_err(|e| format!("Invalid UTF-8 in collection key: {}", e))?;
-        COLLECTIONS.with(|storage| {
-            storage.borrow_mut().insert(key_str, value);
-        });
-    }
 
     // Restore institutions
     for _ in 0..institution_count {
