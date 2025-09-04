@@ -22,8 +22,12 @@ fn pre_upgrade() {
 /// Restore all stable data after canister upgrade
 #[post_upgrade]
 fn post_upgrade() {
+    // Use unwrap_or_else to provide a fallback in case of upgrade issues
     storage::memory::restore_stable_data()
-        .expect("Failed to restore stable data after upgrade");
+        .unwrap_or_else(|err| {
+            // Log the error but don't panic - allow the canister to start with empty state
+            ic_cdk::println!("Warning: Failed to restore stable data after upgrade: {}. Starting with empty state.", err);
+        });
 }
 
 // Export Candid interface
