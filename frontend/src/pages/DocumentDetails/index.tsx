@@ -1,7 +1,8 @@
 import DownLoadButton from '@/components/shared/DownLoadButton';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import getDocumentDetails from '@/services/documents/getDocumentDetails';
-import getLabeledQuarer from '@/utils/getLabeledQuarer';
+import { formatNumberWithCommas } from '@/utils/formatNumberWithCommas';
+import getLabeledQuarter from '@/utils/getLabeledQuarter';
 import { HomeOutlined } from "@ant-design/icons";
 import { Principal } from '@dfinity/principal';
 import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
@@ -123,7 +124,7 @@ const DocumentDetails: React.FC = () => {
 
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Quarter</p>
-                  <Typography.Paragraph className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{getLabeledQuarer(documentDetails.document_data.EarningRelease.quarter)}</Typography.Paragraph>
+                  <Typography.Paragraph className="flex justify-between text-gray-900 font-mono wrap-break-word text-center md:text-left">{getLabeledQuarter(documentDetails.document_data.EarningRelease.quarter)}</Typography.Paragraph>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Year</p>
@@ -142,31 +143,31 @@ const DocumentDetails: React.FC = () => {
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">EBITDA</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.ebitda}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_income_data.ebitda)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Gross Profit</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.gross_profit}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_income_data.gross_profit)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Net Profit</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.net_profit}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_income_data.net_profit)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Operating Profit</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.operating_profit}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_income_data.operating_profit)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Profit Before Tax</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_income_data.profit_before_tax}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_income_data.profit_before_tax)}
                   </p>
                 </Col>
               </Row>
@@ -177,25 +178,25 @@ const DocumentDetails: React.FC = () => {
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Equity</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_equity}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_equity)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Liabilities and Equity</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities_and_equity}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities_and_equity)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Assets</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_assets}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_assets)}
                   </p>
                 </Col>
                 <Col xs={{ span: 24 }} md={{ span: 12 }}>
                   <p className="text-sm font-medium text-gray-500 mb-1 text-center md:text-left">Total Liabilities</p>
                   <p className="text-gray-900 font-mono text-sm break-all text-center md:text-left">
-                    {documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities}
+                    {formatNumberWithCommas(documentDetails?.document_data.EarningRelease.consolidated_balance_sheet_data.total_liabilities)}
                   </p>
                 </Col>
 
