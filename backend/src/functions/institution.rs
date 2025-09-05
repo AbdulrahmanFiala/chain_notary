@@ -1,6 +1,6 @@
 use ic_cdk::{update, caller};
 use crate::types::Institution;
-use crate::storage::INSTITUTIONS;
+use crate::storage::{INSTITUTIONS, StorableString};
 use crate::utils::generate_institution_id;
 
 /// Create a new institution
@@ -20,7 +20,7 @@ pub fn create_institution(
     
     // Check if institution already exists (shouldn't happen with timestamp-based IDs, but safety check)
     let exists = INSTITUTIONS.with(|storage| {
-        storage.borrow().contains_key(&institution_id)
+        storage.borrow().contains_key(&StorableString(institution_id.clone()))
     });
     
     if exists {
@@ -83,7 +83,7 @@ pub fn delete_institution(institution_id: String) -> Result<(), String> {
 
 
     INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().remove(&institution_id);
+        storage.borrow_mut().remove(&StorableString(institution_id));
     });
 
     Ok(())

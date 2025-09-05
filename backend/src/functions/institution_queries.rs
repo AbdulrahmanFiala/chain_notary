@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
 use crate::types::Institution;
-use crate::storage::{INSTITUTIONS, bytes_to_institution};
+use crate::storage::INSTITUTIONS;
 
 // ============================================================================
 // INSTITUTION QUERY FUNCTIONS
@@ -18,7 +18,7 @@ pub fn get_institution_metadata(institution_id: String) -> Option<Institution> {
 pub fn get_all_institutions() -> Vec<Institution> {
     INSTITUTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes).ok())
+            .map(|(_, storable_inst)| storable_inst.0)
             .collect()
     })
 }
@@ -28,7 +28,7 @@ pub fn get_all_institutions() -> Vec<Institution> {
 pub fn get_institutions_by_owner(owner: Principal) -> Vec<Institution> {
     INSTITUTIONS.with(|storage| {
         storage.borrow().iter()
-            .filter_map(|(_, bytes)| bytes_to_institution(&bytes).ok())
+            .map(|(_, storable_inst)| storable_inst.0)
             .filter(|institution| institution.owner == owner)
             .collect()
     })

@@ -10,9 +10,27 @@ pub struct Institution {
     pub created_at: u64,
 }
 
+impl Default for Institution {
+    fn default() -> Self {
+        Self {
+            institution_id: String::default(),
+            owner: Principal::anonymous(),
+            name: String::default(),
+            email: String::default(),
+            created_at: 0,
+        }
+    }
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum CollectionCategory {
     EarningRelease,
+}
+
+impl Default for CollectionCategory {
+    fn default() -> Self {
+        CollectionCategory::EarningRelease
+    }
 }
 
 #[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
@@ -31,12 +49,37 @@ pub struct Document {
     pub file_data: Vec<u8>,     
 }
 
+impl Default for Document {
+    fn default() -> Self {
+        Self {
+            institution_id: String::default(),
+            document_id: String::default(),
+            owner: Principal::anonymous(),
+            name: String::default(),
+            company_name: String::default(),
+            description: String::default(),
+            document_data: DocumentType::default(),
+            document_category: CollectionCategory::default(),
+            file_hash: String::default(),
+            file_size: 0,
+            file_type: String::default(),
+            file_data: Vec::default(),
+        }
+    }
+}
+
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub enum DocumentType {
     EarningRelease(EarningReleaseData),
 }
 
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
+impl Default for DocumentType {
+    fn default() -> Self {
+        DocumentType::EarningRelease(EarningReleaseData::default())
+    }
+}
+
+#[derive(CandidType, Deserialize, Clone, Serialize, Debug, Default)]
 pub struct EarningReleaseData {
     pub earning_release_id: String,
     pub quarter: u8,
@@ -45,7 +88,7 @@ pub struct EarningReleaseData {
     pub consolidated_balance_sheet_data: ConsolidatedBalanceSheetData,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ConsolidatedIncomeData {
     pub gross_profit: f64,
     pub operating_profit: f64,
@@ -54,7 +97,7 @@ pub struct ConsolidatedIncomeData {
     pub net_profit: f64,
 }
 
-#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, Default)]
 pub struct ConsolidatedBalanceSheetData {
     pub total_assets: f64,
     pub total_equity: f64,
@@ -63,7 +106,7 @@ pub struct ConsolidatedBalanceSheetData {
 }
 
 // Response type
-#[derive(CandidType, Deserialize, Clone, Serialize, Debug)]
+#[derive(CandidType, Deserialize, Clone, Serialize, Debug, Default)]
 pub struct DocumentResponse {
     pub success: bool,
     pub document_id: String,

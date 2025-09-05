@@ -1,6 +1,6 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, document_to_bytes};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, StorableString};
 use crate::utils::{calculate_file_hash, generate_document_id};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
@@ -73,33 +73,27 @@ pub async fn upload_file_and_publish_document(
     document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
 
-    // Store the complete document in single storage
-    let document_bytes = match document_to_bytes(&document) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            return DocumentResponse {
-                success: false,
-                document_id: String::new(),
-                error_message: format!("Failed to serialize document: {}", e),
-                file_hash: String::new(),
-            };
-        }
-    };
-    DOCUMENTS.with(|storage| {
-        storage.borrow_mut().insert(document_id.clone(), document_bytes);
-    });
+    // Store the complete document using safe storage function
+    if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {
+        return DocumentResponse {
+            success: false,
+            document_id: String::new(),
+            error_message: format!("Failed to store document: {}", e),
+            file_hash: String::new(),
+        };
+    }
 
 
-    // Store owner token mapping
+    // Store owner token mapping using StorableTypes
     OWNER_TOKENS.with(|storage| {
         let mut owner_tokens = storage.borrow_mut();
-        let owner_bytes = principal_to_bytes(&document.owner);
-        let current_tokens_bytes = owner_tokens.get(&owner_bytes).unwrap_or_default();
-        let mut current_tokens = bytes_to_tokens(&current_tokens_bytes).unwrap_or_default();
-        current_tokens.push(document_id.clone());
-        if let Ok(tokens_bytes) = tokens_to_bytes(&current_tokens) {
-            owner_tokens.insert(owner_bytes, tokens_bytes);
-        }
+        let owner_key = crate::storage::memory::StorablePrincipal(document.owner);
+        let current_tokens = owner_tokens.get(&owner_key)
+            .map(|storable_tokens| storable_tokens.0)
+            .unwrap_or_default();
+        let mut updated_tokens = current_tokens;
+        updated_tokens.push(document_id.clone());
+        owner_tokens.insert(owner_key, crate::storage::memory::StorableTokens(updated_tokens));
     });
 
     // Return success response
