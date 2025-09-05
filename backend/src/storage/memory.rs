@@ -160,26 +160,26 @@ impl Storable for StorablePrincipal {
 }
 
 thread_local! {
-    pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+    static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
     // Store complete documents using proper Storable types
     pub static DOCUMENTS: RefCell<StableBTreeMap<StorableString, StorableDocument, Memory>> = RefCell::new(
-        StableBTreeMap::init(
+        StableBTreeMap::load(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
         )
     );
 
     // Store institutions using proper Storable types
     pub static INSTITUTIONS: RefCell<StableBTreeMap<StorableString, StorableInstitution, Memory>> = RefCell::new(
-        StableBTreeMap::init(
+        StableBTreeMap::load(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
         )
     );
 
     // Store owner mappings using proper Storable types
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<StorablePrincipal, StorableTokens, Memory>> = RefCell::new(
-        StableBTreeMap::init(
+        StableBTreeMap::load(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
         )
     );
