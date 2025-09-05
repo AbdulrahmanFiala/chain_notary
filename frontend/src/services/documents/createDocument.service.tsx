@@ -6,15 +6,6 @@ const createDocumentService = async (data: Document) => {
   const ownerPrincipal = Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID);
   const mintedFile = await backend.upload_file_and_publish_document(
     {
-      collection_id: '',
-      document_id: data.document_id,
-      owner: ownerPrincipal,
-      name: data.name,
-      description: data.description,
-      document_hash: data.document_hash,
-      file_size: data.file_size,
-      file_type: data.file_type,
-      file_data: data.file_data,
       document_data: {
         EarningRelease: {
           earning_release_id: data.document_data.EarningRelease.earning_release_id,
@@ -36,8 +27,17 @@ const createDocumentService = async (data: Document) => {
 
         }
       },
+      document_id: data.document_id,
+      document_category: { EarningRelease: null },
+      owner: ownerPrincipal,
+      name: data.name,
       institution_id: '',
-      company_name: data.company_name || ''
+      company_name: data.company_name || '',
+      description: data.description,
+      file_data: data.file_data,
+      file_hash: data.file_hash,
+      file_size: data.file_size,
+      file_type: data.file_type,
     }
   );
   return mintedFile;

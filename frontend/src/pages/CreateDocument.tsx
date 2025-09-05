@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import Dragger from '@/components/shared/Dragger';
 import useFormValidation from '@/hooks/useFormValidation';
 import createDocumentService from '@/services/documents/createDocument.service';
+import { inputFormatter as formatter } from '@/utils/formatNumberWithCommas';
 import { Button, Col, Flex, Form, Input, InputNumber, Row, Typography, type FormProps } from 'antd';
 import type { Document } from 'declarations/backend/backend.did';
 import React, { useState } from 'react';
@@ -120,7 +121,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the total equity!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item>
                       </Col>
@@ -130,7 +132,8 @@ const CreateDocument: React.FC = () => {
                           name={['document_data', 'EarningRelease', 'consolidated_balance_sheet_data', 'total_liabilities_and_equity']}
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the total liabilities and equity!' }]}>
-                          <InputNumber className='w-full!' />
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!' />
                         </Form.Item>
                       </Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
@@ -140,7 +143,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the total assets!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item></Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
@@ -151,7 +155,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the total liabilities!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item>
                       </Col>
@@ -170,7 +175,8 @@ const CreateDocument: React.FC = () => {
 
                           rules={[{ required: true, message: 'Please input the EBIDA!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           /></Form.Item></Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
                         <Form.Item
@@ -178,7 +184,8 @@ const CreateDocument: React.FC = () => {
                           name={['document_data', 'EarningRelease', 'consolidated_income_data', 'gross_profit']}
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the total equity!' }]}>
-                          <InputNumber className='w-full!' />
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!' />
                         </Form.Item>
                       </Col>
                       <Col xs={{ span: 24 }} md={{ span: 12 }}>
@@ -188,7 +195,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the net profit!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item>
                       </Col>
@@ -200,7 +208,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the operating profit' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item>
                       </Col>
@@ -212,7 +221,8 @@ const CreateDocument: React.FC = () => {
                           hasFeedback
                           rules={[{ required: true, message: 'Please input the profit before tax!' }]}
                         >
-                          <InputNumber className='w-full!'
+                          <InputNumber formatter={formatter}
+                            parser={(value) => value?.replace(/\$\s?|(,*)/g, '') as unknown as number} className='w-full!'
                           />
                         </Form.Item>
                       </Col>
@@ -253,7 +263,7 @@ const CreateDocument: React.FC = () => {
                 initialValue={''}
               ></Form.Item>
               <Form.Item
-                name="document_hash"
+                name="file_hash"
                 hidden
                 initialValue={''}
               ></Form.Item>

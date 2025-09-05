@@ -22,15 +22,15 @@ const Dragger: FC<Props> = ({ form }) => {
       if (status === 'done') {
         const name = form.getFieldValue('name');
         const file_data = await getUint8Array(originFileObj as File)
-        const document_hash = await computeFileHash(file_data);
-        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), document_hash, name: name || info.file.uid });
+        const file_hash = await computeFileHash(file_data);
+        form.setFieldsValue({ file_data, file_type, file_size: BigInt(size || 0), file_hash, name: name || info.file.uid });
         message.success(`${info.file.name} file uploaded successfully.`);
       } else if (status === 'error') {
         message.error(`${info.file.name} file upload failed.`);
       }
     },
     onRemove() {
-      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), document_hash: '' });
+      form.setFieldsValue({ file_data: [], file_type: '', file_size: BigInt(0), file_hash: '' });
     }
   };
 
