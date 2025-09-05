@@ -6,7 +6,7 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{Document, Institution};
+use crate::types::{Document, Institution, UserProfile};
 use std::borrow::Cow;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -20,6 +20,9 @@ pub struct StorableInstitution(pub Institution);
 
 #[derive(Clone)]
 pub struct StorableTokens(pub Vec<String>);
+
+#[derive(Clone)]
+pub struct StorableUserProfile(pub UserProfile);
 
 // Implement Storable for Document wrapper
 impl Storable for StorableDocument {
@@ -109,6 +112,41 @@ impl Storable for StorableTokens {
     const BOUND: Bound = Bound::Unbounded;
 }
 
+// Implement Storable for UserProfile wrapper
+impl Storable for StorableUserProfile {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        match serde_json::to_vec(&self.0) {
+            Ok(bytes) => Cow::Owned(bytes),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to serialize user profile: {}", e);
+                ic_cdk::trap(&format!("UserProfile serialization failed: {}", e));
+            }
+        }
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match serde_json::from_slice(&bytes) {
+            Ok(profile) => StorableUserProfile(profile),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize user profile: {}", e);
+                ic_cdk::println!("Corrupted profile data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return a default/empty profile instead of trapping to allow recovery
+                StorableUserProfile(UserProfile {
+                    internet_identity: Principal::anonymous(),
+                    role: crate::types::UserRole::RegularUser,
+                    assigned_institution_id: String::new(),
+                    created_at: 0,
+                    last_login: 0,
+                })
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
 // Wrapper type for String keys
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StorableString(pub String);
@@ -181,6 +219,13 @@ thread_local! {
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<StorablePrincipal, StorableTokens, Memory>> = RefCell::new(
         StableBTreeMap::load(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
+        )
+    );
+
+    // Store user profiles using proper Storable types
+    pub static USER_PROFILES: RefCell<StableBTreeMap<StorablePrincipal, StorableUserProfile, Memory>> = RefCell::new(
+        StableBTreeMap::load(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
         )
     );
 }
@@ -438,5 +483,23 @@ pub fn institution_to_bytes(institution: &Institution) -> Result<Vec<u8>, String
 
 pub fn bytes_to_institution(bytes: &[u8]) -> Result<Institution, String> {
     serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize institution: {}", e))
+}
+
+// User profile helper functions
+pub fn get_user_profile_safe(user_identity: &Principal) -> Option<UserProfile> {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().get(&StorablePrincipal(*user_identity))
+            .map(|storable_profile| storable_profile.0)
+    })
+}
+
+pub fn update_user_profile_safe(user_identity: &Principal, profile: &UserProfile) -> Result<(), String> {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow_mut().insert(
+            StorablePrincipal(*user_identity),
+            StorableUserProfile(profile.clone())
+        );
+    });
+    Ok(())
 }
 

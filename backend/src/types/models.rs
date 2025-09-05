@@ -27,6 +27,22 @@ pub enum CollectionCategory {
     EarningRelease,
 }
 
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum UserRole {
+    SuperAdmin,
+    RegularUser,
+    InstitutionMember(String), // Institution ID they belong to
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct UserProfile {
+    pub internet_identity: Principal,
+    pub role: UserRole,
+    pub assigned_institution_id: String, // Assigned by admin (empty string if none)
+    pub created_at: u64,
+    pub last_login: u64,
+}
+
 impl Default for CollectionCategory {
     fn default() -> Self {
         CollectionCategory::EarningRelease
