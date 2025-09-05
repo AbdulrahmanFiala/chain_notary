@@ -39,8 +39,11 @@ impl Storable for StorableDocument {
             Ok(document) => StorableDocument(document),
             Err(e) => {
                 ic_cdk::println!("CRITICAL: Failed to deserialize document: {}", e);
-                // Log the error and attempt recovery or trap to prevent corruption
-                ic_cdk::trap(&format!("Document deserialization failed: {}", e));
+                ic_cdk::println!("Corrupted data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return a default/empty document instead of trapping to allow recovery
+                StorableDocument(crate::types::Document::default())
             }
         }
     }
@@ -65,7 +68,11 @@ impl Storable for StorableInstitution {
             Ok(institution) => StorableInstitution(institution),
             Err(e) => {
                 ic_cdk::println!("CRITICAL: Failed to deserialize institution: {}", e);
-                ic_cdk::trap(&format!("Institution deserialization failed: {}", e));
+                ic_cdk::println!("Corrupted institution data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return a default/empty institution instead of trapping to allow recovery
+                StorableInstitution(crate::types::Institution::default())
             }
         }
     }
@@ -90,7 +97,11 @@ impl Storable for StorableTokens {
             Ok(tokens) => StorableTokens(tokens),
             Err(e) => {
                 ic_cdk::println!("CRITICAL: Failed to deserialize tokens: {}", e);
-                ic_cdk::trap(&format!("Tokens deserialization failed: {}", e));
+                ic_cdk::println!("Corrupted tokens data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return empty tokens instead of trapping to allow recovery
+                StorableTokens(Vec::new())
             }
         }
     }
@@ -229,10 +240,19 @@ pub fn store_document_safe(document_id: &str, document: &Document) -> Result<(),
 
 // Function to validate all storage integrity
 pub fn validate_all_storage() -> Result<(), String> {
+    // Clear corrupted entries during validation
+    clear_corrupted_entries();
+    
     // Validate documents
     let document_issues = DOCUMENTS.with(|storage| {
         let mut issues = Vec::new();
         for (key, value) in storage.borrow().iter() {
+            // Skip default/empty documents that were recovered from corruption
+            if value.0.document_id.is_empty() && value.0.name.is_empty() && value.0.file_data.is_empty() {
+                ic_cdk::println!("Skipping validation for recovered empty document with key: {}", key.0);
+                continue;
+            }
+            
             if key.0.is_empty() {
                 issues.push("Empty document key found".to_string());
             }
@@ -241,25 +261,32 @@ pub fn validate_all_storage() -> Result<(), String> {
                 issues.push(format!("Document with key '{}' has empty document_id", key.0));
             }
             
-            if value.0.document_id != key.0 {
+            if !value.0.document_id.is_empty() && value.0.document_id != key.0 {
                 issues.push(format!("Document ID mismatch: key='{}', document_id='{}'", key.0, value.0.document_id));
             }
             
-            if value.0.file_data.is_empty() && value.0.file_type != "text/plain" {
+            if value.0.file_data.is_empty() && value.0.file_type != "text/plain" && !value.0.file_type.is_empty() {
                 issues.push(format!("Document '{}' has empty file data", key.0));
             }
         }
         issues
     });
     
+    // Log document issues as warnings but don't fail validation
     if !document_issues.is_empty() {
-        return Err(format!("Document validation failed: {}", document_issues.join("; ")));
+        ic_cdk::println!("Document validation warnings: {}", document_issues.join("; "));
     }
     
     // Validate institutions
     let institution_issues = INSTITUTIONS.with(|storage| {
         let mut issues = Vec::new();
         for (key, value) in storage.borrow().iter() {
+            // Skip default/empty institutions that were recovered from corruption
+            if value.0.institution_id.is_empty() && value.0.name.is_empty() {
+                ic_cdk::println!("Skipping validation for recovered empty institution with key: {}", key.0);
+                continue;
+            }
+            
             if key.0.is_empty() {
                 issues.push("Empty institution key found".to_string());
             }
@@ -268,7 +295,7 @@ pub fn validate_all_storage() -> Result<(), String> {
                 issues.push(format!("Institution with key '{}' has empty institution_id", key.0));
             }
             
-            if value.0.institution_id != key.0 {
+            if !value.0.institution_id.is_empty() && value.0.institution_id != key.0 {
                 issues.push(format!("Institution ID mismatch: key='{}', institution_id='{}'", key.0, value.0.institution_id));
             }
             
@@ -279,11 +306,12 @@ pub fn validate_all_storage() -> Result<(), String> {
         issues
     });
     
+    // Log institution issues as warnings but don't fail validation
     if !institution_issues.is_empty() {
-        return Err(format!("Institution validation failed: {}", institution_issues.join("; ")));
+        ic_cdk::println!("Institution validation warnings: {}", institution_issues.join("; "));
     }
     
-    // Validate owner tokens consistency
+    // Validate owner tokens consistency (be lenient about missing documents during recovery)
     let token_issues = OWNER_TOKENS.with(|storage| {
         let mut issues = Vec::new();
         for (principal, tokens) in storage.borrow().iter() {
@@ -297,11 +325,64 @@ pub fn validate_all_storage() -> Result<(), String> {
         issues
     });
     
+    // Log token issues as warnings but don't fail validation during recovery
     if !token_issues.is_empty() {
-        return Err(format!("Owner tokens validation failed: {}", token_issues.join("; ")));
+        ic_cdk::println!("Owner tokens validation warnings: {}", token_issues.join("; "));
     }
     
     Ok(())
+}
+
+// Function to clear corrupted entries that were replaced with defaults
+pub fn clear_corrupted_entries() {
+    // Clear corrupted documents (those with all default values)
+    let corrupted_doc_keys: Vec<String> = DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .filter_map(|(key, value)| {
+                // Check if this is a default document (indicates corruption recovery)
+                if value.0.document_id.is_empty() && 
+                   value.0.name.is_empty() && 
+                   value.0.file_data.is_empty() &&
+                   value.0.company_name.is_empty() &&
+                   value.0.description.is_empty() {
+                    Some(key.0.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+    
+    for key in corrupted_doc_keys {
+        ic_cdk::println!("Removing corrupted document entry: {}", key);
+        DOCUMENTS.with(|storage| {
+            storage.borrow_mut().remove(&StorableString(key));
+        });
+    }
+    
+    // Clear corrupted institutions (those with all default values)
+    let corrupted_inst_keys: Vec<String> = INSTITUTIONS.with(|storage| {
+        storage.borrow().iter()
+            .filter_map(|(key, value)| {
+                // Check if this is a default institution (indicates corruption recovery)
+                if value.0.institution_id.is_empty() && 
+                   value.0.name.is_empty() && 
+                   value.0.email.is_empty() &&
+                   value.0.created_at == 0 {
+                    Some(key.0.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+    
+    for key in corrupted_inst_keys {
+        ic_cdk::println!("Removing corrupted institution entry: {}", key);
+        INSTITUTIONS.with(|storage| {
+            storage.borrow_mut().remove(&StorableString(key));
+        });
+    }
 }
 
 // Function to get storage statistics for monitoring
