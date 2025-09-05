@@ -1,5 +1,4 @@
 use sha2::{Digest, Sha256};
-use candid::Principal;
 
 /// Calculate SHA256 hash of file data
 pub fn calculate_file_hash(file_data: &[u8]) -> String {
@@ -9,7 +8,7 @@ pub fn calculate_file_hash(file_data: &[u8]) -> String {
 }
 
 /// Generate unique token ID using timestamp
-pub fn generate_token_id() -> String {
+pub fn generate_document_id() -> String {
     // Use timestamp and a simple counter for unique IDs
     let timestamp = ic_cdk::api::time();
     format!("document_{}", timestamp)
@@ -22,12 +21,6 @@ pub fn generate_institution_id() -> String {
     format!("INST_{}", timestamp)
 }
 
-/// Generate unique collection ID using timestamp
-pub fn generate_collection_id() -> String {
-    // Use timestamp for unique collection IDs
-    let timestamp = ic_cdk::api::time();
-    format!("COLL_{}", timestamp)
-}
 
 /// Validate string length with min and max bounds (after trimming whitespace)
 pub fn validate_string_length(value: &str, min: usize, max: usize, field_name: &str) -> Result<(), String> {

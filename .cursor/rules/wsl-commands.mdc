@@ -1,0 +1,8 @@
+---
+description: "Always Run Commands in WSL"
+globs: **/*
+---
+
+# Always Run Commands in WSL
+
+When suggesting or generating terminal commands, always ensure they are executed within the WSL environment rather than Windows Command Prompt or PowerShell.

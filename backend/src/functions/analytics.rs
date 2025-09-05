@@ -2,7 +2,7 @@ use ic_cdk::api::management_canister::http_request::{
     http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse,
 };
 use ic_cdk::{update, query};
-use candid::{CandidType, Deserialize};
+use candid::CandidType;
 use serde::{Serialize, Deserialize as SerdeDeserialize};
 use serde_json::json;
 use crate::types::{Document, DocumentType};

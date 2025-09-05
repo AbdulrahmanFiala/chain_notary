@@ -1,7 +1,7 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, COLLECTIONS, principal_to_bytes, tokens_to_bytes, bytes_to_tokens, document_to_bytes};
-use crate::utils::{calculate_file_hash, generate_token_id};
+use crate::storage::{DOCUMENTS, OWNER_TOKENS, StorableString};
+use crate::utils::{calculate_file_hash, generate_document_id};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
@@ -14,7 +14,7 @@ pub async fn upload_file_and_publish_document(
             success: false,
             document_id: String::new(),
             error_message: e,
-            document_hash: String::new(),
+            file_hash: String::new(),
         };
     }
 
@@ -36,28 +36,10 @@ pub async fn upload_file_and_publish_document(
             success: false,
             document_id: String::new(),
             error_message: e,
-            document_hash: String::new(),
+            file_hash: String::new(),
         };
     }
 
-    // Normalize and validate collection_id (trim whitespace and check if empty)
-    let normalized_collection_id = metadata.collection_id.trim().to_string();
-    
-    // Validate that collection exists if specified (non-empty collection_id after trimming)
-    if !normalized_collection_id.is_empty() {
-        let collection_exists = COLLECTIONS.with(|storage| {
-            storage.borrow().contains_key(&normalized_collection_id)
-        });
-        
-        if !collection_exists {
-            return DocumentResponse {
-                success: false,
-                document_id: String::new(),
-                error_message: "Specified collection does not exist".to_string(),
-                document_hash: String::new(),
-            };
-        }
-    }
 
     // Normalize and validate institution_id (trim whitespace and check if empty)
     let normalized_institution_id = metadata.institution_id.trim().to_string();
@@ -71,69 +53,47 @@ pub async fn upload_file_and_publish_document(
                 success: false,
                 document_id: String::new(),
                 error_message: "Specified institution does not exist".to_string(),
-                document_hash: String::new(),
+                file_hash: String::new(),
             };
         }
     }
 
     // Generate unique document ID
-    let document_id = generate_token_id();
+    let document_id = generate_document_id();
     
     // Calculate file hash for integrity verification and storage
     let calculated_hash = calculate_file_hash(&metadata.file_data);
     
-    // Get current timestamp
-    let uploaded_at = ic_cdk::api::time();
+    // Get current timestamp (for potential future use)
+    let _uploaded_at = ic_cdk::api::time();
 
     // Create complete document with file data and calculated hash, using normalized IDs
     let mut document = metadata;
     document.document_id = document_id.clone();
-    document.document_hash = calculated_hash.clone();
-    document.collection_id = normalized_collection_id;
+    document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
 
-    // Store the complete document in single storage
-    let document_bytes = match document_to_bytes(&document) {
-        Ok(bytes) => bytes,
-        Err(e) => {
-            return DocumentResponse {
-                success: false,
-                document_id: String::new(),
-                error_message: format!("Failed to serialize document: {}", e),
-                document_hash: String::new(),
-            };
-        }
-    };
-    DOCUMENTS.with(|storage| {
-        storage.borrow_mut().insert(document_id.clone(), document_bytes);
-    });
-
-    // If document belongs to a collection, add it to the collection's documents list
-    if !document.collection_id.is_empty() {
-        if let Some(mut collection) = crate::storage::get_collection_safe(&document.collection_id) {
-            collection.documents.push(document_id.clone());
-            collection.updated_at = uploaded_at;
-            if let Err(e) = crate::storage::update_collection_safe(&document.collection_id, &collection) {
-                return DocumentResponse {
-                    success: false,
-                    document_id: String::new(),
-                    error_message: format!("Failed to update collection: {}", e),
-                    document_hash: String::new(),
-                };
-            }
-        }
+    // Store the complete document using safe storage function
+    if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {
+        return DocumentResponse {
+            success: false,
+            document_id: String::new(),
+            error_message: format!("Failed to store document: {}", e),
+            file_hash: String::new(),
+        };
     }
 
-    // Store owner token mapping
+
+    // Store owner token mapping using StorableTypes
     OWNER_TOKENS.with(|storage| {
         let mut owner_tokens = storage.borrow_mut();
-        let owner_bytes = principal_to_bytes(&document.owner);
-        let current_tokens_bytes = owner_tokens.get(&owner_bytes).unwrap_or_default();
-        let mut current_tokens = bytes_to_tokens(&current_tokens_bytes).unwrap_or_default();
-        current_tokens.push(document_id.clone());
-        if let Ok(tokens_bytes) = tokens_to_bytes(&current_tokens) {
-            owner_tokens.insert(owner_bytes, tokens_bytes);
-        }
+        let owner_key = crate::storage::memory::StorablePrincipal(document.owner);
+        let current_tokens = owner_tokens.get(&owner_key)
+            .map(|storable_tokens| storable_tokens.0)
+            .unwrap_or_default();
+        let mut updated_tokens = current_tokens;
+        updated_tokens.push(document_id.clone());
+        owner_tokens.insert(owner_key, crate::storage::memory::StorableTokens(updated_tokens));
     });
 
     // Return success response
@@ -141,6 +101,6 @@ pub async fn upload_file_and_publish_document(
         success: true,
         document_id,
         error_message: String::new(),
-        document_hash: calculated_hash,
+        file_hash: calculated_hash,
     }
 } 

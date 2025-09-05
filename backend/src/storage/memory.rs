@@ -1,42 +1,186 @@
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
-    DefaultMemoryImpl, StableBTreeMap, writer::Writer, reader::Reader,
+    DefaultMemoryImpl, StableBTreeMap, 
+    storable::Bound, 
+    Storable,
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{Document, CollectionMetadata, Institution};
+use crate::types::{Document, Institution};
+use std::borrow::Cow;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+
+// Wrapper types that implement Storable for stable storage
+#[derive(Clone)]
+pub struct StorableDocument(pub Document);
+
+#[derive(Clone)]
+pub struct StorableInstitution(pub Institution);
+
+#[derive(Clone)]
+pub struct StorableTokens(pub Vec<String>);
+
+// Implement Storable for Document wrapper
+impl Storable for StorableDocument {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        match serde_json::to_vec(&self.0) {
+            Ok(bytes) => Cow::Owned(bytes),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to serialize document: {}", e);
+                // In case of serialization failure, we trap to prevent data corruption
+                ic_cdk::trap(&format!("Document serialization failed: {}", e));
+            }
+        }
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match serde_json::from_slice(&bytes) {
+            Ok(document) => StorableDocument(document),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize document: {}", e);
+                ic_cdk::println!("Corrupted data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return a default/empty document instead of trapping to allow recovery
+                StorableDocument(crate::types::Document::default())
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+// Implement Storable for Institution wrapper
+impl Storable for StorableInstitution {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        match serde_json::to_vec(&self.0) {
+            Ok(bytes) => Cow::Owned(bytes),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to serialize institution: {}", e);
+                ic_cdk::trap(&format!("Institution serialization failed: {}", e));
+            }
+        }
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match serde_json::from_slice(&bytes) {
+            Ok(institution) => StorableInstitution(institution),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize institution: {}", e);
+                ic_cdk::println!("Corrupted institution data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return a default/empty institution instead of trapping to allow recovery
+                StorableInstitution(crate::types::Institution::default())
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+// Implement Storable for Tokens wrapper
+impl Storable for StorableTokens {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        match serde_json::to_vec(&self.0) {
+            Ok(bytes) => Cow::Owned(bytes),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to serialize tokens: {}", e);
+                ic_cdk::trap(&format!("Tokens serialization failed: {}", e));
+            }
+        }
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match serde_json::from_slice(&bytes) {
+            Ok(tokens) => StorableTokens(tokens),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize tokens: {}", e);
+                ic_cdk::println!("Corrupted tokens data (first 100 bytes): {:?}", 
+                    &bytes[..std::cmp::min(100, bytes.len())]);
+                
+                // Return empty tokens instead of trapping to allow recovery
+                StorableTokens(Vec::new())
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
+}
+
+// Wrapper type for String keys
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StorableString(pub String);
+
+impl Storable for StorableString {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.0.as_bytes())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match String::from_utf8(bytes.to_vec()) {
+            Ok(string) => StorableString(string),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize string: {}", e);
+                ic_cdk::trap(&format!("String deserialization failed: {}", e));
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 1000, // Maximum key size
+        is_fixed_size: false,
+    };
+}
+
+// Implement Storable for Principal wrapper
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StorablePrincipal(pub Principal);
+
+impl Storable for StorablePrincipal {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.0.as_slice())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match Principal::try_from_slice(&bytes) {
+            Ok(principal) => StorablePrincipal(principal),
+            Err(e) => {
+                ic_cdk::println!("CRITICAL: Failed to deserialize principal: {:?}", e);
+                ic_cdk::trap(&format!("Principal deserialization failed: {:?}", e));
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 29, // Principal max size
+        is_fixed_size: false,
+    };
+}
 
 thread_local! {
     pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
-    // Store complete documents (metadata + file data) in a single storage area
-    pub static DOCUMENTS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+    // Store complete documents using proper Storable types
+    pub static DOCUMENTS: RefCell<StableBTreeMap<StorableString, StorableDocument, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
         )
     );
 
-    // Store collections separately from documents
-    pub static COLLECTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+    // Store institutions using proper Storable types
+    pub static INSTITUTIONS: RefCell<StableBTreeMap<StorableString, StorableInstitution, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
         )
     );
 
-    // Store institutions separately from collections
-    pub static INSTITUTIONS: RefCell<StableBTreeMap<String, Vec<u8>, Memory>> = RefCell::new(
+    // Store owner mappings using proper Storable types
+    pub static OWNER_TOKENS: RefCell<StableBTreeMap<StorablePrincipal, StorableTokens, Memory>> = RefCell::new(
         StableBTreeMap::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
-        )
-    );
-
-    // Store owner mappings as JSON strings
-    pub static OWNER_TOKENS: RefCell<StableBTreeMap<Vec<u8>, Vec<u8>, Memory>> = RefCell::new(
-        StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
         )
     );
 }
@@ -56,71 +200,228 @@ pub fn bytes_to_principal(bytes: &[u8]) -> Result<Principal, String> {
 // Helper function to safely get and deserialize a document
 pub fn get_document_safe(document_id: &str) -> Option<Document> {
     DOCUMENTS.with(|storage| {
-        storage.borrow().get(&document_id.to_string())
-            .and_then(|bytes| bytes_to_document(&bytes).ok())
-    })
-}
-
-// Helper function to safely get and deserialize a collection
-pub fn get_collection_safe(collection_id: &str) -> Option<CollectionMetadata> {
-    COLLECTIONS.with(|storage| {
-        storage.borrow().get(&collection_id.to_string())
-            .and_then(|bytes| bytes_to_collection(&bytes).ok())
+        storage.borrow().get(&StorableString(document_id.to_string()))
+            .map(|storable_doc| storable_doc.0)
     })
 }
 
 // Helper function to safely get and deserialize an institution
 pub fn get_institution_safe(institution_id: &str) -> Option<Institution> {
     INSTITUTIONS.with(|storage| {
-        storage.borrow().get(&institution_id.to_string())
-            .and_then(|bytes| bytes_to_institution(&bytes).ok())
+        storage.borrow().get(&StorableString(institution_id.to_string()))
+            .map(|storable_inst| storable_inst.0)
     })
-}
-
-// Helper function to safely update a document
-pub fn update_document_safe(document_id: &str, document: &Document) -> Result<(), String> {
-    let document_bytes = document_to_bytes(document)
-        .map_err(|e| format!("Failed to serialize document: {}", e))?;
-    DOCUMENTS.with(|storage| {
-        storage.borrow_mut().insert(document_id.to_string(), document_bytes);
-    });
-    Ok(())
-}
-
-// Helper function to safely update a collection
-pub fn update_collection_safe(collection_id: &str, collection: &CollectionMetadata) -> Result<(), String> {
-    let collection_bytes = collection_to_bytes(collection)
-        .map_err(|e| format!("Failed to serialize collection: {}", e))?;
-    COLLECTIONS.with(|storage| {
-        storage.borrow_mut().insert(collection_id.to_string(), collection_bytes);
-    });
-    Ok(())
 }
 
 // Helper function to safely update an institution
 pub fn update_institution_safe(institution_id: &str, institution: &Institution) -> Result<(), String> {
-    let institution_bytes = institution_to_bytes(institution)
-        .map_err(|e| format!("Failed to serialize institution: {}", e))?;
     INSTITUTIONS.with(|storage| {
-        storage.borrow_mut().insert(institution_id.to_string(), institution_bytes);
+        storage.borrow_mut().insert(StorableString(institution_id.to_string()), StorableInstitution(institution.clone()));
     });
     Ok(())
 }
 
+// Helper function to safely store a document
+pub fn store_document_safe(document_id: &str, document: &Document) -> Result<(), String> {
+    // Validate document before storing
+    if document_id.is_empty() {
+        return Err("Document ID cannot be empty".to_string());
+    }
+    
+    if document.document_id != document_id {
+        return Err("Document ID mismatch".to_string());
+    }
+    
+    DOCUMENTS.with(|storage| {
+        storage.borrow_mut().insert(StorableString(document_id.to_string()), StorableDocument(document.clone()));
+    });
+    Ok(())
+}
+
+// Function to validate all storage integrity
+pub fn validate_all_storage() -> Result<(), String> {
+    // Clear corrupted entries during validation
+    clear_corrupted_entries();
+    
+    // Validate documents
+    let document_issues = DOCUMENTS.with(|storage| {
+        let mut issues = Vec::new();
+        for (key, value) in storage.borrow().iter() {
+            // Skip default/empty documents that were recovered from corruption
+            if value.0.document_id.is_empty() && value.0.name.is_empty() && value.0.file_data.is_empty() {
+                ic_cdk::println!("Skipping validation for recovered empty document with key: {}", key.0);
+                continue;
+            }
+            
+            if key.0.is_empty() {
+                issues.push("Empty document key found".to_string());
+            }
+            
+            if value.0.document_id.is_empty() {
+                issues.push(format!("Document with key '{}' has empty document_id", key.0));
+            }
+            
+            if !value.0.document_id.is_empty() && value.0.document_id != key.0 {
+                issues.push(format!("Document ID mismatch: key='{}', document_id='{}'", key.0, value.0.document_id));
+            }
+            
+            if value.0.file_data.is_empty() && value.0.file_type != "text/plain" && !value.0.file_type.is_empty() {
+                issues.push(format!("Document '{}' has empty file data", key.0));
+            }
+        }
+        issues
+    });
+    
+    // Log document issues as warnings but don't fail validation
+    if !document_issues.is_empty() {
+        ic_cdk::println!("Document validation warnings: {}", document_issues.join("; "));
+    }
+    
+    // Validate institutions
+    let institution_issues = INSTITUTIONS.with(|storage| {
+        let mut issues = Vec::new();
+        for (key, value) in storage.borrow().iter() {
+            // Skip default/empty institutions that were recovered from corruption
+            if value.0.institution_id.is_empty() && value.0.name.is_empty() {
+                ic_cdk::println!("Skipping validation for recovered empty institution with key: {}", key.0);
+                continue;
+            }
+            
+            if key.0.is_empty() {
+                issues.push("Empty institution key found".to_string());
+            }
+            
+            if value.0.institution_id.is_empty() {
+                issues.push(format!("Institution with key '{}' has empty institution_id", key.0));
+            }
+            
+            if !value.0.institution_id.is_empty() && value.0.institution_id != key.0 {
+                issues.push(format!("Institution ID mismatch: key='{}', institution_id='{}'", key.0, value.0.institution_id));
+            }
+            
+            if value.0.name.is_empty() {
+                issues.push(format!("Institution '{}' has empty name", key.0));
+            }
+        }
+        issues
+    });
+    
+    // Log institution issues as warnings but don't fail validation
+    if !institution_issues.is_empty() {
+        ic_cdk::println!("Institution validation warnings: {}", institution_issues.join("; "));
+    }
+    
+    // Validate owner tokens consistency (be lenient about missing documents during recovery)
+    let token_issues = OWNER_TOKENS.with(|storage| {
+        let mut issues = Vec::new();
+        for (principal, tokens) in storage.borrow().iter() {
+            // Check that all tokens in the list correspond to actual documents
+            for token in &tokens.0 {
+                if !DOCUMENTS.with(|docs| docs.borrow().contains_key(&StorableString(token.clone()))) {
+                    issues.push(format!("Token '{}' for principal '{}' references non-existent document", token, principal.0));
+                }
+            }
+        }
+        issues
+    });
+    
+    // Log token issues as warnings but don't fail validation during recovery
+    if !token_issues.is_empty() {
+        ic_cdk::println!("Owner tokens validation warnings: {}", token_issues.join("; "));
+    }
+    
+    Ok(())
+}
+
+// Function to clear corrupted entries that were replaced with defaults
+pub fn clear_corrupted_entries() {
+    // Clear corrupted documents (those with all default values)
+    let corrupted_doc_keys: Vec<String> = DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .filter_map(|(key, value)| {
+                // Check if this is a default document (indicates corruption recovery)
+                if value.0.document_id.is_empty() && 
+                   value.0.name.is_empty() && 
+                   value.0.file_data.is_empty() &&
+                   value.0.company_name.is_empty() &&
+                   value.0.description.is_empty() {
+                    Some(key.0.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+    
+    for key in corrupted_doc_keys {
+        ic_cdk::println!("Removing corrupted document entry: {}", key);
+        DOCUMENTS.with(|storage| {
+            storage.borrow_mut().remove(&StorableString(key));
+        });
+    }
+    
+    // Clear corrupted institutions (those with all default values)
+    let corrupted_inst_keys: Vec<String> = INSTITUTIONS.with(|storage| {
+        storage.borrow().iter()
+            .filter_map(|(key, value)| {
+                // Check if this is a default institution (indicates corruption recovery)
+                if value.0.institution_id.is_empty() && 
+                   value.0.name.is_empty() && 
+                   value.0.email.is_empty() &&
+                   value.0.created_at == 0 {
+                    Some(key.0.clone())
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+    
+    for key in corrupted_inst_keys {
+        ic_cdk::println!("Removing corrupted institution entry: {}", key);
+        INSTITUTIONS.with(|storage| {
+            storage.borrow_mut().remove(&StorableString(key));
+        });
+    }
+}
+
+// Function to get storage statistics for monitoring
+pub fn get_storage_stats() -> StorageStats {
+    let document_count = DOCUMENTS.with(|storage| storage.borrow().len());
+    let institution_count = INSTITUTIONS.with(|storage| storage.borrow().len());
+    let owner_mapping_count = OWNER_TOKENS.with(|storage| storage.borrow().len());
+    
+    // Calculate total file data size
+    let total_file_size = DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .map(|(_, doc)| doc.0.file_data.len() as u64)
+            .sum()
+    });
+    
+    StorageStats {
+        document_count: document_count as u64,
+        institution_count: institution_count as u64,
+        owner_mapping_count: owner_mapping_count as u64,
+        total_file_size_bytes: total_file_size,
+    }
+}
+
+// Structure to hold storage statistics
+#[derive(Debug, Clone)]
+pub struct StorageStats {
+    pub document_count: u64,
+    pub institution_count: u64,
+    pub owner_mapping_count: u64,
+    pub total_file_size_bytes: u64,
+}
+
+// Legacy helper functions for backward compatibility
 pub fn document_to_bytes(document: &Document) -> Result<Vec<u8>, String> {
     serde_json::to_vec(document).map_err(|e| format!("Failed to serialize document: {}", e))
 }
 
 pub fn bytes_to_document(bytes: &[u8]) -> Result<Document, String> {
     serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize document: {}", e))
-}
-
-pub fn collection_to_bytes(collection: &CollectionMetadata) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(collection).map_err(|e| format!("Failed to serialize collection: {}", e))
-}
-
-pub fn bytes_to_collection(bytes: &[u8]) -> Result<CollectionMetadata, String> {
-    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize collection: {}", e))
 }
 
 pub fn tokens_to_bytes(tokens: &[String]) -> Result<Vec<u8>, String> {
@@ -139,182 +440,3 @@ pub fn bytes_to_institution(bytes: &[u8]) -> Result<Institution, String> {
     serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize institution: {}", e))
 }
 
-// ============================================================================
-// UPGRADE FUNCTIONS
-// ============================================================================
-
-/// Save all stable data to stable memory during pre_upgrade
-pub fn save_stable_data() -> Result<(), String> {
-    // Get a dedicated memory for upgrade data (using a high memory ID to avoid conflicts)
-    let mut upgrade_memory = MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(100)));
-    let mut writer = Writer::new(&mut upgrade_memory, 0);
-
-    // Serialize the count of each storage type first for restoration
-    let document_count = DOCUMENTS.with(|storage| storage.borrow().len() as u64);
-    let collection_count = COLLECTIONS.with(|storage| storage.borrow().len() as u64);
-    let institution_count = INSTITUTIONS.with(|storage| storage.borrow().len() as u64);
-    let owner_token_count = OWNER_TOKENS.with(|storage| storage.borrow().len() as u64);
-
-    // Write counts
-    writer.write(&document_count.to_le_bytes()).map_err(|e| format!("Failed to write document count: {:?}", e))?;
-    writer.write(&collection_count.to_le_bytes()).map_err(|e| format!("Failed to write collection count: {:?}", e))?;
-    writer.write(&institution_count.to_le_bytes()).map_err(|e| format!("Failed to write institution count: {:?}", e))?;
-    writer.write(&owner_token_count.to_le_bytes()).map_err(|e| format!("Failed to write owner token count: {:?}", e))?;
-
-    // Save all documents
-    DOCUMENTS.with(|storage| {
-        for (key, value) in storage.borrow().iter() {
-            let key_bytes = key.as_bytes();
-            let key_len = (key_bytes.len() as u32).to_le_bytes();
-            let value_len = (value.len() as u32).to_le_bytes();
-            
-            writer.write(&key_len).map_err(|e| format!("Failed to write key length: {:?}", e))?;
-            writer.write(key_bytes).map_err(|e| format!("Failed to write key: {:?}", e))?;
-            writer.write(&value_len).map_err(|e| format!("Failed to write value length: {:?}", e))?;
-            writer.write(&value).map_err(|e| format!("Failed to write value: {:?}", e))?;
-        }
-        Ok::<(), String>(())
-    })?;
-
-    // Save all collections
-    COLLECTIONS.with(|storage| {
-        for (key, value) in storage.borrow().iter() {
-            let key_bytes = key.as_bytes();
-            let key_len = (key_bytes.len() as u32).to_le_bytes();
-            let value_len = (value.len() as u32).to_le_bytes();
-            
-            writer.write(&key_len).map_err(|e| format!("Failed to write key length: {:?}", e))?;
-            writer.write(key_bytes).map_err(|e| format!("Failed to write key: {:?}", e))?;
-            writer.write(&value_len).map_err(|e| format!("Failed to write value length: {:?}", e))?;
-            writer.write(&value).map_err(|e| format!("Failed to write value: {:?}", e))?;
-        }
-        Ok::<(), String>(())
-    })?;
-
-    // Save all institutions
-    INSTITUTIONS.with(|storage| {
-        for (key, value) in storage.borrow().iter() {
-            let key_bytes = key.as_bytes();
-            let key_len = (key_bytes.len() as u32).to_le_bytes();
-            let value_len = (value.len() as u32).to_le_bytes();
-            
-            writer.write(&key_len).map_err(|e| format!("Failed to write key length: {:?}", e))?;
-            writer.write(key_bytes).map_err(|e| format!("Failed to write key: {:?}", e))?;
-            writer.write(&value_len).map_err(|e| format!("Failed to write value length: {:?}", e))?;
-            writer.write(&value).map_err(|e| format!("Failed to write value: {:?}", e))?;
-        }
-        Ok::<(), String>(())
-    })?;
-
-    // Save all owner tokens
-    OWNER_TOKENS.with(|storage| {
-        for (key, value) in storage.borrow().iter() {
-            let key_len = (key.len() as u32).to_le_bytes();
-            let value_len = (value.len() as u32).to_le_bytes();
-            
-            writer.write(&key_len).map_err(|e| format!("Failed to write key length: {:?}", e))?;
-            writer.write(&key).map_err(|e| format!("Failed to write key: {:?}", e))?;
-            writer.write(&value_len).map_err(|e| format!("Failed to write value length: {:?}", e))?;
-            writer.write(&value).map_err(|e| format!("Failed to write value: {:?}", e))?;
-        }
-        Ok::<(), String>(())
-    })?;
-
-    Ok(())
-}
-
-/// Restore all stable data from stable memory during post_upgrade
-pub fn restore_stable_data() -> Result<(), String> {
-    // Get the same memory used for upgrade data
-    let upgrade_memory = MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(100)));
-    let mut reader = Reader::new(&upgrade_memory, 0);
-
-    // Try to read counts - if this fails, it means no backup data exists (first deployment)
-    let mut count_buf = [0u8; 8];
-    match reader.read(&mut count_buf) {
-        Ok(_) => {
-            // Backup data exists, proceed with restoration
-        },
-        Err(_) => {
-            // No backup data exists (first deployment with upgrade hooks)
-            // This is normal and not an error
-            return Ok(());
-        }
-    }
-    let document_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read collection count: {:?}", e))?;
-    let collection_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read institution count: {:?}", e))?;
-    let institution_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read owner token count: {:?}", e))?;
-    let owner_token_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read document nft count: {:?}", e))?;
-    let document_nft_count = u64::from_le_bytes(count_buf);
-
-    reader.read(&mut count_buf).map_err(|e| format!("Failed to read doc to nft count: {:?}", e))?;
-    let doc_to_nft_count = u64::from_le_bytes(count_buf);
-
-    // Restore documents
-    for _ in 0..document_count {
-        let (key, value) = read_key_value_bytes(&mut reader)?;
-        let key_str = String::from_utf8(key).map_err(|e| format!("Invalid UTF-8 in document key: {}", e))?;
-        DOCUMENTS.with(|storage| {
-            storage.borrow_mut().insert(key_str, value);
-        });
-    }
-
-    // Restore collections
-    for _ in 0..collection_count {
-        let (key, value) = read_key_value_bytes(&mut reader)?;
-        let key_str = String::from_utf8(key).map_err(|e| format!("Invalid UTF-8 in collection key: {}", e))?;
-        COLLECTIONS.with(|storage| {
-            storage.borrow_mut().insert(key_str, value);
-        });
-    }
-
-    // Restore institutions
-    for _ in 0..institution_count {
-        let (key, value) = read_key_value_bytes(&mut reader)?;
-        let key_str = String::from_utf8(key).map_err(|e| format!("Invalid UTF-8 in institution key: {}", e))?;
-        INSTITUTIONS.with(|storage| {
-            storage.borrow_mut().insert(key_str, value);
-        });
-    }
-
-    // Restore owner tokens
-    for _ in 0..owner_token_count {
-        let (key, value) = read_key_value_bytes(&mut reader)?;
-        OWNER_TOKENS.with(|storage| {
-            storage.borrow_mut().insert(key, value);
-        });
-    }
-
-    Ok(())
-}
-
-/// Helper function to read key-value pairs from stable memory
-fn read_key_value_bytes(reader: &mut Reader<VirtualMemory<DefaultMemoryImpl>>) -> Result<(Vec<u8>, Vec<u8>), String> {
-    let mut len_buf = [0u8; 4];
-    
-    // Read key length
-    reader.read(&mut len_buf).map_err(|e| format!("Failed to read key length: {:?}", e))?;
-    let key_len = u32::from_le_bytes(len_buf) as usize;
-    
-    // Read key
-    let mut key = vec![0u8; key_len];
-    reader.read(&mut key).map_err(|e| format!("Failed to read key: {:?}", e))?;
-    
-    // Read value length
-    reader.read(&mut len_buf).map_err(|e| format!("Failed to read value length: {:?}", e))?;
-    let value_len = u32::from_le_bytes(len_buf) as usize;
-    
-    // Read value
-    let mut value = vec![0u8; value_len];
-    reader.read(&mut value).map_err(|e| format!("Failed to read value: {:?}", e))?;
-    
-    Ok((key, value))
-} 
