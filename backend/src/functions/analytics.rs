@@ -1,5 +1,5 @@
 use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse,
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformFunc,
 };
 use ic_cdk::{update, query};
 use candid::CandidType;
@@ -280,24 +280,59 @@ fn extract_document_content(document: &Document) -> String {
     }
 }
 
-/// Perform the actual Gemini API analysis
+/// Perform the actual Gemini API analysis with retry logic
 async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, String> {
+    const MAX_RETRIES: u32 = 3;
+    
+    for attempt in 1..=MAX_RETRIES {
+        match perform_single_gemini_request(content, focus).await {
+            Ok(result) => return Ok(result),
+            Err(error) => {
+                ic_cdk::println!("Gemini API attempt {}/{} failed: {}", attempt, MAX_RETRIES, error);
+                
+                // Don't retry on the last attempt
+                if attempt == MAX_RETRIES {
+                    return Err(format!("All {} attempts failed. Last error: {}", MAX_RETRIES, error));
+                }
+                
+                // Check if it's a consensus error that might benefit from retry
+                if error.contains("No consensus could be reached") || error.contains("SysTransient") {
+                    ic_cdk::println!("Consensus error detected, retrying attempt {}/{}", attempt + 1, MAX_RETRIES);
+                    continue;
+                } else {
+                    // For other errors, don't retry
+                    return Err(error);
+                }
+            }
+        }
+    }
+    
+    Err("Unexpected retry loop exit".to_string())
+}
+
+/// Perform a single Gemini API request
+async fn perform_single_gemini_request(content: &str, focus: &str) -> Result<String, String> {
     let url = format!("{}?key={}", GEMINI_ENDPOINT, GEMINI_API_KEY);
 
     // Create focused prompt based on analysis type
     let prompt = create_analysis_prompt(content, focus);
+    
+    // Add deterministic elements to ensure consistent requests
+    let request_timestamp = ic_cdk::api::time() / 1_000_000_000; // Round to seconds for consistency
+    let deterministic_prompt = format!("{}\n\n[Request Time: {}]", prompt, request_timestamp);
 
     let request_body = json!({
         "contents": [{
             "parts": [{
-                "text": prompt
+                "text": deterministic_prompt
             }]
         }],
         "generationConfig": {
-            "temperature": 0.7,
-            "topK": 40,
-            "topP": 0.95,
+            "temperature": 0.0,        
+            "topK": 1,                
+            "topP": 1.0,     
             "maxOutputTokens": 2048,
+            "seed": 12345,    
         },
         "safetySettings": [
             {
@@ -336,7 +371,10 @@ async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, S
         ],
         body: Some(request_body),
         max_response_bytes: Some(MAX_RESPONSE_BYTES),
-        transform: None,
+        transform: Some(TransformFunc(candid::Func {
+            principal: ic_cdk::api::id(),
+            method: "transform_gemini_response".to_string(),
+        })),
     };
 
     match http_request(request, REQUEST_CYCLES).await {
@@ -487,6 +525,38 @@ pub fn get_analysis_focus_options() -> Vec<String> {
         "investment_insights".to_string(),
         "analysis_chart".to_string(),
     ]
+}
+
+/// Transform function to normalize HTTP responses for consensus
+#[query]
+pub fn transform_gemini_response(args: TransformArgs) -> HttpResponse {
+    let mut response = args.response;
+    
+    // Remove non-deterministic headers that might vary between nodes
+    response.headers.retain(|header| {
+        !matches!(header.name.to_lowercase().as_str(),
+            "date" | "x-request-id" | "x-trace-id" | "server" | "set-cookie" | "cf-ray"
+        )
+    });
+    
+    // Normalize the response body if it's JSON
+    if let Ok(body_str) = String::from_utf8(response.body.clone()) {
+        if let Ok(mut json_value) = serde_json::from_str::<serde_json::Value>(&body_str) {
+            // Remove timestamp fields that might cause consensus issues
+            if let Some(obj) = json_value.as_object_mut() {
+                obj.remove("timestamp");
+                obj.remove("requestId");
+                obj.remove("responseId");
+            }
+            
+            // Convert back to bytes with consistent formatting
+            if let Ok(normalized_json) = serde_json::to_string(&json_value) {
+                response.body = normalized_json.into_bytes();
+            }
+        }
+    }
+    
+    response
 }
 
 /// Query function to check if analytics service is available
