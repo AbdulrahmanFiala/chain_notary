@@ -2,7 +2,7 @@ use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, 
     storable::Bound, 
-    Storable,
+    Storable, Memory as MemoryTrait,
 };
 use std::cell::RefCell;
 use candid::Principal;
@@ -203,31 +203,41 @@ thread_local! {
 
     // Store complete documents using proper Storable types
     pub static DOCUMENTS: RefCell<StableBTreeMap<StorableString, StorableDocument, Memory>> = RefCell::new(
-        StableBTreeMap::load(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0)))
-        )
+        init_stable_map(MemoryId::new(0))
     );
 
     // Store institutions using proper Storable types
     pub static INSTITUTIONS: RefCell<StableBTreeMap<StorableString, StorableInstitution, Memory>> = RefCell::new(
-        StableBTreeMap::load(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1)))
-        )
+        init_stable_map(MemoryId::new(1))
     );
 
     // Store owner mappings using proper Storable types
     pub static OWNER_TOKENS: RefCell<StableBTreeMap<StorablePrincipal, StorableTokens, Memory>> = RefCell::new(
-        StableBTreeMap::load(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2)))
-        )
+        init_stable_map(MemoryId::new(2))
     );
 
     // Store user profiles using proper Storable types
     pub static USER_PROFILES: RefCell<StableBTreeMap<StorablePrincipal, StorableUserProfile, Memory>> = RefCell::new(
-        StableBTreeMap::load(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(3)))
-        )
+        init_stable_map(MemoryId::new(3))
     );
+}
+
+// Helper function to safely initialize stable maps
+fn init_stable_map<K, V>(memory_id: MemoryId) -> StableBTreeMap<K, V, Memory> 
+where
+    K: Storable + Clone + Ord,
+    V: Storable + Clone,
+{
+    let memory = MEMORY_MANAGER.with(|m| m.borrow().get(memory_id));
+    
+    // Check if memory has been initialized by checking if it has any data
+    // If memory is empty/uninitialized, create new map
+    // If memory has data, load existing map
+    if memory.size() == 0 {
+        StableBTreeMap::new(memory)
+    } else {
+        StableBTreeMap::load(memory)
+    }
 }
 
 // Helper functions for storage operations
