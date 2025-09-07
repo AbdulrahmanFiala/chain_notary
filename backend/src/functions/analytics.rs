@@ -1,5 +1,5 @@
 use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformFunc,
+    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformFunc, TransformContext,
 };
 use ic_cdk::{update, query};
 use candid::CandidType;
@@ -371,10 +371,13 @@ async fn perform_single_gemini_request(content: &str, focus: &str) -> Result<Str
         ],
         body: Some(request_body),
         max_response_bytes: Some(MAX_RESPONSE_BYTES),
-        transform: Some(TransformFunc(candid::Func {
-            principal: ic_cdk::api::id(),
-            method: "transform_gemini_response".to_string(),
-        })),
+        transform: Some(TransformContext {
+            function: TransformFunc(candid::Func {
+                principal: ic_cdk::api::id(),
+                method: "transform_gemini_response".to_string(),
+            }),
+            context: vec![],
+        }),
     };
 
     match http_request(request, REQUEST_CYCLES).await {

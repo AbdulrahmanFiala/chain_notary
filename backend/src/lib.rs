@@ -1,6 +1,7 @@
 // External dependencies
 use candid::Principal;
 use ic_cdk::{export_candid, pre_upgrade, post_upgrade, init};
+use ic_cdk::api::management_canister::http_request::{TransformArgs, HttpResponse};
 
 // Internal modules
 pub mod types;
