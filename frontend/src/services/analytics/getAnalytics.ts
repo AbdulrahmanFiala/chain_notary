@@ -4,6 +4,7 @@ export interface AnalyticsRequest {
   document_id?: string;
   input_data?: string;
   analysis_focus: string;
+  api_key: string;
 }
 
 export interface AnalyticsResponse {
@@ -24,6 +25,7 @@ const getAnalytics = async (request: AnalyticsRequest): Promise<AnalyticsRespons
       document_id: request.document_id ? [request.document_id] : [],
       input_data: request.input_data ? [request.input_data] : [],
       analysis_focus: request.analysis_focus,
+      api_key: request.api_key,
     };
 
     const response = await backend.analyze_document_data(backendRequest);

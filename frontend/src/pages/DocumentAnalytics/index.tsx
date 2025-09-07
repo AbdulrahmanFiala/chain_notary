@@ -66,6 +66,7 @@ const DocumentAnalytics: React.FC = () => {
       const response = await getAnalytics({
         document_id: document_id,
         analysis_focus: analysisFocus,
+        api_key: import.meta.env.VITE_GEMINI_API_KEY || '',
       });
 
       if (response.success) {
