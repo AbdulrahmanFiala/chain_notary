@@ -1,4 +1,5 @@
 use sha2::{Digest, Sha256};
+use candid::Principal;
 
 /// Calculate SHA256 hash of file data
 pub fn calculate_file_hash(file_data: &[u8]) -> String {
@@ -59,4 +60,14 @@ pub fn validate_file_size(file_size: usize, max_size_mb: usize) -> Result<(), St
         return Err(format!("File size exceeds {}MB limit", max_size_mb));
     }
     Ok(())
+}
+
+/// Require that the caller is authenticated (not anonymous)
+/// Returns the caller's Principal if authenticated, or an error if anonymous
+pub fn require_authenticated_user() -> Result<Principal, String> {
+    let caller = ic_cdk::caller();
+    if caller == Principal::anonymous() {
+        return Err("Anonymous users cannot perform this action. Please log in with Internet Identity first.".to_string());
+    }
+    Ok(caller)
 } 

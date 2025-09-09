@@ -2,10 +2,11 @@ use ic_cdk::{query, update, caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::storage::USER_PROFILES;
+use crate::utils::helpers::require_authenticated_user;
 
 /// Check if current caller is a super admin
 fn require_super_admin() -> Result<Principal, String> {
-    let caller = caller();
+    let caller = require_authenticated_user()?;
     
     match crate::storage::get_user_profile_safe(&caller) {
         Some(profile) => {
@@ -102,6 +103,11 @@ pub fn admin_create_institution_for_user(
 #[update]
 pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), String> {
     require_super_admin()?; // Only super admins can promote others
+    
+    // Prevent promoting anonymous users to super admin
+    if user_identity == Principal::anonymous() {
+        return Err("Cannot promote anonymous users to super admin. Target user must be authenticated.".to_string());
+    }
     
     USER_PROFILES.with(|profiles| {
         let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
@@ -200,7 +206,7 @@ pub fn admin_unlink_user_from_institution(user_identity: Principal) -> Result<()
 /// Bootstrap function: Create first super admin (only works if no super admins exist)
 #[update]
 pub fn bootstrap_first_super_admin() -> Result<(), String> {
-    let caller = caller();
+    let caller = require_authenticated_user()?;
     
     // Check if any super admins already exist
     let has_super_admin = USER_PROFILES.with(|profiles| {

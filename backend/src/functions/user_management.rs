@@ -2,6 +2,7 @@ use ic_cdk::{update, query, caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::storage::USER_PROFILES;
+use crate::utils::helpers::require_authenticated_user;
 
 /// Check if user has a profile and what their role is
 #[query]
@@ -14,12 +15,7 @@ pub fn get_user_profile() -> Option<UserProfile> {
 /// Used as well to update the last_login timestamp for existing users
 #[update]
 pub fn register_user() -> Result<UserProfile, String> {
-    let caller = caller();
-    
-    // Prevent anonymous users from registering
-    if caller == Principal::anonymous() {
-        return Err("Anonymous users cannot register. Please log in with Internet Identity first.".to_string());
-    }
+    let caller = require_authenticated_user()?;
     
     // Check if profile already exists
     if let Some(existing_profile) = crate::storage::get_user_profile_safe(&caller) {
