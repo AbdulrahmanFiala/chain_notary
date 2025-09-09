@@ -62,7 +62,8 @@ pub struct Document {
     pub file_hash: String,
     pub file_size: u64,        
     pub file_type: String,    
-    pub file_data: Vec<u8>,     
+    pub file_data: Vec<u8>,
+    pub publication_date: u64,
 }
 
 impl Default for Document {
@@ -80,6 +81,7 @@ impl Default for Document {
             file_size: 0,
             file_type: String::default(),
             file_data: Vec::default(),
+            publication_date: 0,
         }
     }
 }
@@ -128,4 +130,13 @@ pub struct DocumentResponse {
     pub document_id: String,
     pub error_message: String,
     pub file_hash: String,
+}
+
+// Document summary for listing documents by owner
+#[derive(CandidType, Deserialize, Clone, Serialize, Debug, Default)]
+pub struct DocumentSummary {
+    pub id: String,
+    pub document_name: String,
+    pub file_type: String,
+    pub publication_date: u64,
 }
