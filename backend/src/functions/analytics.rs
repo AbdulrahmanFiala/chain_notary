@@ -10,7 +10,6 @@ use crate::storage::{get_document_safe};
 use lopdf::Document as PdfDocument;
 
 // Configuration constants
-const GEMINI_API_KEY: &str = "AIzaSyD3nnVbZJRBuonqILwrQT_8Ju9ZQA2icSY"; // TODO: Secure this in production!
 const GEMINI_ENDPOINT: &str = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
 const MAX_RESPONSE_BYTES: u64 = 500_000; // 500KB for comprehensive analysis
 const REQUEST_CYCLES: u128 = 10_000_000_000; // 10 billion cycles
@@ -53,6 +52,7 @@ pub struct AnalyticsRequest {
     pub document_id: Option<String>, // If provided, analyze the PDF content
     pub input_data: Option<String>,  // If no PDF, analyze this input data
     pub analysis_focus: String,      // "financial_summary", "risk_assessment", "market_insights", etc.
+    pub api_key: String,             // Gemini API key for authentication
 }
 
 /// Main analytics function that handles both PDF and input data analysis
@@ -111,7 +111,7 @@ pub async fn analyze_document_data(request: AnalyticsRequest) -> AnalyticsRespon
     };
 
     // Perform the analysis
-    match perform_gemini_analysis(&content_to_analyze, &request.analysis_focus).await {
+    match perform_gemini_analysis(&content_to_analyze, &request.analysis_focus, &request.api_key).await {
         Ok(analysis) => AnalyticsResponse {
             success: true,
             analysis,
@@ -281,11 +281,11 @@ fn extract_document_content(document: &Document) -> String {
 }
 
 /// Perform the actual Gemini API analysis with retry logic
-async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, String> {
+async fn perform_gemini_analysis(content: &str, focus: &str, api_key: &str) -> Result<String, String> {
     const MAX_RETRIES: u32 = 3;
     
     for attempt in 1..=MAX_RETRIES {
-        match perform_single_gemini_request(content, focus).await {
+        match perform_single_gemini_request(content, focus, api_key).await {
             Ok(result) => return Ok(result),
             Err(error) => {
                 ic_cdk::println!("Gemini API attempt {}/{} failed: {}", attempt, MAX_RETRIES, error);
@@ -311,8 +311,8 @@ async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, S
 }
 
 /// Perform a single Gemini API request
-async fn perform_single_gemini_request(content: &str, focus: &str) -> Result<String, String> {
-    let url = format!("{}?key={}", GEMINI_ENDPOINT, GEMINI_API_KEY);
+async fn perform_single_gemini_request(content: &str, focus: &str, api_key: &str) -> Result<String, String> {
+    let url = format!("{}?key={}", GEMINI_ENDPOINT, api_key);
 
     // Create focused prompt based on analysis type
     let prompt = create_analysis_prompt(content, focus);
