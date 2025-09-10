@@ -41,3 +41,8 @@ pub fn register_user() -> Result<UserProfile, String> {
     ic_cdk::println!("New user registered: {}", caller);
     Ok(new_profile)
 }
+
+#[ic_cdk::query]
+pub fn whoami() -> Principal {
+    caller()
+}
