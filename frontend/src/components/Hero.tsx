@@ -1,6 +1,7 @@
+import type { FC } from "react";
 import { NavLink } from "react-router";
 
-const Hero = () => {
+const Hero: FC = () => {
   return (
     <section className="bg-gray-50 py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -13,13 +14,13 @@ const Hero = () => {
         </p>
         <div className="flex justify-center items-center space-x-4">
           <NavLink
-            to="/create-document"
+            to="/document/create"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
           >
             Publish Earning Release
           </NavLink>
           <NavLink
-            to="/query-document"
+            to="/document/query"
             className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg shadow hover:bg-gray-300 transition duration-300"
           >
             Query Earning release
