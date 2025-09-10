@@ -1,6 +1,7 @@
 import { FileText, Share2, Shield } from 'lucide-react';
+import type { FC } from 'react';
 
-const HowItWorks = () => {
+const HowItWorks: FC = () => {
   const steps = [
     {
       icon: FileText,

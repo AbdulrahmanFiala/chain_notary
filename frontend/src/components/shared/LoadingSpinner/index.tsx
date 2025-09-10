@@ -1,13 +1,11 @@
-import React from 'react';
+import { LoadingOutlined } from '@ant-design/icons';
+import { Spin, type SpinProps } from 'antd';
+import { type FC } from 'react';
 import './style.css';
 
-const LoadingSpinner: React.FC = () => {
+const LoadingSpinner: FC<SpinProps> = (props) => {
   return (
-    <div className='loader-container'>
-      <svg viewBox="25 25 50 50" className='loader'>
-        <circle r="20" cy="50" cx="50"></circle>
-      </svg>
-    </div>
+    <Spin rootClassName='bg-white!' fullscreen spinning indicator={<LoadingOutlined spin />} size="large" {...props} />
   )
 }
 

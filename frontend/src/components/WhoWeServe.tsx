@@ -1,6 +1,7 @@
 import { Award, Building2, Coins } from 'lucide-react';
+import type { FC } from 'react';
 
-const WhoWeServe = () => {
+const WhoWeServe: FC = () => {
   const services = [
     {
       icon: Building2,
