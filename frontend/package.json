@@ -6,7 +6,10 @@
     "prebuild": "npm i --include=dev && dfx generate backend",
     "build": "vite build",
     "dev": "vite",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run",
+    "test": "cypress run --component"
   },
   "dependencies": {
     "@dfinity/agent": "2.4.1",
@@ -25,6 +28,8 @@
     "typescript-eslint": "^8.40.0"
   },
   "devDependencies": {
+    "@cypress/react": "^9.0.1",
+    "@cypress/vite-dev-server": "^7.0.0",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.2.0",
     "@types/react-dom": "^19.1.7",
@@ -32,6 +37,7 @@
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "@vitejs/plugin-react": "^5.0.1",
+    "cypress": "^15.1.0",
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.4.5",
     "eslint-plugin-react-refresh": "^0.4.20",
