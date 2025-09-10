@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 import environment from 'vite-plugin-environment';
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react(), environment('all', { prefix: 'CANISTER_' }), environment('all', { prefix: 'DFX_' }), tailwindcss()],
   envDir: '../',
   define: {

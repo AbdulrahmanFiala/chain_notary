@@ -1,6 +1,7 @@
 import { Facebook, Github } from 'lucide-react';
+import type { FC } from 'react';
 
-const Footer = () => {
+const Footer: FC = () => {
   return (
     <footer className="bg-white border-t border-gray-200">
 
