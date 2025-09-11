@@ -1,4 +1,4 @@
-use ic_cdk::{query, update, caller};
+use ic_cdk::{query, update};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::storage::USER_PROFILES;
@@ -161,6 +161,54 @@ pub fn admin_delete_user(user_identity: Principal) -> Result<(), String> {
     });
     
     ic_cdk::println!("Admin deleted user: {}", user_identity);
+    Ok(())
+}
+
+/// Admin function: Link existing user to existing institution (super admin only)
+#[update]
+pub fn admin_link_user_to_institution(
+    user_identity: Principal,
+    institution_id: String,
+) -> Result<(), String> {
+    require_super_admin()?; // Only super admins can link users
+    
+    // Check if user exists
+    let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
+    let user_exists = USER_PROFILES.with(|profiles| {
+        profiles.borrow().contains_key(&profile_key)
+    });
+    
+    if !user_exists {
+        return Err("User not found".to_string());
+    }
+    
+    // Check if institution exists
+    let institution_exists = crate::storage::get_institution_safe(&institution_id).is_some();
+    if !institution_exists {
+        return Err("Institution not found".to_string());
+    }
+    
+    // Get current user profile
+    let current_profile = crate::storage::get_user_profile_safe(&user_identity)
+        .ok_or("User profile not found")?;
+    
+    // Check if user is already linked to an institution
+    if !current_profile.assigned_institution_id.is_empty() {
+        return Err("User is already linked to an institution. Use admin_unlink_user_from_institution first to unlink them.".to_string());
+    }
+    
+    // Update user profile to link to institution
+    let updated_profile = UserProfile {
+        internet_identity: user_identity,
+        role: UserRole::InstitutionMember(institution_id.clone()),
+        assigned_institution_id: institution_id.clone(),
+        created_at: current_profile.created_at,
+        last_login: current_profile.last_login,
+    };
+    
+    crate::storage::update_user_profile_safe(&user_identity, &updated_profile)?;
+    
+    ic_cdk::println!("Admin linked user {} to institution {}", user_identity, institution_id);
     Ok(())
 }
 

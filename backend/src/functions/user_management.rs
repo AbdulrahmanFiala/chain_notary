@@ -1,13 +1,12 @@
-use ic_cdk::{update, query, caller};
+use ic_cdk::{update, query, api::msg_caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
-use crate::storage::USER_PROFILES;
 use crate::utils::helpers::require_authenticated_user;
 
 /// Check if user has a profile and what their role is
 #[query]
 pub fn get_user_profile() -> Option<UserProfile> {
-    let caller = caller();
+    let caller = msg_caller();
     crate::storage::get_user_profile_safe(&caller)
 }
 
@@ -44,5 +43,5 @@ pub fn register_user() -> Result<UserProfile, String> {
 
 #[ic_cdk::query]
 pub fn whoami() -> Principal {
-    caller()
+    msg_caller()
 }

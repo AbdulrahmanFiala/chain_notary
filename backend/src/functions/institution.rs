@@ -1,4 +1,4 @@
-use ic_cdk::{update, caller};
+use ic_cdk::{update, api::msg_caller};
 use crate::types::Institution;
 use crate::storage::{INSTITUTIONS, StorableString};
 use crate::utils::generate_institution_id;
@@ -13,7 +13,7 @@ pub fn create_institution(
     crate::utils::validate_string_length(&name, 2, 100, "Institution name")?;
     crate::utils::validate_email(&email)?;
 
-    let caller = caller();
+    let caller = msg_caller();
     
     // Generate unique institution ID
     let institution_id = generate_institution_id();
@@ -47,7 +47,7 @@ pub fn update_institution(
     name: String,
     email: String,
 ) -> Result<(), String> {
-    let caller = caller();
+    let caller = msg_caller();
     
     let mut institution = crate::storage::get_institution_safe(&institution_id)
         .ok_or("Institution not found")?;
@@ -71,7 +71,7 @@ pub fn update_institution(
 /// Delete an institution (only if it has no collections)
 #[update]
 pub fn delete_institution(institution_id: String) -> Result<(), String> {
-    let caller = caller();
+    let caller = msg_caller();
     
     let institution = crate::storage::get_institution_safe(&institution_id)
         .ok_or("Institution not found")?;
