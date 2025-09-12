@@ -1,7 +1,6 @@
 import type { ActorSubclass } from "@dfinity/agent";
 import type { AuthClient } from "@dfinity/auth-client";
 import type { _SERVICE } from "declarations/backend/backend.did";
-
 export interface LoginState {
   actor: ActorSubclass<_SERVICE> | undefined;
   authClient: AuthClient | undefined;
@@ -9,4 +8,22 @@ export interface LoginState {
   principal: string;
   loading: boolean;  // Add this for loading states
   error: string | null;  // Add this for error handling
+}
+
+// Chart data types
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export interface ChartConfig {
+  title: string;
+  type: string;
+  data: ChartDataPoint[];
+}
+
+export interface ChartsData {
+  charts: ChartConfig[];
+
 }
