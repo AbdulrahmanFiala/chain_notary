@@ -5,6 +5,10 @@ import DocumentDetails from "@/pages/DocumentDetails";
 import Home from "@/pages/Home";
 import PageNotFound from "@/pages/PageNotFound";
 import QueryDocument from "@/pages/QueryDocument";
+import UserAccount from "@/pages/UserAccount";
+import DocumentHistory from "@/pages/UserAccount/DocumentHistory";
+import Profile from "@/pages/UserAccount/Profile";
+import Settings from "@/pages/UserAccount/Settings";
 import ProtectedRoute from "@/router/ProtectedRoute";
 import {
   createBrowserRouter
@@ -48,6 +52,29 @@ const router = createBrowserRouter([
 
         ]
       },
+      {
+        path: "account",
+        element: (
+          <ProtectedRoute>
+            <UserAccount />
+          </ProtectedRoute>
+        ),
+        children: [
+          {
+            index: true,
+            path: "profile",
+            Component: Profile
+          },
+          {
+            path: "settings",
+            Component: Settings
+          },
+          {
+            path: "document-history",
+            Component: DocumentHistory,
+          }
+        ]
+      }
     ]
   },
   {
