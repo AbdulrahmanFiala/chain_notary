@@ -1,46 +1,24 @@
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
+import type { ChartConfig, ChartsData } from '@/interfaces';
 import getAnalytics, { getAnalysisFocusOptions, type AnalyticsResponse } from '@/services/analytics/getAnalytics';
 import { Alert, Button, Card, Col, Row, Select, Typography } from 'antd';
 import { ArrowLeft, Brain, FileText, PieChart, TrendingUp } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type FC } from 'react';
 import Markdown from 'react-markdown';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import './style.css';
 
 const { Title, Paragraph, Text } = Typography;
-const { Option } = Select;
 
-// Chart data types
-interface ChartDataPoint {
-  label: string;
-  value: number;
-  color: string;
-}
-
-interface ChartConfig {
-  title: string;
-  type: string;
-  data: ChartDataPoint[];
-}
-
-interface ChartsData {
-  charts: ChartConfig[];
-}
-
-const DocumentAnalytics: React.FC = () => {
+const DocumentAnalytics: FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const document_id = searchParams?.get('document_id');
+  const { id: document_id } = useParams<{ id: string }>();
 
   const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [analysisFocus, setAnalysisFocus] = useState<string>('financial_summary');
   const [focusOptions, setFocusOptions] = useState<string[]>([]);
-
-  const onBackToDocument = () => {
-    navigate(`/document-details?query_document_id=${document_id}`);
-  };
 
   const loadFocusOptions = useCallback(async () => {
     try {
@@ -252,7 +230,7 @@ const DocumentAnalytics: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
-                onClick={onBackToDocument}
+                onClick={() => navigate(-1)}
                 icon={<ArrowLeft className="w-4 h-4" />}
                 className="flex items-center"
               >
@@ -285,9 +263,9 @@ const DocumentAnalytics: React.FC = () => {
                 placeholder="Select analysis focus"
               >
                 {focusOptions.map((option) => (
-                  <Option key={option} value={option}>
+                  <Select.Option key={option} value={option}>
                     {getAnalysisFocusLabel(option)}
-                  </Option>
+                  </Select.Option>
                 ))}
               </Select>
             </Col>

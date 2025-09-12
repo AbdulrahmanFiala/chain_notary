@@ -1,29 +1,27 @@
 import DownLoadButton from '@/components/shared/DownLoadButton';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
 import getDocumentDetails from '@/services/documents/getDocumentDetails';
+import { useAppSelector } from '@/store/hooks';
 import { formatNumberWithCommas } from '@/utils/formatNumberWithCommas';
 import getLabeledQuarter from '@/utils/getLabeledQuarter';
 import { HomeOutlined } from "@ant-design/icons";
 import { Principal } from '@dfinity/principal';
 import { Button, Col, Divider, QRCode, Row, Typography } from 'antd';
 import type { Document } from 'declarations/backend/backend.did';
+import { isEmpty } from 'lodash';
 import { Brain, Cross } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useCallback, useEffect, useState, type FC } from 'react';
+import { useNavigate, useParams } from 'react-router';
 
-const DocumentDetails: React.FC = () => {
-
+const DocumentDetails: FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { principal } = useAppSelector((state) => state.auth)
   const [documentDetails, setDocumentDetails] = useState<Document>({
-    document_id: '',
-    document_hash: '',
-    name: '',
-    description: '',
-    collection_id: '',
-    owner: Principal.fromText(import.meta.env.VITE_PRINCIPAL_ID),
     file_data: [],
     file_size: BigInt(0),
-    file_type: '', document_data: {
+    file_type: '',
+    document_data: {
       EarningRelease: {
         earning_release_id: '',
         consolidated_balance_sheet_data: {
@@ -42,72 +40,63 @@ const DocumentDetails: React.FC = () => {
         quarter: 0,
         year: 0
       }
-    }, institution_id: '', company_name: ''
+    }, institution_id: '', company_name: '',
+    description: '',
+    document_id: '',
+    file_hash: '',
+    document_category: { EarningRelease: null },
+    publication_date: BigInt(0),
+    owner: Principal.fromText(principal),
+    name: ''
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [headerData, setHeaderData] = useState<{ title?: string, message?: string }>({});
-  const [searchParams] = useSearchParams();
-  const document_id = searchParams?.get('document_id');
-  const query_document_id = searchParams?.get('query_document_id');
-
-
-  const onBackToHome = () => {
-    navigate('/');
-  }
-
-  const onViewAnalytics = () => {
-    navigate(`/document-analytics?document_id=${documentDetails.document_id}`);
-  }
+  const { id: document_id } = useParams<{ id: string }>();
 
   const getNFTDetails = useCallback(async () => {
     try {
       setIsLoading(true);
-      const resposeData = await getDocumentDetails(document_id || query_document_id || '');
+      const resposeData = await getDocumentDetails(document_id || '');
       if (resposeData.length) setDocumentDetails(resposeData[0]);
-      if (document_id) {
-        setHeaderData({
-          title: "Document Published Successfully",
-          message: "Your document has been successfully published on the blockchain."
-        })
-      } else if (query_document_id) {
-        setHeaderData({
-          title: "Here is your document details.",
-          message: "Here is your document details.",
-        })
-      }
     } catch (error) {
       console.error('Error fetching NFT details:', error);
-      if (document_id) {
-        setHeaderData({
-          title: "Document Publishing Failed",
-          message: "There was an error publishing your document. Please try again later.",
-        })
-      } else if (query_document_id) {
-        setHeaderData({
-          title: "Something went wrong",
-          message: "There was an error getting your document. Please try again later.",
-        })
-      }
     } finally {
       setIsLoading(false);
     }
   }
-    , [document_id, query_document_id]);
+    , [document_id]);
 
   useEffect(() => {
     getNFTDetails();
   }, [getNFTDetails])
 
+
+  // While router is performing a navigation (including initial loader fetch on refresh)
+  // show a loading spinner. If loader completed but returned null, show an error UI.
   if (isLoading) return <LoadingSpinner />;
+
+  if (isEmpty(documentDetails)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Cross className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold">Unable to load document</h2>
+          <p className="text-gray-600">We couldn't fetch the document. It may not exist or the server returned an error.</p>
+          <div className="mt-4">
+            <Button onClick={() => navigate(-1)}>Go back</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (<div className="min-h-screen bg-gray-50 py-12" >
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
         <div className={`${!documentDetails.document_id && 'bg-red-500 w-16 h-16'} rounded-full flex items-center justify-center mx-auto mb-6`}>
-          {documentDetails.document_id ? <QRCode className="w-full" value={`${window.location.host}/document-details?document_id=${documentDetails.document_id}`} /> : <Cross className="w-8 h-8 text-white rotate-45" />}
+          {documentDetails.document_id ? <QRCode className="w-full" value={`${window.location.host}/document/${documentDetails.document_id}/view`} /> : <Cross className="w-8 h-8 text-white rotate-45" />}
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4"> {headerData.title} </h2>
-        <p className="text-gray-600 mb-8"> {headerData.message} </p>
+        {!documentDetails.document_id && <h2 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h2>}
+        {!documentDetails.document_id && <p className="text-gray-600 mb-8">There was an error getting your document. Please try again later.</p>}
         {documentDetails.document_id && <div className="bg-gray-50 rounded-lg p-6 mb-8">
           <div className="text-left space-y-6">
             <div>
@@ -214,7 +203,7 @@ const DocumentDetails: React.FC = () => {
           </Button> */}
           {documentDetails.document_id && (
             <Button
-              onClick={onViewAnalytics}
+              onClick={() => navigate(`/document/${id}/analytics`)}
               color='primary'
               variant='outlined'
               className="bg-blue-600 hover:bg-blue-700"
@@ -224,7 +213,7 @@ const DocumentDetails: React.FC = () => {
             </Button>
           )}
           <Button
-            onClick={onBackToHome}
+            onClick={() => navigate('/')}
             icon={<HomeOutlined />}
           >
             Back to Home
