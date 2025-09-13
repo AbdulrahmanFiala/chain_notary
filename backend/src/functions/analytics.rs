@@ -1,6 +1,5 @@
-use ic_cdk::api::management_canister::http_request::{
-    http_request, CanisterHttpRequestArgument, HttpHeader, HttpMethod, HttpResponse, TransformArgs, TransformFunc, TransformContext,
-};
+use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
+use ic_cdk::management_canister::{TransformArgs, TransformFunc, TransformContext};
 use ic_cdk::{update, query};
 use candid::CandidType;
 use serde::{Serialize, Deserialize as SerdeDeserialize};
@@ -356,7 +355,7 @@ async fn perform_single_gemini_request(content: &str, focus: &str, api_key: &str
     .to_string()
     .into_bytes();
 
-    let request = CanisterHttpRequestArgument {
+    let request = HttpRequestArgs {
         url,
         method: HttpMethod::POST,
         headers: vec![
@@ -378,13 +377,14 @@ async fn perform_single_gemini_request(content: &str, focus: &str, api_key: &str
             }),
             context: vec![],
         }),
+        is_replicated: Some(false),
     };
 
-    match http_request(request, REQUEST_CYCLES).await {
-        Ok((response,)) => handle_gemini_response(response),
-        Err((code, msg)) => Err(format!(
-            "HTTP request failed. RejectionCode: {:?}, Message: {}",
-            code, msg
+    match http_request(&request).await {
+        Ok(response) => handle_gemini_response(response),
+        Err(e) => Err(format!(
+            "HTTP request failed: {:?}",
+            e
         )),
     }
 }
@@ -491,7 +491,7 @@ ANALYSIS GUIDELINES:
 }
 
 /// Handle and parse Gemini API response
-fn handle_gemini_response(response: HttpResponse) -> Result<String, String> {
+fn handle_gemini_response(response: ic_cdk::management_canister::HttpRequestResult) -> Result<String, String> {
     if response.status != 200u32 {
         let error_body = String::from_utf8(response.body.clone())
             .unwrap_or_else(|_| "Unable to decode error response".to_string());
@@ -532,7 +532,7 @@ pub fn get_analysis_focus_options() -> Vec<String> {
 
 /// Transform function to normalize HTTP responses for consensus
 #[query]
-pub fn transform_gemini_response(args: TransformArgs) -> HttpResponse {
+pub fn transform_gemini_response(args: TransformArgs) -> ic_cdk::management_canister::HttpRequestResult {
     let mut response = args.response;
     
     // Remove non-deterministic headers that might vary between nodes

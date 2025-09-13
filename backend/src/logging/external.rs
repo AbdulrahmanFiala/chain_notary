@@ -3,9 +3,7 @@
 
 use serde_json::json;
 use ic_cdk::api::canister_self;
-use ic_cdk::api::management_canister::http_request::{
-    CanisterHttpRequestArgument, HttpMethod, HttpHeader, http_request
-};
+use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
 use ic_cdk::{println, futures};
 use crate::utils::helpers::get_current_timestamp;
 
@@ -156,7 +154,7 @@ async fn send_webhook(
 ) -> Result<(), String> {
     let discord_payload = create_discord_webhook_payload(event_type, message, detailed_data, timestamp_nanos);
     
-    let request = CanisterHttpRequestArgument {
+    let request = HttpRequestArgs {
         url: webhook_url.to_string(),
         method: HttpMethod::POST,
         headers: vec![
@@ -168,10 +166,11 @@ async fn send_webhook(
         body: Some(discord_payload.to_string().into_bytes()),
         max_response_bytes: Some(MAX_DISCORD_RESPONSE_BYTES),
         transform: None,
+        is_replicated: Some(false),
     };
     
-    match http_request(request, DISCORD_REQUEST_CYCLES).await {
-        Ok((response,)) => {
+    match http_request(&request).await {
+        Ok(response) => {
             if response.status >= 200u32 && response.status < 300u32 {
                 Ok(())
             } else {
