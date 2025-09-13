@@ -72,7 +72,7 @@ pub async fn upload_file_and_publish_document(
     document.document_id = document_id.clone();
     document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
-    document.publication_date = Some(get_current_timestamp());
+    document.publication_date = get_current_timestamp();
 
     // Store the complete document using safe storage function
     if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {
