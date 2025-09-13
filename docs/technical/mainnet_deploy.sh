@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# deploy.sh - Automated deployment script for Chain Notary
+# deploy.sh - Automated deployment script for ChainNotary
 # This script automatically sets the VITE_PRINCIPAL_ID and deploys the project
 
 set -e
@@ -22,8 +22,8 @@ echo "Principal ID: $PRINCIPAL_ID"
 export VITE_PRINCIPAL_ID="$PRINCIPAL_ID"
 echo "Set VITE_PRINCIPAL_ID=$VITE_PRINCIPAL_ID"
 
-# Deploy the project
-echo "Deploying project..."
+# Deploy the project to mainnet
+echo "Deploying project to mainnet..."
 dfx deploy --network ic
 
 echo "Deployment completed successfully!"
