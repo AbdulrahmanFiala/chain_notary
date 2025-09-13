@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use candid::Principal;
 use crate::types::{Document, Institution, UserProfile};
 use std::borrow::Cow;
+use crate::logging::{get_logger, LogSeverity};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -30,9 +31,10 @@ impl Storable for StorableDocument {
         match serde_json::to_vec(&self.0) {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to serialize document: {}", e);
-                // In case of serialization failure, we trap to prevent data corruption
-                ic_cdk::trap(&format!("Document serialization failed: {}", e));
+                let logger = get_logger("storage");
+                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize document: {}", e), Some(e.to_string()));
+                // Return empty bytes instead of trapping to avoid init mode issues
+                Cow::Owned(Vec::new())
             }
         }
     }
@@ -41,9 +43,9 @@ impl Storable for StorableDocument {
         match serde_json::from_slice(&bytes) {
             Ok(document) => StorableDocument(document),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize document: {}", e);
-                ic_cdk::println!("Corrupted data (first 100 bytes): {:?}", 
-                    &bytes[..std::cmp::min(100, bytes.len())]);
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize document: {}", e), Some(e.to_string()));
+                logger.debug("CORRUPTED_DATA", &format!("Corrupted data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty document instead of trapping to allow recovery
                 StorableDocument(crate::types::Document::default())
@@ -60,8 +62,10 @@ impl Storable for StorableInstitution {
         match serde_json::to_vec(&self.0) {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to serialize institution: {}", e);
-                ic_cdk::trap(&format!("Institution serialization failed: {}", e));
+                let logger = get_logger("storage");
+                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize institution: {}", e), Some(e.to_string()));
+                // Return empty bytes instead of trapping to avoid init mode issues
+                Cow::Owned(Vec::new())
             }
         }
     }
@@ -70,9 +74,9 @@ impl Storable for StorableInstitution {
         match serde_json::from_slice(&bytes) {
             Ok(institution) => StorableInstitution(institution),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize institution: {}", e);
-                ic_cdk::println!("Corrupted institution data (first 100 bytes): {:?}", 
-                    &bytes[..std::cmp::min(100, bytes.len())]);
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize institution: {}", e), Some(e.to_string()));
+                logger.debug("CORRUPTED_DATA", &format!("Corrupted institution data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty institution instead of trapping to allow recovery
                 StorableInstitution(crate::types::Institution::default())
@@ -89,8 +93,10 @@ impl Storable for StorableTokens {
         match serde_json::to_vec(&self.0) {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to serialize tokens: {}", e);
-                ic_cdk::trap(&format!("Tokens serialization failed: {}", e));
+                let logger = get_logger("storage");
+                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize tokens: {}", e), Some(e.to_string()));
+                // Return empty bytes instead of trapping to avoid init mode issues
+                Cow::Owned(Vec::new())
             }
         }
     }
@@ -99,9 +105,9 @@ impl Storable for StorableTokens {
         match serde_json::from_slice(&bytes) {
             Ok(tokens) => StorableTokens(tokens),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize tokens: {}", e);
-                ic_cdk::println!("Corrupted tokens data (first 100 bytes): {:?}", 
-                    &bytes[..std::cmp::min(100, bytes.len())]);
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize tokens: {}", e), Some(e.to_string()));
+                logger.debug("CORRUPTED_DATA", &format!("Corrupted tokens data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return empty tokens instead of trapping to allow recovery
                 StorableTokens(Vec::new())
@@ -118,8 +124,10 @@ impl Storable for StorableUserProfile {
         match serde_json::to_vec(&self.0) {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to serialize user profile: {}", e);
-                ic_cdk::trap(&format!("UserProfile serialization failed: {}", e));
+                let logger = get_logger("storage");
+                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize user profile: {}", e), Some(e.to_string()));
+                // Return empty bytes instead of trapping to avoid init mode issues
+                Cow::Owned(Vec::new())
             }
         }
     }
@@ -128,9 +136,9 @@ impl Storable for StorableUserProfile {
         match serde_json::from_slice(&bytes) {
             Ok(profile) => StorableUserProfile(profile),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize user profile: {}", e);
-                ic_cdk::println!("Corrupted profile data (first 100 bytes): {:?}", 
-                    &bytes[..std::cmp::min(100, bytes.len())]);
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize user profile: {}", e), Some(e.to_string()));
+                logger.debug("CORRUPTED_DATA", &format!("Corrupted profile data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty profile instead of trapping to allow recovery
                 StorableUserProfile(UserProfile {
@@ -160,8 +168,10 @@ impl Storable for StorableString {
         match String::from_utf8(bytes.to_vec()) {
             Ok(string) => StorableString(string),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize string: {}", e);
-                ic_cdk::trap(&format!("String deserialization failed: {}", e));
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize string: {}", e), Some(e.to_string()));
+                // Return empty string instead of trapping to avoid init mode issues
+                StorableString(String::new())
             }
         }
     }
@@ -185,8 +195,10 @@ impl Storable for StorablePrincipal {
         match Principal::try_from_slice(&bytes) {
             Ok(principal) => StorablePrincipal(principal),
             Err(e) => {
-                ic_cdk::println!("CRITICAL: Failed to deserialize principal: {:?}", e);
-                ic_cdk::trap(&format!("Principal deserialization failed: {:?}", e));
+                let logger = get_logger("storage");
+                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize principal: {:?}", e), Some(format!("{:?}", e)));
+                // Return anonymous principal instead of trapping to avoid init mode issues
+                StorablePrincipal(Principal::anonymous())
             }
         }
     }
@@ -287,9 +299,21 @@ pub fn store_document_safe(document_id: &str, document: &Document) -> Result<(),
         return Err("Document ID mismatch".to_string());
     }
     
+    // Log storage operation for memory wipe tracking
+    let before_count = DOCUMENTS.with(|storage| storage.borrow().len());
+    
     DOCUMENTS.with(|storage| {
         storage.borrow_mut().insert(StorableString(document_id.to_string()), StorableDocument(document.clone()));
     });
+    
+    let after_count = DOCUMENTS.with(|storage| storage.borrow().len());
+    
+    // Check for unexpected storage behavior
+    if after_count < before_count {
+        let logger = get_logger("storage");
+        logger.warning("STORAGE_ANOMALY", &format!("Document count decreased during store operation! Before: {}, After: {}", before_count, after_count), None);
+    }
+    
     Ok(())
 }
 
@@ -304,7 +328,8 @@ pub fn validate_all_storage() -> Result<(), String> {
         for (key, value) in storage.borrow().iter() {
             // Skip default/empty documents that were recovered from corruption
             if value.0.document_id.is_empty() && value.0.name.is_empty() && value.0.file_data.is_empty() {
-                ic_cdk::println!("Skipping validation for recovered empty document with key: {}", key.0);
+                let logger = get_logger("storage");
+                logger.debug("VALIDATION_SKIP", &format!("Skipping validation for recovered empty document with key: {}", key.0), None);
                 continue;
             }
             
@@ -329,7 +354,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     
     // Log document issues as warnings but don't fail validation
     if !document_issues.is_empty() {
-        ic_cdk::println!("Document validation warnings: {}", document_issues.join("; "));
+        let logger = get_logger("storage");
+        logger.warning("VALIDATION_WARNINGS", &format!("Document validation warnings: {}", document_issues.join("; ")), Some(document_issues.join("; ")));
     }
     
     // Validate institutions
@@ -338,7 +364,8 @@ pub fn validate_all_storage() -> Result<(), String> {
         for (key, value) in storage.borrow().iter() {
             // Skip default/empty institutions that were recovered from corruption
             if value.0.institution_id.is_empty() && value.0.name.is_empty() {
-                ic_cdk::println!("Skipping validation for recovered empty institution with key: {}", key.0);
+                let logger = get_logger("storage");
+                logger.debug("VALIDATION_SKIP", &format!("Skipping validation for recovered empty institution with key: {}", key.0), None);
                 continue;
             }
             
@@ -363,7 +390,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     
     // Log institution issues as warnings but don't fail validation
     if !institution_issues.is_empty() {
-        ic_cdk::println!("Institution validation warnings: {}", institution_issues.join("; "));
+        let logger = get_logger("storage");
+        logger.warning("VALIDATION_WARNINGS", &format!("Institution validation warnings: {}", institution_issues.join("; ")), Some(institution_issues.join("; ")));
     }
     
     // Validate owner tokens consistency (be lenient about missing documents during recovery)
@@ -382,7 +410,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     
     // Log token issues as warnings but don't fail validation during recovery
     if !token_issues.is_empty() {
-        ic_cdk::println!("Owner tokens validation warnings: {}", token_issues.join("; "));
+        let logger = get_logger("storage");
+        logger.warning("VALIDATION_WARNINGS", &format!("Owner tokens validation warnings: {}", token_issues.join("; ")), Some(token_issues.join("; ")));
     }
     
     Ok(())
@@ -409,7 +438,8 @@ pub fn clear_corrupted_entries() {
     });
     
     for key in corrupted_doc_keys {
-        ic_cdk::println!("Removing corrupted document entry: {}", key);
+        let logger = get_logger("storage");
+        logger.info("CLEANUP", &format!("Removing corrupted document entry: {}", key), Some(key.clone()));
         DOCUMENTS.with(|storage| {
             storage.borrow_mut().remove(&StorableString(key));
         });
@@ -433,7 +463,8 @@ pub fn clear_corrupted_entries() {
     });
     
     for key in corrupted_inst_keys {
-        ic_cdk::println!("Removing corrupted institution entry: {}", key);
+        let logger = get_logger("storage");
+        logger.info("CLEANUP", &format!("Removing corrupted institution entry: {}", key), Some(key.clone()));
         INSTITUTIONS.with(|storage| {
             storage.borrow_mut().remove(&StorableString(key));
         });
@@ -461,8 +492,52 @@ pub fn get_storage_stats() -> StorageStats {
     }
 }
 
+// Function to detect potential memory wipes by checking for sudden drops
+pub fn detect_memory_anomalies() -> Vec<String> {
+    let mut anomalies = Vec::new();
+    let stats = get_storage_stats();
+    
+    // Check if all storage is empty (potential complete wipe)
+    if stats.document_count == 0 && stats.institution_count == 0 && stats.owner_mapping_count == 0 {
+        anomalies.push("CRITICAL: All storage appears to be empty - potential memory wipe detected".to_string());
+    }
+    
+    // Check for suspiciously low counts (might indicate partial wipe)
+    if stats.document_count == 0 && stats.institution_count > 0 {
+        anomalies.push("WARNING: Documents are empty but institutions exist - potential partial wipe".to_string());
+    }
+    
+    if stats.institution_count == 0 && stats.document_count > 0 {
+        anomalies.push("WARNING: Institutions are empty but documents exist - potential partial wipe".to_string());
+    }
+    
+    // Check for orphaned data
+    let orphaned_docs = DOCUMENTS.with(|docs| {
+        docs.borrow().iter()
+            .filter(|(_, doc)| {
+                // Check if document's institution still exists
+                !INSTITUTIONS.with(|insts| 
+                    insts.borrow().contains_key(&crate::storage::StorableString(doc.0.institution_id.clone()))
+                )
+            })
+            .count()
+    });
+    
+    if orphaned_docs > 0 {
+        anomalies.push(format!("WARNING: {} documents have orphaned institution references", orphaned_docs));
+    }
+    
+    // Log any anomalies found
+    for anomaly in &anomalies {
+        let logger = get_logger("storage");
+        logger.warning("MEMORY_ANOMALY", anomaly, None);
+    }
+    
+    anomalies
+}
+
 // Structure to hold storage statistics
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, candid::CandidType, serde::Serialize)]
 pub struct StorageStats {
     pub document_count: u64,
     pub institution_count: u64,
