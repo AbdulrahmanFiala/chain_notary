@@ -1,7 +1,8 @@
 use ic_cdk::{update, query, api::msg_caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
-use crate::utils::helpers::require_authenticated_user;
+use crate::utils::helpers::{require_authenticated_user, get_current_timestamp};
+use crate::logging::{get_logger, LogSeverity};
 
 /// Check if user has a profile and what their role is
 #[query]
@@ -20,7 +21,7 @@ pub fn register_user() -> Result<UserProfile, String> {
     if let Some(existing_profile) = crate::storage::get_user_profile_safe(&caller) {
         // Update last_login timestamp for existing users
         let mut updated_profile = existing_profile;
-        updated_profile.last_login = ic_cdk::api::time();
+        updated_profile.last_login = get_current_timestamp();
         crate::storage::update_user_profile_safe(&caller, &updated_profile)?;
         return Ok(updated_profile);
     }
@@ -30,18 +31,17 @@ pub fn register_user() -> Result<UserProfile, String> {
         internet_identity: caller,
         role: UserRole::RegularUser,
         assigned_institution_id: String::new(), // Empty until admin assigns
-        created_at: ic_cdk::api::time(),
-        last_login: ic_cdk::api::time(),
+        created_at: get_current_timestamp(),
+        last_login: get_current_timestamp(),
     };
     
     // Save profile
     crate::storage::update_user_profile_safe(&caller, &new_profile)?;
     
-    ic_cdk::println!("New user registered: {}", caller);
+    // Log user registration using structured logging
+    let logger = get_logger("user_management");
+    logger.info("USER_REGISTRATION", &format!("New user registered: {}", caller), Some(caller.to_string()));
+    
     Ok(new_profile)
 }
 
-#[ic_cdk::query]
-pub fn whoami() -> Principal {
-    msg_caller()
-}

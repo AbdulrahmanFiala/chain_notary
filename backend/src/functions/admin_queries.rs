@@ -2,7 +2,7 @@ use ic_cdk::{query, update};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::storage::USER_PROFILES;
-use crate::utils::helpers::require_authenticated_user;
+use crate::utils::helpers::{require_authenticated_user, get_current_timestamp};
 
 /// Check if current caller is a super admin
 fn require_super_admin() -> Result<Principal, String> {
@@ -79,7 +79,7 @@ pub fn admin_create_institution_for_user(
         owner: user_identity, // User becomes owner, not admin
         name: institution_name,
         email: institution_email,
-        created_at: ic_cdk::api::time(),
+        created_at: get_current_timestamp(),
     };
     
     // Store institution
@@ -90,8 +90,8 @@ pub fn admin_create_institution_for_user(
         internet_identity: user_identity,
         role: UserRole::InstitutionMember(institution_id.clone()),
         assigned_institution_id: institution_id.clone(),
-        created_at: ic_cdk::api::time(),
-        last_login: ic_cdk::api::time(),
+        created_at: get_current_timestamp(),
+        last_login: get_current_timestamp(),
     };
     
     crate::storage::update_user_profile_safe(&user_identity, &user_profile)?;
@@ -123,7 +123,7 @@ pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), Stri
                     internet_identity: user_identity,
                     role: UserRole::SuperAdmin,
                     assigned_institution_id: String::new(),
-                    created_at: ic_cdk::api::time(),
+                    created_at: get_current_timestamp(),
                     last_login: 0,
                 };
                 profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(new_profile));
@@ -272,8 +272,8 @@ pub fn bootstrap_first_super_admin() -> Result<(), String> {
         internet_identity: caller,
         role: UserRole::SuperAdmin,
         assigned_institution_id: String::new(),
-        created_at: ic_cdk::api::time(),
-        last_login: ic_cdk::api::time(),
+        created_at: get_current_timestamp(),
+        last_login: get_current_timestamp(),
     };
     
     crate::storage::update_user_profile_safe(&caller, &super_admin_profile)?;

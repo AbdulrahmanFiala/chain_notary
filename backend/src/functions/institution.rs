@@ -1,7 +1,7 @@
 use ic_cdk::{update, api::msg_caller};
 use crate::types::Institution;
 use crate::storage::{INSTITUTIONS, StorableString};
-use crate::utils::generate_institution_id;
+use crate::utils::{generate_institution_id, get_current_timestamp};
 
 /// Create a new institution
 #[update]
@@ -32,7 +32,7 @@ pub fn create_institution(
         owner: caller,
         name,
         email,
-        created_at: ic_cdk::api::time(),
+        created_at: get_current_timestamp(),
     };
 
     crate::storage::update_institution_safe(&institution_id, &institution)?;

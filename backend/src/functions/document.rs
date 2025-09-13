@@ -1,7 +1,7 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, StorableString};
-use crate::utils::{calculate_file_hash, generate_document_id};
+use crate::storage::{OWNER_TOKENS};
+use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
@@ -65,14 +65,14 @@ pub async fn upload_file_and_publish_document(
     let calculated_hash = calculate_file_hash(&metadata.file_data);
     
     // Get current timestamp (for potential future use)
-    let _uploaded_at = ic_cdk::api::time();
+    let _uploaded_at = get_current_timestamp();
 
     // Create complete document with file data and calculated hash, using normalized IDs
     let mut document = metadata;
     document.document_id = document_id.clone();
     document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
-    document.publication_date = ic_cdk::api::time();
+    document.publication_date = Some(get_current_timestamp());
 
     // Store the complete document using safe storage function
     if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {

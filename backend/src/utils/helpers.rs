@@ -1,6 +1,11 @@
 use sha2::{Digest, Sha256};
 use candid::Principal;
 
+/// Get current timestamp from IC
+pub fn get_current_timestamp() -> u64 {
+    ic_cdk::api::time()
+}
+
 /// Calculate SHA256 hash of file data
 pub fn calculate_file_hash(file_data: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -11,14 +16,14 @@ pub fn calculate_file_hash(file_data: &[u8]) -> String {
 /// Generate unique token ID using timestamp
 pub fn generate_document_id() -> String {
     // Use timestamp and a simple counter for unique IDs
-    let timestamp = ic_cdk::api::time();
+    let timestamp = get_current_timestamp();
     format!("document_{}", timestamp)
 }
 
 /// Generate unique institution ID using timestamp
 pub fn generate_institution_id() -> String {
     // Use timestamp for unique institution IDs
-    let timestamp = ic_cdk::api::time();
+    let timestamp = get_current_timestamp();
     format!("INST_{}", timestamp)
 }
 
@@ -65,7 +70,7 @@ pub fn validate_file_size(file_size: usize, max_size_mb: usize) -> Result<(), St
 /// Require that the caller is authenticated (not anonymous)
 /// Returns the caller's Principal if authenticated, or an error if anonymous
 pub fn require_authenticated_user() -> Result<Principal, String> {
-    let caller = ic_cdk::caller();
+    let caller = ic_cdk::api::msg_caller();
     if caller == Principal::anonymous() {
         return Err("Anonymous users cannot perform this action. Please log in with Internet Identity first.".to_string());
     }
