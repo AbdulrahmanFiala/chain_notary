@@ -66,25 +66,26 @@ impl Logger {
         }
     }
 
-    // Convenience methods for different severity levels
-    pub fn critical(&self, event_type: &str, message: &str, detailed_data: Option<String>) {
-        self.log(LogSeverity::Critical, event_type, message, detailed_data);
-    }
-
-    pub fn warning(&self, event_type: &str, message: &str, detailed_data: Option<String>) {
-        self.log(LogSeverity::Warning, event_type, message, detailed_data);
-    }
-
-    pub fn info(&self, event_type: &str, message: &str, detailed_data: Option<String>) {
-        self.log(LogSeverity::Info, event_type, message, detailed_data);
-    }
-
-    pub fn debug(&self, event_type: &str, message: &str, detailed_data: Option<String>) {
-        self.log(LogSeverity::Debug, event_type, message, detailed_data);
-    }
 }
 
 // Convenience function to get a logger for a specific module
 pub fn get_logger(module: &str) -> Logger {
     Logger::new(module)
+}
+
+// Shared severity mapping for event types - eliminates duplication between modules
+pub fn get_severity_for_event_type(event_type: &str) -> LogSeverity {
+    match event_type {
+        "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" | "HEARTBEAT_MEMORY_WIPE_DETECTED" => LogSeverity::Critical,
+        "PRE_UPGRADE" | "POST_UPGRADE" | "POST_UPGRADE_FINAL" => LogSeverity::Info,
+        "CANISTER_INIT" => LogSeverity::Info,
+        "MANUAL_MEMORY_WIPE_CHECK" | "MEMORY_ANOMALY" | "STORAGE_ANOMALY" => LogSeverity::Warning,
+        "HEARTBEAT_MEMORY_OK" => LogSeverity::Info,
+        "STORAGE_VALIDATION" | "DATA_MIGRATION" | "DOCUMENT_MIGRATION" | "CLEANUP" => LogSeverity::Info,
+        "SERIALIZATION_ERROR" | "DESERIALIZATION_ERROR" => LogSeverity::Critical,
+        "CORRUPTED_DATA" | "VALIDATION_SKIP" => LogSeverity::Debug,
+        "VALIDATION_WARNINGS" => LogSeverity::Warning,
+        "USER_REGISTRATION" => LogSeverity::Info,
+        _ => LogSeverity::Info,
+    }
 }

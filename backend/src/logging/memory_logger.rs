@@ -4,7 +4,7 @@
 use ic_cdk::heartbeat;
 use crate::utils::helpers::get_current_timestamp;
 use crate::storage;
-use super::{Logger, LogSeverity, get_logger};
+use super::{Logger, LogSeverity, get_logger, get_severity_for_event_type};
 use super::external::{log_memory_wipe_event, get_discord_logger};
 use std::cell::RefCell;
 
@@ -42,7 +42,7 @@ impl MemoryLogger {
 
     // Log memory events to IC system logs
     pub fn log_memory_event(&self, event_type: &str, message: &str, detailed_data: Option<String>) {
-        let severity = self.get_severity_for_event_type(event_type);
+        let severity = get_severity_for_event_type(event_type);
         self.logger.log(severity, event_type, message, detailed_data);
     }
 
@@ -56,17 +56,6 @@ impl MemoryLogger {
         let _ = log_memory_wipe_event(event_type, message, detailed_data, &discord_logger);
     }
 
-    // Get severity level based on event type
-    fn get_severity_for_event_type(&self, event_type: &str) -> LogSeverity {
-        match event_type {
-            "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" => LogSeverity::Critical,
-            "PRE_UPGRADE" | "POST_UPGRADE" => LogSeverity::Info,
-            "CANISTER_INIT" => LogSeverity::Info,
-            "MANUAL_MEMORY_WIPE_CHECK" => LogSeverity::Warning,
-            "MEMORY_ANOMALY" => LogSeverity::Warning,
-            _ => LogSeverity::Info,
-        }
-    }
 }
 
 // Convenience function to get a memory logger instance

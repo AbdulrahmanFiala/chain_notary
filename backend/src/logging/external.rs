@@ -6,6 +6,7 @@ use ic_cdk::api::canister_self;
 use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
 use ic_cdk::{println, futures};
 use crate::utils::helpers::get_current_timestamp;
+use super::get_severity_for_event_type;
 
 // Constants
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
@@ -75,20 +76,13 @@ pub fn log_memory_wipe_event(
 }
 
 // Get severity level based on event type
-pub fn get_severity_level(event_type: &str) -> &str {
-    match event_type {
-        "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" | "HEARTBEAT_MEMORY_WIPE_DETECTED" => "CRITICAL",
-        "PRE_UPGRADE" | "POST_UPGRADE" => "INFO",
-        "CANISTER_INIT" => "INFO",
-        "MANUAL_MEMORY_WIPE_CHECK" | "MEMORY_ANOMALY" => "WARNING",
-        "HEARTBEAT_MEMORY_OK" => "INFO",
-        _ => "INFO",
-    }
+pub fn get_severity_level(event_type: &str) -> String {
+    get_severity_for_event_type(event_type).as_str().to_string()
 }
 
 // Discord webhook payload structure for memory wipe events
 pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64) -> serde_json::Value {
-    let color = match get_severity_level(event_type) {
+    let color = match get_severity_level(event_type).as_str() {
         "CRITICAL" => 0xff0000, // Red
         "WARNING" => 0xffaa00,  // Orange
         "INFO" => 0x00ff00,     // Green

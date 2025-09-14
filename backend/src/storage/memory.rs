@@ -8,7 +8,7 @@ use std::cell::RefCell;
 use candid::Principal;
 use crate::types::{Document, Institution, UserProfile};
 use std::borrow::Cow;
-use crate::logging::{get_logger, LogSeverity};
+use crate::logging::{get_logger, LogSeverity, get_severity_for_event_type};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -32,7 +32,8 @@ impl Storable for StorableDocument {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize document: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
+                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize document: {}", e), Some(e.to_string()));
                 // Return empty bytes instead of trapping to avoid init mode issues
                 Cow::Owned(Vec::new())
             }
@@ -44,8 +45,10 @@ impl Storable for StorableDocument {
             Ok(document) => StorableDocument(document),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize document: {}", e), Some(e.to_string()));
-                logger.debug("CORRUPTED_DATA", &format!("Corrupted data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize document: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("CORRUPTED_DATA");
+                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty document instead of trapping to allow recovery
                 StorableDocument(crate::types::Document::default())
@@ -63,7 +66,8 @@ impl Storable for StorableInstitution {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize institution: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
+                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize institution: {}", e), Some(e.to_string()));
                 // Return empty bytes instead of trapping to avoid init mode issues
                 Cow::Owned(Vec::new())
             }
@@ -75,8 +79,10 @@ impl Storable for StorableInstitution {
             Ok(institution) => StorableInstitution(institution),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize institution: {}", e), Some(e.to_string()));
-                logger.debug("CORRUPTED_DATA", &format!("Corrupted institution data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize institution: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("CORRUPTED_DATA");
+                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted institution data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty institution instead of trapping to allow recovery
                 StorableInstitution(crate::types::Institution::default())
@@ -94,7 +100,8 @@ impl Storable for StorableTokens {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize tokens: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
+                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize tokens: {}", e), Some(e.to_string()));
                 // Return empty bytes instead of trapping to avoid init mode issues
                 Cow::Owned(Vec::new())
             }
@@ -106,8 +113,10 @@ impl Storable for StorableTokens {
             Ok(tokens) => StorableTokens(tokens),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize tokens: {}", e), Some(e.to_string()));
-                logger.debug("CORRUPTED_DATA", &format!("Corrupted tokens data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize tokens: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("CORRUPTED_DATA");
+                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted tokens data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return empty tokens instead of trapping to allow recovery
                 StorableTokens(Vec::new())
@@ -125,7 +134,8 @@ impl Storable for StorableUserProfile {
             Ok(bytes) => Cow::Owned(bytes),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("SERIALIZATION_ERROR", &format!("Failed to serialize user profile: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
+                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize user profile: {}", e), Some(e.to_string()));
                 // Return empty bytes instead of trapping to avoid init mode issues
                 Cow::Owned(Vec::new())
             }
@@ -137,8 +147,10 @@ impl Storable for StorableUserProfile {
             Ok(profile) => StorableUserProfile(profile),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize user profile: {}", e), Some(e.to_string()));
-                logger.debug("CORRUPTED_DATA", &format!("Corrupted profile data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize user profile: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("CORRUPTED_DATA");
+                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted profile data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
                 
                 // Return a default/empty profile instead of trapping to allow recovery
                 StorableUserProfile(UserProfile {
@@ -169,7 +181,8 @@ impl Storable for StorableString {
             Ok(string) => StorableString(string),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize string: {}", e), Some(e.to_string()));
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize string: {}", e), Some(e.to_string()));
                 // Return empty string instead of trapping to avoid init mode issues
                 StorableString(String::new())
             }
@@ -196,7 +209,8 @@ impl Storable for StorablePrincipal {
             Ok(principal) => StorablePrincipal(principal),
             Err(e) => {
                 let logger = get_logger("storage");
-                logger.critical("DESERIALIZATION_ERROR", &format!("Failed to deserialize principal: {:?}", e), Some(format!("{:?}", e)));
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize principal: {:?}", e), Some(format!("{:?}", e)));
                 // Return anonymous principal instead of trapping to avoid init mode issues
                 StorablePrincipal(Principal::anonymous())
             }
@@ -311,7 +325,8 @@ pub fn store_document_safe(document_id: &str, document: &Document) -> Result<(),
     // Check for unexpected storage behavior
     if after_count < before_count {
         let logger = get_logger("storage");
-        logger.warning("STORAGE_ANOMALY", &format!("Document count decreased during store operation! Before: {}, After: {}", before_count, after_count), None);
+        let severity = get_severity_for_event_type("STORAGE_ANOMALY");
+        logger.log(severity, "STORAGE_ANOMALY", &format!("Document count decreased during store operation! Before: {}, After: {}", before_count, after_count), None);
     }
     
     Ok(())
@@ -329,7 +344,8 @@ pub fn validate_all_storage() -> Result<(), String> {
             // Skip default/empty documents that were recovered from corruption
             if value.0.document_id.is_empty() && value.0.name.is_empty() && value.0.file_data.is_empty() {
                 let logger = get_logger("storage");
-                logger.debug("VALIDATION_SKIP", &format!("Skipping validation for recovered empty document with key: {}", key.0), None);
+                let severity = get_severity_for_event_type("VALIDATION_SKIP");
+                logger.log(severity, "VALIDATION_SKIP", &format!("Skipping validation for recovered empty document with key: {}", key.0), None);
                 continue;
             }
             
@@ -355,7 +371,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     // Log document issues as warnings but don't fail validation
     if !document_issues.is_empty() {
         let logger = get_logger("storage");
-        logger.warning("VALIDATION_WARNINGS", &format!("Document validation warnings: {}", document_issues.join("; ")), Some(document_issues.join("; ")));
+        let severity = get_severity_for_event_type("VALIDATION_WARNINGS");
+        logger.log(severity, "VALIDATION_WARNINGS", &format!("Document validation warnings: {}", document_issues.join("; ")), Some(document_issues.join("; ")));
     }
     
     // Validate institutions
@@ -365,7 +382,8 @@ pub fn validate_all_storage() -> Result<(), String> {
             // Skip default/empty institutions that were recovered from corruption
             if value.0.institution_id.is_empty() && value.0.name.is_empty() {
                 let logger = get_logger("storage");
-                logger.debug("VALIDATION_SKIP", &format!("Skipping validation for recovered empty institution with key: {}", key.0), None);
+                let severity = get_severity_for_event_type("VALIDATION_SKIP");
+                logger.log(severity, "VALIDATION_SKIP", &format!("Skipping validation for recovered empty institution with key: {}", key.0), None);
                 continue;
             }
             
@@ -391,7 +409,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     // Log institution issues as warnings but don't fail validation
     if !institution_issues.is_empty() {
         let logger = get_logger("storage");
-        logger.warning("VALIDATION_WARNINGS", &format!("Institution validation warnings: {}", institution_issues.join("; ")), Some(institution_issues.join("; ")));
+        let severity = get_severity_for_event_type("VALIDATION_WARNINGS");
+        logger.log(severity, "VALIDATION_WARNINGS", &format!("Institution validation warnings: {}", institution_issues.join("; ")), Some(institution_issues.join("; ")));
     }
     
     // Validate owner tokens consistency (be lenient about missing documents during recovery)
@@ -411,7 +430,8 @@ pub fn validate_all_storage() -> Result<(), String> {
     // Log token issues as warnings but don't fail validation during recovery
     if !token_issues.is_empty() {
         let logger = get_logger("storage");
-        logger.warning("VALIDATION_WARNINGS", &format!("Owner tokens validation warnings: {}", token_issues.join("; ")), Some(token_issues.join("; ")));
+        let severity = get_severity_for_event_type("VALIDATION_WARNINGS");
+        logger.log(severity, "VALIDATION_WARNINGS", &format!("Owner tokens validation warnings: {}", token_issues.join("; ")), Some(token_issues.join("; ")));
     }
     
     Ok(())
@@ -439,7 +459,8 @@ pub fn clear_corrupted_entries() {
     
     for key in corrupted_doc_keys {
         let logger = get_logger("storage");
-        logger.info("CLEANUP", &format!("Removing corrupted document entry: {}", key), Some(key.clone()));
+        let severity = get_severity_for_event_type("CLEANUP");
+        logger.log(severity, "CLEANUP", &format!("Removing corrupted document entry: {}", key), Some(key.clone()));
         DOCUMENTS.with(|storage| {
             storage.borrow_mut().remove(&StorableString(key));
         });
@@ -464,7 +485,8 @@ pub fn clear_corrupted_entries() {
     
     for key in corrupted_inst_keys {
         let logger = get_logger("storage");
-        logger.info("CLEANUP", &format!("Removing corrupted institution entry: {}", key), Some(key.clone()));
+        let severity = get_severity_for_event_type("CLEANUP");
+        logger.log(severity, "CLEANUP", &format!("Removing corrupted institution entry: {}", key), Some(key.clone()));
         INSTITUTIONS.with(|storage| {
             storage.borrow_mut().remove(&StorableString(key));
         });
@@ -530,7 +552,8 @@ pub fn detect_memory_anomalies() -> Vec<String> {
     // Log any anomalies found
     for anomaly in &anomalies {
         let logger = get_logger("storage");
-        logger.warning("MEMORY_ANOMALY", anomaly, None);
+        let severity = get_severity_for_event_type("MEMORY_ANOMALY");
+        logger.log(severity, "MEMORY_ANOMALY", anomaly, None);
     }
     
     anomalies

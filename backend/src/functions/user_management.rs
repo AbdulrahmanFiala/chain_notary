@@ -2,7 +2,7 @@ use ic_cdk::{update, query, api::msg_caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::utils::helpers::{require_authenticated_user, get_current_timestamp};
-use crate::logging::{get_logger, LogSeverity};
+use crate::logging::{get_logger, LogSeverity, get_severity_for_event_type};
 
 /// Check if user has a profile and what their role is
 #[query]
@@ -40,7 +40,8 @@ pub fn register_user() -> Result<UserProfile, String> {
     
     // Log user registration using structured logging
     let logger = get_logger("user_management");
-    logger.info("USER_REGISTRATION", &format!("New user registered: {}", caller), Some(caller.to_string()));
+    let severity = get_severity_for_event_type("USER_REGISTRATION");
+    logger.log(severity, "USER_REGISTRATION", &format!("New user registered: {}", caller), Some(caller.to_string()));
     
     Ok(new_profile)
 }
