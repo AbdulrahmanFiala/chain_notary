@@ -1,11 +1,12 @@
 // Memory-specific logging functionality
 // Handles memory event logging, storage health, and Discord webhooks
 
-use ic_cdk::{api::canister_self, println};
+use ic_cdk::heartbeat;
 use crate::utils::helpers::get_current_timestamp;
 use crate::storage;
 use super::{Logger, LogSeverity, get_logger};
 use super::external::{log_memory_wipe_event, get_discord_logger};
+use std::cell::RefCell;
 
 // Structure for storage health report
 #[derive(candid::CandidType, serde::Serialize, Clone, Debug)]
@@ -146,28 +147,51 @@ pub fn get_memory_wipe_logs() -> MemoryWipeLogs {
 }
 
 
-// Function to manually trigger memory wipe detection
-#[ic_cdk::update]
-pub fn check_for_memory_wipe() -> Result<String, String> {
-    let memory_logger = get_memory_logger();
-    memory_logger.log_memory_event("MANUAL_MEMORY_WIPE_CHECK", "check_for_memory_wipe function called", None);
-    
+// Core memory wipe detection logic - reusable function
+fn perform_memory_wipe_check(check_type: &str, use_discord_only: bool) -> (String, bool) {
     let stats = storage::get_storage_stats();
     let total_items = stats.document_count + stats.institution_count + stats.owner_mapping_count;
     
     let stats_message = format!("Memory stats: documents={}, institutions={}, owner_mappings={}, total={}", 
                      stats.document_count, stats.institution_count, stats.owner_mapping_count, total_items);
-    memory_logger.log_memory_event("MANUAL_MEMORY_WIPE_CHECK", &stats_message, None);
     
-    if total_items == 0 {
-        let message = "MEMORY WIPE DETECTED: All storage is empty!";
-        memory_logger.log_memory_event_with_webhook("MANUAL_MEMORY_WIPE_CHECK", message, Some(format!("Stats: {:?}", stats)));
-        Ok(message.to_string())
+    let is_wiped = total_items == 0;
+    
+    if use_discord_only {
+        // Send directly to Discord only
+        let discord_logger = get_discord_logger();
+        if is_wiped {
+            let message = format!("🚨 {}: MEMORY WIPE DETECTED - All storage is empty!", check_type);
+            let _ = log_memory_wipe_event(&format!("{}_MEMORY_WIPE_DETECTED", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
+            (message, true)
+        } else {
+            let message = format!("✅ {}: Memory appears intact. Total items: {}", check_type, total_items);
+            let _ = log_memory_wipe_event(&format!("{}_MEMORY_OK", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
+            (message, false)
+        }
     } else {
-        let message = format!("Memory appears intact. Total items: {}", total_items);
-        memory_logger.log_memory_event_with_webhook("MANUAL_MEMORY_CHECK", &message, Some(format!("Stats: {:?}", stats)));
-        Ok(message)
+        // Use memory logger (logs to IC + Discord)
+        let memory_logger = get_memory_logger();
+        memory_logger.log_memory_event(&format!("{}_MEMORY_WIPE_CHECK", check_type), &format!("{} function called", check_type), None);
+        memory_logger.log_memory_event(&format!("{}_MEMORY_WIPE_CHECK", check_type), &stats_message, None);
+        
+        if is_wiped {
+            let message = format!("MEMORY WIPE DETECTED: All storage is empty!");
+            memory_logger.log_memory_event_with_webhook(&format!("{}_MEMORY_WIPE_CHECK", check_type), &message, Some(format!("Stats: {:?}", stats)));
+            (message, true)
+        } else {
+            let message = format!("Memory appears intact. Total items: {}", total_items);
+            memory_logger.log_memory_event_with_webhook(&format!("{}_MEMORY_CHECK", check_type), &message, Some(format!("Stats: {:?}", stats)));
+            (message, false)
+        }
     }
+}
+
+// Function to manually trigger memory wipe detection
+#[ic_cdk::update]
+pub fn check_for_memory_wipe() -> Result<String, String> {
+    let (message, _is_wiped) = perform_memory_wipe_check("MANUAL", false);
+    Ok(message)
 }
 
 // Function to send Discord webhook (separate from memory check to avoid consensus issues)
@@ -206,4 +230,27 @@ pub fn get_recent_memory_events() -> Vec<String> {
     events.push("To see full logs, check IC Dashboard or use 'dfx canister logs'".to_string());
     
     events
+}
+
+// Storage for tracking last memory check timestamp
+thread_local! {
+    static LAST_MEMORY_CHECK: RefCell<u64> = RefCell::new(0);
+}
+
+// Heartbeat function that runs every hour to check for memory wipes
+#[heartbeat]
+fn heartbeat() {
+    const ONE_HOUR_NANOSECONDS: u64 = 3_600_000_000_000; // 1 hour in nanoseconds
+    
+    let current_time = get_current_timestamp();
+    let last_check = LAST_MEMORY_CHECK.with(|last| *last.borrow());
+    
+    // Check if an hour has passed since last check
+    if current_time - last_check >= ONE_HOUR_NANOSECONDS {
+        // Update the last check timestamp
+        LAST_MEMORY_CHECK.with(|last| *last.borrow_mut() = current_time);
+        
+        // Run the memory wipe check using Discord only
+        let (_message, _is_wiped) = perform_memory_wipe_check("HEARTBEAT", true);
+    }
 }

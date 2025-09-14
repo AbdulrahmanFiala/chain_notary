@@ -77,11 +77,11 @@ pub fn log_memory_wipe_event(
 // Get severity level based on event type
 pub fn get_severity_level(event_type: &str) -> &str {
     match event_type {
-        "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" => "CRITICAL",
+        "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" | "HEARTBEAT_MEMORY_WIPE_DETECTED" => "CRITICAL",
         "PRE_UPGRADE" | "POST_UPGRADE" => "INFO",
         "CANISTER_INIT" => "INFO",
-        "MANUAL_MEMORY_WIPE_CHECK" => "WARNING",
-        "MEMORY_ANOMALY" => "WARNING",
+        "MANUAL_MEMORY_WIPE_CHECK" | "MEMORY_ANOMALY" => "WARNING",
+        "HEARTBEAT_MEMORY_OK" => "INFO",
         _ => "INFO",
     }
 }
