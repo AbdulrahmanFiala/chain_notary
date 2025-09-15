@@ -37,6 +37,8 @@ pub enum UserRole {
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
 pub struct UserProfile {
     pub internet_identity: Principal,
+    pub name: String,
+    pub email: String,
     pub role: UserRole,
     pub assigned_institution_id: String, // Assigned by admin (empty string if none)
     pub created_at: u64,

@@ -88,6 +88,8 @@ pub fn admin_create_institution_for_user(
     // Create or update user profile
     let user_profile = UserProfile {
         internet_identity: user_identity,
+        name: String::new(), // Will be set when user updates their profile
+        email: String::new(), // Will be set when user updates their profile
         role: UserRole::InstitutionMember(institution_id.clone()),
         assigned_institution_id: institution_id.clone(),
         created_at: get_current_timestamp(),
@@ -121,6 +123,8 @@ pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), Stri
                 // Create new super admin profile
                 let new_profile = UserProfile {
                     internet_identity: user_identity,
+                    name: String::new(), // Will be set when user updates their profile
+                    email: String::new(), // Will be set when user updates their profile
                     role: UserRole::SuperAdmin,
                     assigned_institution_id: String::new(),
                     created_at: get_current_timestamp(),
@@ -200,6 +204,8 @@ pub fn admin_link_user_to_institution(
     // Update user profile to link to institution
     let updated_profile = UserProfile {
         internet_identity: user_identity,
+        name: current_profile.name,
+        email: current_profile.email,
         role: UserRole::InstitutionMember(institution_id.clone()),
         assigned_institution_id: institution_id.clone(),
         created_at: current_profile.created_at,
@@ -239,6 +245,8 @@ pub fn admin_unlink_user_from_institution(user_identity: Principal) -> Result<()
     // Update user profile to unlink from institution
     let updated_profile = UserProfile {
         internet_identity: user_identity,
+        name: current_profile.name,
+        email: current_profile.email,
         role: UserRole::RegularUser, // Change role back to RegularUser
         assigned_institution_id: String::new(), // Clear institution assignment
         created_at: current_profile.created_at,
@@ -270,6 +278,8 @@ pub fn bootstrap_first_super_admin() -> Result<(), String> {
     // Create first super admin profile
     let super_admin_profile = UserProfile {
         internet_identity: caller,
+        name: String::new(), // Will be set when user updates their profile
+        email: String::new(), // Will be set when user updates their profile
         role: UserRole::SuperAdmin,
         assigned_institution_id: String::new(),
         created_at: get_current_timestamp(),

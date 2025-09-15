@@ -155,6 +155,8 @@ impl Storable for StorableUserProfile {
                 // Return a default/empty profile instead of trapping to allow recovery
                 StorableUserProfile(UserProfile {
                     internet_identity: Principal::anonymous(),
+                    name: String::new(),
+                    email: String::new(),
                     role: crate::types::UserRole::RegularUser,
                     assigned_institution_id: String::new(),
                     created_at: 0,
