@@ -46,3 +46,7 @@ pub fn register_user() -> Result<UserProfile, String> {
     Ok(new_profile)
 }
 
+#[query]
+pub fn whoami() -> Principal {
+    msg_caller()
+}
