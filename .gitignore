@@ -12,6 +12,7 @@ target/
 
 # Frontend build output
 frontend/dist/
+frontend/cypress/screenshots/
 
 # Windows/WSL metadata
 **/*.Identifier

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatNumberWithCommas } from "../formatNumberWithCommas";
+import { expect } from "chai";
 
 
 
@@ -62,7 +63,7 @@ describe('Number Formatter Component Integration', () => {
         </div>
       );
     };
-
+    // @ts-expect-error Cypress mount types not properly configured
     cy.mount(<TestComponent />);
 
     cy.get('[data-cy="number-999"]').should('contain.text', '999');
@@ -100,7 +101,7 @@ describe('Number Formatter Component Integration', () => {
         </table>
       );
     };
-
+    // @ts-expect-error Cypress mount types not properly configured
     cy.mount(<NumberTable />);
 
     cy.get('[data-cy="formatted-500"]').should('contain.text', '500');
@@ -131,7 +132,7 @@ describe('Number Formatter Component Integration', () => {
         </div>
       );
     };
-
+    // @ts-expect-error Cypress mount types not properly configured
     cy.mount(<InteractiveFormatter />);
 
     // Test initial state
