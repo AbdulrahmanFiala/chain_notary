@@ -9,7 +9,8 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "cy:open": "cypress open",
     "cy:run": "cypress run",
-    "test": "cypress run --component"
+    "test": "cypress run --component",
+    "format": "prettier --config .prettierrc 'src/**/*.{ts,tsx,js,jsx}' 'cypress/**/*.{ts,tsx}' --write"
   },
   "dependencies": {
     "@dfinity/agent": "2.4.1",
@@ -32,17 +33,22 @@
   "devDependencies": {
     "@cypress/react": "^9.0.1",
     "@cypress/vite-dev-server": "^7.0.0",
+    "@types/chai": "^5.2.2",
+    "@types/cypress": "^0.1.6",
     "@types/lodash": "^4.17.20",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.0",
     "@types/react-dom": "^19.1.7",
     "@types/react-router": "^5.1.20",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "@vitejs/plugin-react": "^5.0.1",
+    "chai": "^6.0.1",
     "cypress": "^15.1.0",
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.4.5",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "prettier": "3.6.2",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.9.2",
     "vite": "5.4.11",

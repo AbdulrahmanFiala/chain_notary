@@ -1,5 +1,6 @@
 // src/__tests__/getLabeledQuarter.cy.ts
 
+import { expect } from "chai";
 import getLabeledQuarter from "../getLabeledQuarter";
 
 describe('getLabeledQuarter', () => {
