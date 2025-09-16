@@ -520,16 +520,6 @@ fn handle_gemini_response(response: ic_cdk::management_canister::HttpRequestResu
     }
 }
 
-/// Query function to get available analysis focus options
-#[query]
-pub fn get_analysis_focus_options() -> Vec<String> {
-    vec![
-        "financial_summary".to_string(),
-        "investment_insights".to_string(),
-        "analysis_chart".to_string(),
-    ]
-}
-
 /// Transform function to normalize HTTP responses for consensus
 #[query]
 pub fn transform_gemini_response(args: TransformArgs) -> ic_cdk::management_canister::HttpRequestResult {

@@ -63,15 +63,6 @@ pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
     })
 }
 
-/// Get total number of documents (fast query)
-#[query]
-pub fn get_document_count() -> u64 {
-    DOCUMENTS.with(|storage| {
-        storage.borrow().len() as u64
-    })
-}
-
-
 /// Get documents by document type
 #[query]
 pub fn get_documents_by_type(document_type: String) -> Vec<Document> {

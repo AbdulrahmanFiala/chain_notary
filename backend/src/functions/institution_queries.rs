@@ -34,10 +34,3 @@ pub fn get_institutions_by_owner(owner: Principal) -> Vec<Institution> {
     })
 }
 
-/// Get institution count
-#[query]
-pub fn get_institution_count() -> u64 {
-    INSTITUTIONS.with(|storage| {
-        storage.borrow().len() as u64
-    })
-}

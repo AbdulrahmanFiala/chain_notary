@@ -8,10 +8,10 @@ use ic_cdk::{println, futures};
 use crate::utils::helpers::{get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 use super::get_severity_for_event_type;
 
-// Constants
+// Constants - OPTIMIZED FOR LOWER CYCLE USAGE
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
-const MAX_DISCORD_RESPONSE_BYTES: u64 = 2000;
-const DISCORD_REQUEST_CYCLES: u128 = 5_000_000_000;
+const MAX_DISCORD_RESPONSE_BYTES: u64 = 1000; 
+const DISCORD_REQUEST_CYCLES: u128 = 1_000_000_000; 
 const DISCORD_WEBHOOK_URL: &str = "https://discordapp.com/api/webhooks/1415683134997139466/F894OVHPtYCQiOVKI7HGu_7uHQtPhViVHVadt7oKgYPpHISDkeI9137AhQW-yehjSUeA";
 
 // External logging service for memory wipe tracking
