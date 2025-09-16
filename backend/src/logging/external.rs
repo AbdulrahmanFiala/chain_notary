@@ -5,7 +5,7 @@ use serde_json::json;
 use ic_cdk::api::canister_self;
 use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
 use ic_cdk::{println, futures};
-use crate::utils::helpers::get_current_timestamp;
+use crate::utils::helpers::{get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 use super::get_severity_for_event_type;
 
 // Constants
@@ -45,6 +45,10 @@ pub fn log_memory_wipe_event(
     // Get timestamp once and use it for both logging and Discord
     let timestamp_nanos = get_current_timestamp();
     
+    // Get current cycles balance for logging
+    let cycles_balance = get_canister_cycles_balance();
+    let formatted_cycles = format_cycles_balance_with_status(cycles_balance);
+    
     let log_data = json!({
         "timestamp": timestamp_nanos,
         "event_type": event_type,
@@ -53,6 +57,8 @@ pub fn log_memory_wipe_event(
         "detailed_data": detailed_data,
         "source": "chain_notary_canister",
         "severity": get_severity_level(event_type),
+        "cycles_balance": cycles_balance,
+        "cycles_formatted": formatted_cycles,
     });
     
     // Always log to IC system logs as backup
@@ -66,7 +72,7 @@ pub fn log_memory_wipe_event(
     let timestamp_nanos_owned = timestamp_nanos;
     
     futures::spawn(async move {
-        match send_webhook(&webhook_url, &event_type_owned, &message_owned, detailed_data_owned, timestamp_nanos_owned).await {
+        match send_webhook(&webhook_url, &event_type_owned, &message_owned, detailed_data_owned, timestamp_nanos_owned, cycles_balance, formatted_cycles).await {
             Ok(_) => println!("Webhook sent successfully"),
             Err(e) => println!("Failed to send webhook: {}", e),
         }
@@ -81,7 +87,7 @@ pub fn get_severity_level(event_type: &str) -> String {
 }
 
 // Discord webhook payload structure for memory wipe events
-pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64) -> serde_json::Value {
+pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {
     let color = match get_severity_level(event_type).as_str() {
         "CRITICAL" => 0xff0000, // Red
         "WARNING" => 0xffaa00,  // Orange
@@ -97,6 +103,11 @@ pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_
         json!({
             "name": "Canister ID",
             "value": canister_self().to_string(),
+            "inline": true
+        }),
+        json!({
+            "name": "Cycles Balance",
+            "value": formatted_cycles,
             "inline": true
         }),
         json!({
@@ -145,8 +156,10 @@ async fn send_webhook(
     message: &str,
     detailed_data: Option<String>,
     timestamp_nanos: u64,
+    cycles_balance: u128,
+    formatted_cycles: String,
 ) -> Result<(), String> {
-    let discord_payload = create_discord_webhook_payload(event_type, message, detailed_data, timestamp_nanos);
+    let discord_payload = create_discord_webhook_payload(event_type, message, detailed_data, timestamp_nanos, cycles_balance, formatted_cycles);
     
     let request = HttpRequestArgs {
         url: webhook_url.to_string(),

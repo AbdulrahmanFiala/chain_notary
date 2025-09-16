@@ -120,6 +120,7 @@ impl LifecycleLogger {
         let severity = get_severity_for_event_type("CLEANUP");
         self.logger.log(severity, "CLEANUP", "Cleanup of corrupted entries completed", None);
     }
+
 }
 
 // Convenience function to get a lifecycle logger instance

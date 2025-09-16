@@ -75,4 +75,42 @@ pub fn require_authenticated_user() -> Result<Principal, String> {
         return Err("Anonymous users cannot perform this action. Please log in with Internet Identity first.".to_string());
     }
     Ok(caller)
+}
+
+/// Get current canister cycles balance
+pub fn get_canister_cycles_balance() -> u128 {
+    ic_cdk::api::canister_balance() as u128
+}
+
+/// Get cycles status based on balance
+pub fn get_cycles_status(cycles: u128) -> &'static str {
+    if cycles < 1_000_000_000 {
+        "CRITICAL"
+    } else if cycles < 10_000_000_000 {
+        "LOW"
+    } else {
+        "NORMAL"
+    }
+}
+
+/// Format cycles balance for human-readable display with status indicator
+pub fn format_cycles_balance_with_status(cycles: u128) -> String {
+    let status = get_cycles_status(cycles);
+    let formatted = format_cycles_balance(cycles);
+    format!("{} ({})", formatted, status)
+}
+
+/// Format cycles balance for human-readable display
+pub fn format_cycles_balance(cycles: u128) -> String {
+    if cycles >= 1_000_000_000_000 {
+        format!("{:.2}T cycles", cycles as f64 / 1_000_000_000_000.0)
+    } else if cycles >= 1_000_000_000 {
+        format!("{:.2}B cycles", cycles as f64 / 1_000_000_000.0)
+    } else if cycles >= 1_000_000 {
+        format!("{:.2}M cycles", cycles as f64 / 1_000_000.0)
+    } else if cycles >= 1_000 {
+        format!("{:.2}K cycles", cycles as f64 / 1_000.0)
+    } else {
+        format!("{} cycles", cycles)
+    }
 } 
