@@ -1,0 +1,57 @@
+import {
+  BankOutlined,
+  HomeOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from '@ant-design/icons'
+import type { MenuProps } from 'antd'
+import { Menu } from 'antd'
+import React, { useState } from 'react'
+import { NavLink, Outlet } from 'react-router'
+
+type MenuItem = Required<MenuProps>['items'][number]
+
+const Dashboard: React.FC = () => {
+  const [collapsed, setCollapsed] = useState(false)
+
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed)
+  }
+
+  const items: MenuItem[] = [
+    {
+      key: '0',
+      onClick: toggleCollapsed,
+      label: collapsed ? 'Expand' : 'Collapse',
+
+      icon: collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />,
+    },
+    { key: '1', icon: <HomeOutlined />, label: <NavLink to="/">Home</NavLink> },
+    {
+      key: '2',
+      icon: <BankOutlined />,
+      label: <NavLink to="/dashboard/institutions">Institutions</NavLink>,
+    },
+  ]
+  return (
+    <div
+      className="h-screen overflow-hidden flex w-full!"
+      style={{ width: 256 }}
+    >
+      <Menu
+        className="max-w-2/12"
+        defaultSelectedKeys={['1']}
+        defaultOpenKeys={['sub1']}
+        mode="inline"
+        theme="dark"
+        inlineCollapsed={collapsed}
+        items={items}
+      />
+      <main className="w-full py-5 px-4">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
+export default Dashboard
