@@ -10,8 +10,8 @@ use super::get_severity_for_event_type;
 
 // Constants - OPTIMIZED FOR LOWER CYCLE USAGE
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
-const MAX_DISCORD_RESPONSE_BYTES: u64 = 1000; 
-const DISCORD_REQUEST_CYCLES: u128 = 1_000_000_000; 
+const MAX_DISCORD_RESPONSE_BYTES: u64 = 2000; 
+const DISCORD_REQUEST_CYCLES: u128 = 100_000_000;
 const DISCORD_WEBHOOK_URL: &str = "https://discordapp.com/api/webhooks/1415683134997139466/F894OVHPtYCQiOVKI7HGu_7uHQtPhViVHVadt7oKgYPpHISDkeI9137AhQW-yehjSUeA";
 
 // External logging service for memory wipe tracking
@@ -101,12 +101,12 @@ pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_
     // Build fields array dynamically
     let mut fields = vec![
         json!({
-            "name": "Canister ID",
+            "name": "Canister",
             "value": canister_self().to_string(),
             "inline": true
         }),
         json!({
-            "name": "Cycles Balance",
+            "name": "Cycles",
             "value": formatted_cycles,
             "inline": true
         }),
@@ -127,19 +127,25 @@ pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_
         })
     ];
     
-    // Add detailed data field if provided
+    // Add detailed data field if provided (truncate if too long)
     if let Some(detailed) = detailed_data {
+        let truncated_details = if detailed.len() > 1000 {
+            format!("{}...", &detailed[..997])
+        } else {
+            detailed
+        };
         fields.push(json!({
             "name": "Details",
-            "value": detailed,
+            "value": truncated_details,
             "inline": false
         }));
     }
     
+    // Create compact embed to reduce payload size
     json!({
         "embeds": [{
-            "title": format!("ChainNotary Memory Event: {}", event_type),
-            "description": message,
+            "title": format!("Memory Event: {}", event_type),
+            "description": if message.len() > 2000 { format!("{}...", &message[..1997]) } else { message.to_string() },
             "color": color,
             "fields": fields,
             "footer": {

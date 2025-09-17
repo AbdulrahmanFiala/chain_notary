@@ -11,7 +11,7 @@ use lopdf::Document as PdfDocument;
 // Configuration constants
 const GEMINI_ENDPOINT: &str = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
 const MAX_RESPONSE_BYTES: u64 = 500_000; // 500KB for comprehensive analysis
-const REQUEST_CYCLES: u128 = 10_000_000_000; // 10 billion cycles
+const REQUEST_CYCLES: u128 = 1_000_000_000;
 const MAX_PDF_TEXT_LENGTH: usize = 50_000; // Limit PDF text to ~50K characters to avoid API limits
 
 // Gemini API response structures

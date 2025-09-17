@@ -142,3 +142,13 @@ pub struct DocumentSummary {
     pub file_type: String,
     pub publication_date: u64,
 }
+
+// Cycle monitoring data structure
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct CycleMonitoringData {
+    pub current_balance: u128,
+    pub formatted_balance: String,
+    pub status: String,
+    pub memory_size_bytes: u64,
+    pub timestamp: u64,
+}

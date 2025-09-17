@@ -226,16 +226,16 @@ thread_local! {
     static LAST_MEMORY_CHECK: RefCell<u64> = RefCell::new(0);
 }
 
-// Heartbeat function that runs every hour to check for memory wipes
+// Heartbeat function that runs every 24 hours to check for memory wipes
 #[heartbeat]
 fn heartbeat() {
-    const ONE_HOUR_NANOSECONDS: u64 = 3_600_000_000_000; // 1 hour in nanoseconds
+    const TWENTY_FOUR_HOURS_NANOSECONDS: u64 = 24 * 3_600_000_000_000; // 24 hours in nanoseconds
     
     let current_time = get_current_timestamp();
     let last_check = LAST_MEMORY_CHECK.with(|last| *last.borrow());
     
-    // Check if an hour has passed since last check
-    if current_time - last_check >= ONE_HOUR_NANOSECONDS {
+    // Check if 24 hours have passed since last check
+    if current_time - last_check >= TWENTY_FOUR_HOURS_NANOSECONDS {
         // Update the last check timestamp
         LAST_MEMORY_CHECK.with(|last| *last.borrow_mut() = current_time);
         

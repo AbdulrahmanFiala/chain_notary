@@ -1,8 +1,8 @@
 use ic_cdk::{query, update};
 use candid::Principal;
-use crate::types::{UserProfile, UserRole};
+use crate::types::{UserProfile, UserRole, CycleMonitoringData};
 use crate::storage::USER_PROFILES;
-use crate::utils::helpers::{require_authenticated_user, get_current_timestamp};
+use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 
 /// Check if current caller is a super admin
 fn require_super_admin() -> Result<Principal, String> {
@@ -291,3 +291,26 @@ pub fn bootstrap_first_super_admin() -> Result<(), String> {
     ic_cdk::println!("Bootstrap: First super admin created for {}", caller);
     Ok(())
 }
+
+/// Admin function: Get cycle monitoring information (admin only)
+#[query]
+pub fn admin_get_cycle_monitoring() -> Result<CycleMonitoringData, String> {
+    require_super_admin()?;
+    
+    let current_balance = get_canister_cycles_balance();
+    let formatted_balance = format_cycles_balance_with_status(current_balance);
+    let status = crate::utils::helpers::get_cycles_status(current_balance).to_string();
+    
+    // Get memory size (approximate)
+    let memory_size_bytes = ic_cdk::api::stable::stable_size() * 64 * 1024; // 64 KB per page
+    
+    
+    Ok(CycleMonitoringData {
+        current_balance,
+        formatted_balance,
+        status,
+        memory_size_bytes,
+        timestamp: get_current_timestamp(),
+    })
+}
+
