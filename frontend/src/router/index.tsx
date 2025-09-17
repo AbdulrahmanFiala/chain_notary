@@ -1,5 +1,7 @@
 import App from "@/App";
 import CreateDocument from "@/pages/CreateDocument";
+import Dashboard from "@/pages/Dashboard";
+import InstitutionsTable from "@/pages/Dashboard/InstitutionsTable";
 import DocumentAnalytics from "@/pages/DocumentAnalytics";
 import DocumentDetails from "@/pages/DocumentDetails";
 import Home from "@/pages/Home";
@@ -76,6 +78,18 @@ const router = createBrowserRouter([
         ]
       }
     ]
+  },
+  {
+    path: "dashboard",
+    element: (
+        <Dashboard />
+    ),
+    children: [
+      {
+        path: "institutions",
+        Component: InstitutionsTable,
+      }
+    ],
   },
   {
     path: "*",
