@@ -2,7 +2,7 @@ name: Deploy to Mainnet
 
 on:
   push:
-    branches: [ main, test-ci-deployment ]
+    branches: [ main ]
 
 jobs:
   deploy:
