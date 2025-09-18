@@ -4,7 +4,7 @@
 
 *Ensuring Transparency Through Immutable Verification & AI-Powered Analytics for Financial Documents*
 
-## Overview
+## Overview 
 
 ChainNotary is a blockchain-based document notarization platform built on the Internet Computer (ICP), designed to serve the Egyptian financial market ecosystem. The platform enables various stakeholders including EGX-listed companies, regulated authorities, auditors, and investors to notarize and verify financial documents, ensuring transparency and verifiable authenticity of critical financial information such as earnings releases, financial statements, and regulatory filings.
 
