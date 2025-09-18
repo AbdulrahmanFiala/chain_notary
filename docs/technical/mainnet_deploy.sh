@@ -24,7 +24,7 @@ echo "Set VITE_PRINCIPAL_ID=$VITE_PRINCIPAL_ID"
 
 # Deploy the project to mainnet
 echo "Deploying project to mainnet..."
-dfx deploy --network ic
+dfx deploy --network ic --yes
 
 echo "Deployment completed successfully!"
 echo "Your application is now running."
