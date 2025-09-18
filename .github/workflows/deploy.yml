@@ -69,6 +69,7 @@ jobs:
         
     - name: Import DFX identity from secrets
       run: |
+        mkdir -p ~/.config/dfx/identity/ci-identity/
         echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/ci-identity/identity.pem
         chmod 600 ~/.config/dfx/identity/ci-identity/identity.pem
         
