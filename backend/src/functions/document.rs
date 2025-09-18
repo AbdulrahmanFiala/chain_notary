@@ -1,13 +1,26 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
 use crate::storage::{OWNER_TOKENS};
-use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
+use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp, require_authenticated_user};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
 pub async fn upload_file_and_publish_document(
     metadata: Document,
 ) -> DocumentResponse {
+    // Authenticate the caller - prevent anonymous users
+    let caller = match require_authenticated_user() {
+        Ok(principal) => principal,
+        Err(e) => {
+            return DocumentResponse {
+                success: false,
+                document_id: String::new(),
+                error_message: e,
+                file_hash: String::new(),
+            };
+        }
+    };
+
     // Validate file size (max 10MB for Excel and other document types)
     if let Err(e) = crate::utils::validate_file_size(metadata.file_data.len(), 10) {
         return DocumentResponse {
@@ -39,7 +52,6 @@ pub async fn upload_file_and_publish_document(
             file_hash: String::new(),
         };
     }
-
 
     // Normalize and validate institution_id (trim whitespace and check if empty)
     let normalized_institution_id = metadata.institution_id.trim().to_string();
@@ -73,6 +85,9 @@ pub async fn upload_file_and_publish_document(
     document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
     document.publication_date = get_current_timestamp();
+    
+    // Override the owner with the authenticated caller's principal for security
+    document.owner = caller;
 
     // Store the complete document using safe storage function
     if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {
@@ -83,7 +98,6 @@ pub async fn upload_file_and_publish_document(
             file_hash: String::new(),
         };
     }
-
 
     // Store owner token mapping using StorableTypes
     OWNER_TOKENS.with(|storage| {
