@@ -21,6 +21,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+        target: wasm32-unknown-unknown
         override: true
         
     - name: Install DFX
@@ -73,5 +74,6 @@ jobs:
     - name: Run mainnet deployment script
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        export DFX_WARNING=-mainnet_plaintext_identity
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
