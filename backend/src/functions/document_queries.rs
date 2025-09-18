@@ -22,13 +22,6 @@ pub fn get_document_file(document_id: String) -> Option<Vec<u8>> {
     })
 }
 
-/// Get complete document (metadata + file data) by document ID
-#[query]
-pub fn get_complete_document(document_id: String) -> Option<(Document, Vec<u8>)> {
-    let metadata = get_document_metadata(document_id.clone())?;
-    let file_data = get_document_file(document_id)?;
-    Some((metadata, file_data))
-}
 
 /// Get all document IDs (fast query)
 #[query]

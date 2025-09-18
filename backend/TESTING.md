@@ -144,7 +144,6 @@ dfx canister call backend get_document_count
 #### 2.2 Data Retrieval
 - **Get Document Metadata:** `get_document_metadata("generated_id")` → document record
 - **Get Document File:** `get_document_file("generated_id")` → file data
-- **Get Complete Document:** `get_complete_document("generated_id")` → metadata + file
 - **Get Documents by Collection:** `get_documents_by_collection("COLL001")` → document array
 - **Get Documents by Quarter/Year:** `get_documents_by_quarter_year(1, 2024)` → Q1 documents
 

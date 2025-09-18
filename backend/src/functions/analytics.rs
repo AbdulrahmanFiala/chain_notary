@@ -552,8 +552,3 @@ pub fn transform_gemini_response(args: TransformArgs) -> ic_cdk::management_cani
     response
 }
 
-/// Query function to check if analytics service is available
-#[query]
-pub fn analytics_service_status() -> String {
-    "Analytics service is available. Supported analysis types: PDF documents and input data.".to_string()
-}
