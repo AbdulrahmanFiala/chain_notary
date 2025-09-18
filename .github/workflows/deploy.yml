@@ -2,7 +2,7 @@ name: Deploy to Mainnet
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, test-ci-deployment ]  # Add your test branch
 
 jobs:
   deploy:
@@ -25,12 +25,18 @@ jobs:
         
     - name: Install DFX
       run: |
-        curl -fsSL https://internetcomputer.org/install.sh | sh -s -- -y
-        echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
+        # Install DFX version 0.28.0 directly to avoid interactive installer
+        DFX_VERSION=0.28.0
+        wget https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+        tar -xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+        mkdir -p $HOME/.local/bin
+        mv dfx $HOME/.local/bin/dfx
+        chmod +x $HOME/.local/bin/dfx
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
         
     - name: Verify DFX installation
       run: |
-        export PATH="$HOME/.local/share/dfx/bin:$PATH"
+        export PATH="$HOME/.local/bin:$PATH"
         dfx --version
         
     - name: Install candid-extractor
@@ -49,7 +55,7 @@ jobs:
         
     - name: Setup DFX identity
       run: |
-        export PATH="$HOME/.local/share/dfx/bin:$PATH"
+        export PATH="$HOME/.local/bin:$PATH"
         dfx identity new ci-identity --storage-mode plaintext || true
         dfx identity use ci-identity
         
@@ -60,6 +66,6 @@ jobs:
         
     - name: Run mainnet deployment script
       run: |
-        export PATH="$HOME/.local/share/dfx/bin:$PATH"
+        export PATH="$HOME/.local/bin:$PATH"
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
