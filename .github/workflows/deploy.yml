@@ -2,7 +2,7 @@ name: Deploy to Mainnet
 
 on:
   push:
-    branches: [ main, test-ci-deployment ]  # Add your test branch
+    branches: [ main, test-ci-deployment ]
 
 jobs:
   deploy:
@@ -15,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'  # Update to Node 20 to fix engine warnings
         
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
@@ -47,9 +47,17 @@ jobs:
         npm install
         cd frontend && npm install
         
+    - name: Build backend to generate Candid file
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        cargo build --target wasm32-unknown-unknown --release --package backend
+        candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > backend/backend.did
+        
     - name: Build frontend
       run: |
+        export PATH="$HOME/.local/bin:$PATH"
         cd frontend
+        dfx generate backend  # Now the backend.did file exists
         npm run build
         cd ..
         
