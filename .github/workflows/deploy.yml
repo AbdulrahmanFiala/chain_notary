@@ -25,8 +25,13 @@ jobs:
         
     - name: Install DFX
       run: |
-        sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        curl -fsSL https://internetcomputer.org/install.sh | sh -s -- -y
+        echo "$HOME/.local/share/dfx/bin" >> $GITHUB_PATH
+        
+    - name: Verify DFX installation
+      run: |
+        export PATH="$HOME/.local/share/dfx/bin:$PATH"
+        dfx --version
         
     - name: Install candid-extractor
       run: cargo install candid-extractor
@@ -36,8 +41,15 @@ jobs:
         npm install
         cd frontend && npm install
         
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm run build
+        cd ..
+        
     - name: Setup DFX identity
       run: |
+        export PATH="$HOME/.local/share/dfx/bin:$PATH"
         dfx identity new ci-identity --storage-mode plaintext || true
         dfx identity use ci-identity
         
@@ -48,5 +60,6 @@ jobs:
         
     - name: Run mainnet deployment script
       run: |
+        export PATH="$HOME/.local/share/dfx/bin:$PATH"
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
