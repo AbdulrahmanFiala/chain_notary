@@ -1,0 +1,53 @@
+name: Deploy to Mainnet
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        
+    - name: Install DFX
+      run: |
+        sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+    - name: Install candid-extractor
+      run: cargo install candid-extractor
+        
+    - name: Install dependencies
+      run: |
+        npm install
+        cd frontend && npm install
+        
+    - name: Setup DFX identity
+      run: |
+        dfx identity new ci-identity --storage-mode plaintext || true
+        dfx identity use ci-identity
+        
+    - name: Import DFX identity from secrets
+      run: |
+        echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/ci-identity/identity.pem
+        chmod 600 ~/.config/dfx/identity/ci-identity/identity.pem
+        
+    - name: Run mainnet deployment script
+      run: |
+        chmod +x docs/technical/mainnet_deploy.sh
+        ./docs/technical/mainnet_deploy.sh
