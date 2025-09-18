@@ -69,7 +69,11 @@ jobs:
         
     - name: Import DFX identity from secrets
       run: |
-        mkdir -p ~/.config/dfx/identity/ci-identity/
+        export PATH="$HOME/.local/bin:$PATH"
+        # Remove the existing identity and recreate with proper permissions
+        rm -rf ~/.config/dfx/identity/ci-identity/
+        dfx identity new ci-identity --storage-mode plaintext
+        # Now import the PEM
         echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/ci-identity/identity.pem
         chmod 600 ~/.config/dfx/identity/ci-identity/identity.pem
         
