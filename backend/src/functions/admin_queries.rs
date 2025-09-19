@@ -111,30 +111,39 @@ pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), Stri
         return Err("Cannot promote anonymous users to super admin. Target user must be authenticated.".to_string());
     }
     
-    USER_PROFILES.with(|profiles| {
-        let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
-        match profiles.borrow().get(&profile_key) {
-            Some(mut profile) => {
-                profile.0.role = UserRole::SuperAdmin;
-                profiles.borrow_mut().insert(profile_key, profile);
-                Ok(())
-            },
-            None => {
-                // Create new super admin profile
-                let new_profile = UserProfile {
-                    internet_identity: user_identity,
-                    name: String::new(), // Will be set when user updates their profile
-                    email: String::new(), // Will be set when user updates their profile
-                    role: UserRole::SuperAdmin,
-                    assigned_institution_id: String::new(),
-                    created_at: get_current_timestamp(),
-                    last_login: 0,
-                };
+    let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
+    
+    // First, check if user exists and get their current profile
+    let existing_profile = USER_PROFILES.with(|profiles| {
+        profiles.borrow().get(&profile_key).map(|storable| storable.0.clone())
+    });
+    
+    match existing_profile {
+        Some(mut profile) => {
+            // Update existing profile
+            profile.role = UserRole::SuperAdmin;
+            USER_PROFILES.with(|profiles| {
+                profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(profile));
+            });
+            Ok(())
+        },
+        None => {
+            // Create new super admin profile
+            let new_profile = UserProfile {
+                internet_identity: user_identity,
+                name: String::new(), // Will be set when user updates their profile
+                email: String::new(), // Will be set when user updates their profile
+                role: UserRole::SuperAdmin,
+                assigned_institution_id: String::new(),
+                created_at: get_current_timestamp(),
+                last_login: 0,
+            };
+            USER_PROFILES.with(|profiles| {
                 profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(new_profile));
-                Ok(())
-            }
+            });
+            Ok(())
         }
-    })
+    }
 }
 
 /// Admin function: Delete a user (super admin only)
