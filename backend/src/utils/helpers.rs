@@ -79,7 +79,7 @@ pub fn require_authenticated_user() -> Result<Principal, String> {
 
 /// Get current canister cycles balance
 pub fn get_canister_cycles_balance() -> u128 {
-    ic_cdk::api::canister_balance() as u128
+    ic_cdk::api::canister_cycle_balance() as u128
 }
 
 /// Get cycles status based on balance

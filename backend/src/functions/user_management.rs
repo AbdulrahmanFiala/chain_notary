@@ -2,7 +2,7 @@ use ic_cdk::{update, query, api::msg_caller};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole};
 use crate::utils::helpers::{require_authenticated_user, get_current_timestamp};
-use crate::logging::{get_logger, LogSeverity, get_severity_for_event_type};
+use crate::logging::{get_logger, get_severity_for_event_type};
 
 /// Check if user has a profile and what their role is
 #[query]

@@ -17,6 +17,7 @@ pub mod logging;
 // Re-export main types and functions
 pub use types::*;
 pub use functions::*;
+
 pub use logging::memory_logger::*;
 
 // Export Candid interface

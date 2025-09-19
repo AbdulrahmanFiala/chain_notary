@@ -161,11 +161,3 @@ pub struct StorageStats {
     pub user_profile_count: u64,
     pub total_file_size_bytes: u64,
 }
-
-// Structure to hold cleanup results
-#[derive(Debug, Clone, candid::CandidType, serde::Serialize)]
-pub struct CleanupResult {
-    pub total_cleaned: u64,
-    pub cleaned_document_ids: Vec<String>,
-    pub cleaned_user_profile_identities: Vec<String>,
-}

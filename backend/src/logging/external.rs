@@ -87,7 +87,7 @@ pub fn get_severity_level(event_type: &str) -> String {
 }
 
 // Discord webhook payload structure for memory wipe events
-pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {
+pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, _cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {
     let color = match get_severity_level(event_type).as_str() {
         "CRITICAL" => 0xff0000, // Red
         "WARNING" => 0xffaa00,  // Orange

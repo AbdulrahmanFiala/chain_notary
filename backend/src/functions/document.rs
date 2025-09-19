@@ -1,6 +1,5 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage;
 use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain

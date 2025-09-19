@@ -76,14 +76,6 @@ type Result = variant { Ok : text; Err : text };
 type Result_1 = variant { Ok; Err : text };
 type Result_2 = variant { Ok : vec UserProfile; Err : text };
 type Result_3 = variant { Ok : UserProfile; Err : text };
-type StorageHealthReport = record {
-  total_file_size_bytes : nat64;
-  validation_message : text;
-  is_healthy : bool;
-  institution_count : nat64;
-  owner_mapping_count : nat64;
-  document_count : nat64;
-};
 type MemoryWipeLogs = record {
   current_state : StorageStats;
   is_potentially_wiped : bool;
@@ -149,21 +141,28 @@ service : () -> {
   get_document_metadata : (text) -> (opt Document) query;
   // Get documents owned by a specific principal (fast query)
   get_documents_by_owner : (principal) -> (vec DocumentSummary) query;
-  // Unified document query function with comprehensive filtering, sorting, and pagination
-  query_documents : (opt principal, opt text, opt text, opt nat8, opt nat16, opt nat64, opt nat64, opt nat64, opt nat64, opt text, opt text, opt bool) -> (vec Document, nat64) query;
+  // Get complete document (metadata + file data) by document ID
+  get_complete_document : (text) -> (opt record { Document; blob }) query;
+  // Get documents by type
+  get_documents_by_type : (text) -> (vec Document) query;
+  // Get documents by quarter and year
+  get_documents_by_quarter_year : (nat8, nat16) -> (vec Document) query;
+  // Get documents by institution
+  get_documents_by_institution : (text) -> (vec Document) query;
+  // Check if document is owned by specific principal
+  is_document_owned_by : (text, principal) -> (bool) query;
   // Get institution metadata by institution ID
   get_institution_metadata : (text) -> (opt Institution) query;
   // Get institutions by owner
   get_institutions_by_owner : (principal) -> (vec Institution) query;
-  get_storage_health : () -> (StorageHealthReport) query;
-  // Get memory wipe logs and detection status
-  get_memory_wipe_logs : () -> (MemoryWipeLogs) query;
   // Manually check for memory wipe
   check_for_memory_wipe : () -> (Result);
-  // Get recent memory events for debugging
-  get_recent_memory_events : () -> (vec text) query;
+  // Get storage information in readable format
+  get_storage_info : () -> (vec text) query;
   // Check if user has a profile and what their role is
   get_user_profile : () -> (variant {Ok: opt UserProfile; Err: text}) query;
+  // Get current caller principal
+  whoami : () -> (principal) query;
   // Public function for users to register themselves (called after Internet Identity login)
   // Used as well to update the last_login timestamp for existing users
   register_user : (text, text) -> (Result_3);
@@ -175,8 +174,12 @@ service : () -> {
   send_discord_webhook : (event_type : text, message : text) -> (Result);
   // Transform function to normalize HTTP responses for consensus
   transform_gemini_response : (TransformArgs) -> (HttpResponse) query;
+  // Check analytics service status
+  analytics_service_status : () -> (text) query;
   // Update institution metadata (only owner can update)
   update_institution : (institution_id : text, institution_name : text, institution_email : text) -> (Result_1);
   // Custom upload endpoint for publishing documents to the icp blockchain
   upload_file_and_publish_document : (Document) -> (DocumentResponse);
+  // Delete a document
+  delete_document : (text) -> (DocumentResponse);
 }

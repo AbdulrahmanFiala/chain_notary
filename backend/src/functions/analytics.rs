@@ -372,7 +372,7 @@ async fn perform_single_gemini_request(content: &str, focus: &str, api_key: &str
         max_response_bytes: Some(MAX_RESPONSE_BYTES),
         transform: Some(TransformContext {
             function: TransformFunc(candid::Func {
-                principal: ic_cdk::api::id(),
+                principal: ic_cdk::api::canister_self(),
                 method: "transform_gemini_response".to_string(),
             }),
             context: vec![],
