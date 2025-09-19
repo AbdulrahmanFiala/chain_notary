@@ -74,7 +74,8 @@ pub fn get_logger(module: &str) -> Logger {
 // Shared severity mapping for event types - eliminates duplication between modules
 pub fn get_severity_for_event_type(event_type: &str) -> LogSeverity {
     match event_type {
-        "MEMORY_WIPE_DETECTED" => LogSeverity::Critical,
+        event if event.contains("WIPE DETECTED") => LogSeverity::Critical,
+        event if event.contains(" - OK") => LogSeverity::Info,
         "POST_UPGRADE" => LogSeverity::Info,
         "CANISTER_INIT" => LogSeverity::Info,
         "MANUAL_MEMORY_WIPE_CHECK" | "STORAGE_ANOMALY" => LogSeverity::Warning,

@@ -71,7 +71,7 @@ pub fn log_memory_wipe_event(
     let webhook_url = logger.webhook_url.clone();
     let timestamp_nanos_owned = timestamp_nanos;
     
-    futures::spawn(async move {
+    ic_cdk::spawn(async move {  
         match send_webhook(&webhook_url, &event_type_owned, &message_owned, detailed_data_owned, timestamp_nanos_owned, cycles_balance, formatted_cycles).await {
             Ok(_) => println!("Webhook sent successfully"),
             Err(e) => println!("Failed to send webhook: {}", e),
@@ -85,6 +85,7 @@ pub fn log_memory_wipe_event(
 pub fn get_severity_level(event_type: &str) -> String {
     get_severity_for_event_type(event_type).as_str().to_string()
 }
+
 
 // Discord webhook payload structure for memory wipe events
 pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, _cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {

@@ -6,8 +6,7 @@ use crate::storage;
 use super::{Logger, get_logger, get_severity_for_event_type};
 use super::external::{log_memory_wipe_event, get_discord_logger};
 use std::cell::RefCell;
-//use std::time::Duration;
-//use ic_cdk_timers::TimerId;
+use std::time::Duration;
 
 
 // Memory-specific logger
@@ -76,11 +75,11 @@ pub fn perform_memory_wipe_check(check_type: &str, use_discord_only: bool) -> (S
         let discord_logger = get_discord_logger();
         if is_wiped {
             let message = format!("🚨 {}: MEMORY WIPE DETECTED - All storage is empty!", check_type);
-            let _ = log_memory_wipe_event(&format!("{}_MEMORY_WIPE_DETECTED", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
+            let _ = log_memory_wipe_event(&format!("{} - WIPE DETECTED", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
             (message, true)
         } else {
             let message = format!("✅ {}: Memory appears intact. Total items: {}", check_type, total_items);
-            let _ = log_memory_wipe_event(&format!("{}_MEMORY_OK", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
+            let _ = log_memory_wipe_event(&format!("{} - OK", check_type), &message, Some(format!("Stats: {:?}", stats)), &discord_logger);
             (message, false)
         }
     } else {
@@ -102,8 +101,8 @@ pub fn perform_memory_wipe_check(check_type: &str, use_discord_only: bool) -> (S
 }
 
 // Function to start the 24-hour memory check timer
-/*
 pub fn start_memory_check_timer() {
+    // For production: 24 hours interval
     const TWENTY_FOUR_HOURS_SECONDS: u64 = 24 * 60 * 60; // 24 hours in seconds
     
     ic_cdk_timers::set_timer_interval(
@@ -111,33 +110,19 @@ pub fn start_memory_check_timer() {
         || {
             ic_cdk::spawn(async {
                 // Run the memory wipe check using Discord only
-                let (_message, _is_wiped) = perform_memory_wipe_check("TIMER", true);
+                let (_message, _is_wiped) = perform_memory_wipe_check("Periodic Memory Check", true);
             });
         }
     );
 }
-*/
+
 // Function to manually trigger memory wipe detection
 #[ic_cdk::update]
 pub fn check_for_memory_wipe() -> Result<String, String> {
     let (message, _is_wiped) = perform_memory_wipe_check("MANUAL", false);
     Ok(message)
 }
-/*
-// Function to start the memory check timer (call this from init or another update function)
-#[ic_cdk::update]
-pub fn start_timer() -> Result<String, String> {
-    start_memory_check_timer();
-    Ok("Memory check timer started successfully!".to_string())
-}
 
-// Function to stop the memory check timer
-#[ic_cdk::update]
-pub fn stop_timer() -> Result<String, String> {
-    stop_memory_check_timer();
-    Ok("Memory check timer stopped successfully!".to_string())
-}
-*/
 // Function to send Discord webhook (separate from memory check to avoid consensus issues)
 #[ic_cdk::update]
 pub async fn send_discord_webhook(event_type: String, message: String) -> Result<String, String> {

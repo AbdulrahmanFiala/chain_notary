@@ -5,7 +5,7 @@ use ic_cdk::{post_upgrade, init, println};
 use crate::storage;
 use crate::utils::helpers::get_current_timestamp;
 use crate::logging::{get_logger, get_severity_for_event_type};
-//use crate::logging::memory_logger::start_memory_check_timer;
+use crate::logging::memory_logger::start_memory_check_timer;
 
 // Helper function for logging lifecycle events
 fn log_lifecycle_event(event_type: &str, message: &str, detailed_data: Option<String>) {
@@ -47,9 +47,9 @@ fn post_upgrade() {
     
     log_lifecycle_event("POST_UPGRADE", &message, None);
     
-    // Start the memory check timer
-   // start_memory_check_timer();
-    // println!("Memory monitoring timer started with {} second interval", min_interval_secs);
+    //Start the memory check timer
+    start_memory_check_timer();
+    println!("Memory monitoring timer started with {} hours interval", 24);
     println!("=== POST-UPGRADE COMPLETE ===");
 }
 
