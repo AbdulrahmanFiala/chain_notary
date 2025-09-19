@@ -1,0 +1,182 @@
+type AnalyticsRequest = record {
+  document_id : opt text;
+  api_key : text;
+  analysis_focus : text;
+  input_data : opt text;
+};
+type AnalyticsResponse = record {
+  analysis_type : text;
+  error_message : text;
+  success : bool;
+  analysis : text;
+};
+type CollectionCategory = variant { EarningRelease };
+type ConsolidatedBalanceSheetData = record {
+  total_liabilities_and_equity : float64;
+  total_equity : float64;
+  total_assets : float64;
+  total_liabilities : float64;
+};
+type ConsolidatedIncomeData = record {
+  profit_before_tax : float64;
+  ebitda : float64;
+  operating_profit : float64;
+  gross_profit : float64;
+  net_profit : float64;
+};
+type Document = record {
+  document_data : DocumentType;
+  document_id : text;
+  document_category : CollectionCategory;
+  owner : principal;
+  name : text;
+  institution_id : text;
+  company_name : text;
+  description : text;
+  file_data : blob;
+  file_hash : text;
+  file_size : nat64;
+  file_type : text;
+  publication_date : nat64;
+  };
+type DocumentResponse = record {
+  document_id : text;
+  error_message : text;
+  file_hash : text;
+  success : bool;
+};
+type DocumentSummary = record {
+  id : text;
+  document_name : text;
+  file_type : text;
+  publication_date : opt nat64;
+};
+type DocumentType = variant { EarningRelease : EarningReleaseData };
+type EarningReleaseData = record {
+  consolidated_balance_sheet_data : ConsolidatedBalanceSheetData;
+  quarter : nat8;
+  year : nat16;
+  earning_release_id : text;
+  consolidated_income_data : ConsolidatedIncomeData;
+};
+type HttpHeader = record { value : text; name : text };
+type HttpResponse = record {
+  status : nat;
+  body : blob;
+  headers : vec HttpHeader;
+};
+type Institution = record {
+  owner : principal;
+  name : text;
+  institution_id : text;
+  created_at : nat64;
+  email : text;
+};
+type Result = variant { Ok : text; Err : text };
+type Result_1 = variant { Ok; Err : text };
+type Result_2 = variant { Ok : vec UserProfile; Err : text };
+type Result_3 = variant { Ok : UserProfile; Err : text };
+type StorageHealthReport = record {
+  total_file_size_bytes : nat64;
+  validation_message : text;
+  is_healthy : bool;
+  institution_count : nat64;
+  owner_mapping_count : nat64;
+  document_count : nat64;
+};
+type MemoryWipeLogs = record {
+  current_state : StorageStats;
+  is_potentially_wiped : bool;
+  log_instructions : text;
+  last_check_timestamp : nat64;
+};
+type StorageStats = record {
+  document_count : nat64;
+  institution_count : nat64;
+  owner_mapping_count : nat64;
+  total_file_size_bytes : nat64;
+};
+type TransformArgs = record { context : blob; response : HttpResponse };
+type UserProfile = record {
+  last_login : nat64;
+  role : UserRole;
+  created_at : nat64;
+  assigned_institution_id : text;
+  internet_identity : principal;
+  name : text;
+  email : text;
+};
+type UserRole = variant { RegularUser; SuperAdmin; InstitutionMember : text };
+type CycleMonitoringData = record {
+  current_balance : nat;
+  formatted_balance : text;
+  status : text;
+  memory_size_bytes : nat64;
+  timestamp : nat64;
+};
+service : () -> {
+  // Admin function: Create institution for a specific user
+  admin_create_institution_for_user : (principal, text, text) -> (Result);
+  // Admin function: Delete a user (super admin only)
+  admin_delete_user : (principal) -> (Result_1);
+  // Admin function: Get all users (admin only)
+  admin_get_all_users : () -> (Result_2) query;
+  // Admin function: Get users without institutions (admin only)
+  admin_get_users_without_institutions : () -> (Result_2) query;
+  // Admin function: Link existing user to existing institution (super admin only)
+  admin_link_user_to_institution : (principal, text) -> (Result_1);
+  // Admin function: Promote user to super admin (admin only)
+  admin_promote_to_super_admin : (principal) -> (Result_1);
+  // Admin function: Unlink user from their institution (super admin only)
+  admin_unlink_user_from_institution : (principal) -> (Result_1);
+  // Admin function: Get cycle monitoring information (admin only)
+  admin_get_cycle_monitoring : () -> (variant {Ok: CycleMonitoringData; Err: text}) query;
+  // Main analytics function that handles both PDF and input data analysis
+  analyze_document_data : (AnalyticsRequest) -> (AnalyticsResponse);
+  // Bootstrap function: Create first super admin (only works if no super admins exist)
+  bootstrap_first_super_admin : () -> (Result_1);
+  // Create a new institution
+  create_institution : (text, text) -> (Result);
+  // Delete an institution (only if it has no collections)
+  delete_institution : (text) -> (Result_1);
+  // Get all document IDs (fast query)
+  get_all_document_ids : () -> (vec text) query;
+  // Get all institutions with full metadata
+  get_all_institutions : () -> (vec Institution) query;
+  // Get document file data by document ID (loads file data)
+  get_document_file : (text) -> (opt blob) query;
+  // Get document metadata by document ID (fast query, no file data)
+  get_document_metadata : (text) -> (opt Document) query;
+  // Get documents owned by a specific principal (fast query)
+  get_documents_by_owner : (principal) -> (vec DocumentSummary) query;
+  // Unified document query function with comprehensive filtering, sorting, and pagination
+  query_documents : (opt principal, opt text, opt text, opt nat8, opt nat16, opt nat64, opt nat64, opt nat64, opt nat64, opt text, opt text, opt bool) -> (vec Document, nat64) query;
+  // Get institution metadata by institution ID
+  get_institution_metadata : (text) -> (opt Institution) query;
+  // Get institutions by owner
+  get_institutions_by_owner : (principal) -> (vec Institution) query;
+  get_storage_health : () -> (StorageHealthReport) query;
+  // Get memory wipe logs and detection status
+  get_memory_wipe_logs : () -> (MemoryWipeLogs) query;
+  // Manually check for memory wipe
+  check_for_memory_wipe : () -> (Result);
+  // Get recent memory events for debugging
+  get_recent_memory_events : () -> (vec text) query;
+  // Check if user has a profile and what their role is
+  get_user_profile : () -> (variant {Ok: opt UserProfile; Err: text}) query;
+  // Public function for users to register themselves (called after Internet Identity login)
+  // Used as well to update the last_login timestamp for existing users
+  register_user : (text, text) -> (Result_3);
+  // Search documents by name (case-insensitive partial match)
+  search_documents_by_name : (text) -> (vec Document) query;
+  // Search institutions by name (case-insensitive partial match)
+  search_institutions_by_name : (text) -> (vec Institution) query;
+  // Send Discord webhook for memory events
+  send_discord_webhook : (event_type : text, message : text) -> (Result);
+  // Transform function to normalize HTTP responses for consensus
+  transform_gemini_response : (TransformArgs) -> (HttpResponse) query;
+  // Update institution metadata (only owner can update)
+  update_institution : (institution_id : text, institution_name : text, institution_email : text) -> (Result_1);
+  // Custom upload endpoint for publishing documents to the icp blockchain
+  upload_file_and_publish_document : (Document) -> (DocumentResponse);
+}

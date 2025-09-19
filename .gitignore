@@ -18,7 +18,7 @@ frontend/cypress/screenshots/
 **/*.Identifier
 
 # Generated interface and type files
-backend/backend.did
+# backend/backend.did
 src/declarations/backend/
 src/declarations/frontend/
 
