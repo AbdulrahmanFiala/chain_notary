@@ -68,11 +68,7 @@ fn post_upgrade() {
     // Validate data integrity after upgrade
     println!("Validating data integrity after upgrade...");
     validate_storage_integrity();
-    
-    // Perform any necessary data migrations
-    println!("Performing data migrations...");
-    perform_data_migration();
-    
+        
     // Clean up any corrupted entries that may have been created during deserialization
     println!("Cleaning up corrupted entries...");
     storage::clear_corrupted_entries();
@@ -110,64 +106,18 @@ fn validate_storage_integrity() {
     lifecycle_logger.log_storage_validation(validation_result);
 }
 
-// Perform data migration if needed
-fn perform_data_migration() {
-    // This function can be extended to handle schema changes
-    // For now, we just verify that all expected fields are present
-    
+
+
+// Optimize data before upgrade to reduce transfer costs
+fn optimize_data_for_upgrade() {
     let lifecycle_logger = get_lifecycle_logger();
     
-    // Check if we need to update any document schemas
-    let documents_needing_migration = get_documents_needing_migration();
-    
-    lifecycle_logger.log_data_migration_start(documents_needing_migration.len());
-    
-    if !documents_needing_migration.is_empty() {
-        println!("Running data migration for {} documents with missing file hashes...", documents_needing_migration.len());
-        migrate_document_file_hashes();
-    }
-    
-    lifecycle_logger.log_data_migration_complete();
-    println!("Data migration check completed");
-}
-
-// Helper function to get documents that need migration
-fn get_documents_needing_migration() -> Vec<(String, crate::types::Document)> {
-    storage::DOCUMENTS.with(|docs| {
-        docs.borrow().iter()
-            .filter_map(|(key, doc)| {
-                if doc.0.file_hash.is_empty() && !doc.0.file_data.is_empty() {
-                    Some((key.0.clone(), doc.0.clone()))
-                } else {
-                    None
-                }
-            })
-            .collect()
-    })
-}
-
-// Migrate documents that are missing file hashes
-fn migrate_document_file_hashes() {
-    let lifecycle_logger = get_lifecycle_logger();
-    let documents_to_update = get_documents_needing_migration();
-    
-    for (doc_id, mut document) in documents_to_update {
-        // Compute file hash
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(&document.file_data);
-        document.file_hash = format!("{:x}", hasher.finalize());
-        
-        // Update the document
-        match storage::store_document_safe(&doc_id, &document) {
-            Err(e) => {
-                println!("Failed to migrate document {}: {}", doc_id, e);
-                lifecycle_logger.log_document_migration(&doc_id, false, Some(e));
-            }
-            Ok(_) => {
-                println!("Migrated document {} with computed hash", doc_id);
-                lifecycle_logger.log_document_migration(&doc_id, true, None);
-            }
-        }
+    // Use existing cleanup function to reduce data size before upgrade
+    let cleanup_result = storage::cleanup_corrupted_entries();
+    if cleanup_result.total_cleaned > 0 {
+        println!("Pre-upgrade cleanup: removed {} corrupted entries", cleanup_result.total_cleaned);
+        // Log cleanup completion
+        let severity = crate::logging::get_severity_for_event_type("CLEANUP");
+        lifecycle_logger.logger.log(severity, "CLEANUP", &format!("Pre-upgrade cleanup: removed {} corrupted entries", cleanup_result.total_cleaned), Some(format!("Cleaned {} documents: {:?}", cleanup_result.cleaned_document_ids.len(), cleanup_result.cleaned_document_ids)));
     }
 }

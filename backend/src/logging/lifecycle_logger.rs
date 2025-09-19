@@ -82,33 +82,6 @@ impl LifecycleLogger {
         }
     }
 
-    // Log data migration events
-    pub fn log_data_migration_start(&self, documents_needing_migration: usize) {
-        if documents_needing_migration > 0 {
-            let message = format!("Starting data migration for {} documents with missing file hashes", documents_needing_migration);
-            let severity = get_severity_for_event_type("DATA_MIGRATION");
-            self.logger.log(severity, "DATA_MIGRATION", &message, Some(format!("Document count: {}", documents_needing_migration)));
-        }
-    }
-
-    // Log data migration completion
-    pub fn log_data_migration_complete(&self) {
-        let severity = get_severity_for_event_type("DATA_MIGRATION");
-        self.logger.log(severity, "DATA_MIGRATION", "Data migration check completed", None);
-    }
-
-    // Log individual document migration
-    pub fn log_document_migration(&self, doc_id: &str, success: bool, error: Option<String>) {
-        if success {
-            let severity = get_severity_for_event_type("DOCUMENT_MIGRATION");
-            self.logger.log(severity, "DOCUMENT_MIGRATION", &format!("Migrated document {} with computed hash", doc_id), None);
-        } else {
-            let message = format!("Failed to migrate document {}", doc_id);
-            let severity = get_severity_for_event_type("DOCUMENT_MIGRATION");
-            self.logger.log(severity, "DOCUMENT_MIGRATION", &message, error);
-        }
-    }
-
     // Log cleanup operations
     pub fn log_cleanup_start(&self) {
         let severity = get_severity_for_event_type("CLEANUP");
