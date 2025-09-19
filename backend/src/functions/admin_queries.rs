@@ -314,9 +314,9 @@ pub fn admin_get_cycle_monitoring() -> Result<CycleMonitoringData, String> {
     })
 }
 
-/// Admin function: Clean up corrupted documents with empty file data (super admin only)
+/// Admin function: Clean up corrupted entries (empty documents and anonymous users) (super admin only)
 #[update]
-pub fn admin_cleanup_corrupted_documents() -> Result<String, String> {
+pub fn admin_cleanup_corrupted_entries() -> Result<String, String> {
     require_super_admin()?;
     
     let cleanup_result = cleanup_corrupted_entries();
@@ -332,44 +332,6 @@ pub fn admin_cleanup_corrupted_documents() -> Result<String, String> {
     };
     
     ic_cdk::println!("Admin cleanup: {}", message);
-    Ok(message)
-}
-
-
-
-/// Admin function: Clear all data for bincode migration (super admin only)
-/// This will remove all existing data to enable clean migration to bincode serialization
-#[update]
-pub fn admin_clear_all_data_for_migration() -> Result<String, String> {
-    require_super_admin()?;
-    
-    // Count existing data before clearing
-    let (doc_count, inst_count, user_count) = crate::storage::DOCUMENTS.with(|docs| {
-        let doc_count = docs.borrow().len();
-        let inst_count = crate::storage::INSTITUTIONS.with(|insts| insts.borrow().len());
-        let user_count = crate::storage::USER_PROFILES.with(|users| users.borrow().len());
-        (doc_count, inst_count, user_count)
-    });
-    
-    // Clear all data
-    crate::storage::DOCUMENTS.with(|docs| {
-        docs.borrow_mut().clear_new();
-    });
-    
-    crate::storage::INSTITUTIONS.with(|insts| {
-        insts.borrow_mut().clear_new();
-    });
-    
-    crate::storage::USER_PROFILES.with(|users| {
-        users.borrow_mut().clear_new();
-    });
-    
-    let message = format!(
-        "Data cleared for bincode migration: {} documents, {} institutions, {} user profiles removed. Canister now uses efficient bincode serialization (30-50% memory reduction).",
-        doc_count, inst_count, user_count
-    );
-    
-    ic_cdk::println!("Admin migration: {}", message);
     Ok(message)
 }
 
