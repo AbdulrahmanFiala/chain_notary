@@ -1,0 +1,79 @@
+name: Deploy to Mainnet
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'  # Update to Node 20 to fix engine warnings
+        
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+        override: true
+        
+    - name: Install DFX
+      run: |
+        # Install DFX version 0.28.0 directly to avoid interactive installer
+        DFX_VERSION=0.28.0
+        wget https://github.com/dfinity/sdk/releases/download/${DFX_VERSION}/dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+        tar -xzf dfx-${DFX_VERSION}-x86_64-linux.tar.gz
+        mkdir -p $HOME/.local/bin
+        mv dfx $HOME/.local/bin/dfx
+        chmod +x $HOME/.local/bin/dfx
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+    - name: Verify DFX installation
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        dfx --version
+        
+    - name: Install candid-extractor
+      run: cargo install candid-extractor
+        
+    - name: Install dependencies
+      run: |
+        npm install
+        cd frontend && npm install
+        
+    - name: Build backend to generate Candid file
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        cargo build --target wasm32-unknown-unknown --release --package backend
+        candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > backend/backend.did
+        
+    - name: Build frontend
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        cd frontend
+        dfx generate backend  # Now the backend.did file exists
+        npm run build
+        cd ..
+        
+    - name: Import DFX identity from secrets
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        # Create directory and import existing identity
+        mkdir -p ~/.config/dfx/identity/chainnotary-mainnet/
+        echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/chainnotary-mainnet/identity.pem
+        chmod 600 ~/.config/dfx/identity/chainnotary-mainnet/identity.pem
+        dfx identity use chainnotary-mainnet
+        
+    - name: Run mainnet deployment script
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        export DFX_WARNING=-mainnet_plaintext_identity
+        chmod +x docs/technical/mainnet_deploy.sh
+        ./docs/technical/mainnet_deploy.sh

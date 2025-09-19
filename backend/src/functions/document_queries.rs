@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
 use crate::types::{Document, DocumentType, DocumentSummary};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, StorableString};
+use crate::storage::{DOCUMENTS, StorableString};
 
 // ============================================================================
 // DOCUMENT QUERY FUNCTIONS
@@ -193,6 +193,60 @@ pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
         None, // sort_order
         Some(false), // include_file_data = false for DocumentSummary
     );
+/// Get documents owned by a specific principal (direct query - no owner token mapping needed)
+#[query]
+pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .filter(|(_, doc)| doc.0.owner == owner)
+            .map(|(_, doc)| {
+                let document = &doc.0;
+                DocumentSummary {
+                    id: document.document_id.clone(),
+                    document_name: document.name.clone(),
+                    file_type: document.file_type.clone(),
+                    publication_date: document.publication_date,
+                }
+            })
+            .collect()
+    })
+}
+
+/// Get documents by document type
+#[query]
+pub fn get_documents_by_type(document_type: String) -> Vec<Document> {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .map(|(_, storable_doc)| storable_doc.0)
+            .filter(|doc| {
+                match &doc.document_data {
+                    DocumentType::EarningRelease(_) => document_type == "EarningRelease",
+                }
+            })
+            .collect()
+    })
+}
+
+/// Get documents by earning release quarter and year
+#[query]
+pub fn get_documents_by_quarter_year(quarter: u8, year: u16) -> Vec<Document> {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .map(|(_, storable_doc)| storable_doc.0)
+            .filter(|doc| {
+                match &doc.document_data {
+                    DocumentType::EarningRelease(data) => data.quarter == quarter && data.year == year,
+                }
+            })
+            .collect()
+    })
+}
+
+/// Get documents by institution
+#[query]
+pub fn get_documents_by_institution(institution_id: String) -> Vec<Document> {
+    // Normalize the institution_id by trimming whitespace
+    let normalized_institution_id = institution_id.trim();
     
     // Convert Document to DocumentSummary
     documents.into_iter().map(|doc| {
@@ -203,4 +257,14 @@ pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
             publication_date: Some(doc.publication_date),
         }
     }).collect()
+}
+
+/// Check if a user owns a specific document (direct query)
+#[query]
+pub fn is_document_owned_by(document_id: String, owner: Principal) -> bool {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().get(&crate::storage::memory::StorableString(document_id))
+            .map(|doc| doc.0.owner == owner)
+            .unwrap_or(false)
+    })
 }

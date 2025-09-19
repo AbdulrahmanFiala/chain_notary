@@ -1,26 +1,23 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage::{OWNER_TOKENS};
-use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp, require_authenticated_user};
+use crate::storage;
+use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
 #[update]
 pub async fn upload_file_and_publish_document(
     metadata: Document,
 ) -> DocumentResponse {
-    // Authenticate the caller - prevent anonymous users
-    let caller = match require_authenticated_user() {
-        Ok(principal) => principal,
-        Err(e) => {
-            return DocumentResponse {
-                success: false,
-                document_id: String::new(),
-                error_message: e,
-                file_hash: String::new(),
-            };
-        }
-    };
-
+    // Validate file data is not empty
+    if metadata.file_data.is_empty() {
+        return DocumentResponse {
+            success: false,
+            document_id: String::new(),
+            error_message: "File data cannot be empty. Please upload a valid file.".to_string(),
+            file_hash: String::new(),
+        };
+    }
+    
     // Validate file size (max 10MB for Excel and other document types)
     if let Err(e) = crate::utils::validate_file_size(metadata.file_data.len(), 10) {
         return DocumentResponse {
@@ -99,23 +96,73 @@ pub async fn upload_file_and_publish_document(
         };
     }
 
-    // Store owner token mapping using StorableTypes
-    OWNER_TOKENS.with(|storage| {
-        let mut owner_tokens = storage.borrow_mut();
-        let owner_key = crate::storage::memory::StorablePrincipal(document.owner);
-        let current_tokens = owner_tokens.get(&owner_key)
-            .map(|storable_tokens| storable_tokens.0)
-            .unwrap_or_default();
-        let mut updated_tokens = current_tokens;
-        updated_tokens.push(document_id.clone());
-        owner_tokens.insert(owner_key, crate::storage::memory::StorableTokens(updated_tokens));
-    });
-
     // Return success response
     DocumentResponse {
         success: true,
         document_id,
         error_message: String::new(),
         file_hash: calculated_hash,
+    }
+}
+
+/// Delete a document
+#[update]
+pub async fn delete_document(document_id: String) -> DocumentResponse {
+    // Require authentication
+    let caller = match crate::utils::require_authenticated_user() {
+        Ok(principal) => principal,
+        Err(e) => {
+            return DocumentResponse {
+                success: false,
+                document_id: String::new(),
+                error_message: e,
+                file_hash: String::new(),
+            };
+        }
+    };
+
+    // Get the document to check ownership
+    let document = match crate::storage::get_document_safe(&document_id) {
+        Some(doc) => doc,
+        None => {
+            return DocumentResponse {
+                success: false,
+                document_id: String::new(),
+                error_message: "Document not found".to_string(),
+                file_hash: String::new(),
+            };
+        }
+    };
+
+    // Check ownership
+    if document.owner != caller {
+        return DocumentResponse {
+            success: false,
+            document_id: String::new(),
+            error_message: "Access denied. You can only delete your own documents.".to_string(),
+            file_hash: String::new(),
+        };
+    }
+
+    // Delete the document
+    let deleted = crate::storage::DOCUMENTS.with(|storage| {
+        storage.borrow_mut().remove(&crate::storage::memory::StorableString(document_id.clone()))
+    });
+
+    if deleted.is_some() {
+        ic_cdk::println!("Document {} deleted by user {}", document_id, caller);
+        DocumentResponse {
+            success: true,
+            document_id: document_id.clone(),
+            error_message: String::new(),
+            file_hash: document.file_hash,
+        }
+    } else {
+        DocumentResponse {
+            success: false,
+            document_id: String::new(),
+            error_message: "Failed to delete document".to_string(),
+            file_hash: String::new(),
+        }
     }
 } 

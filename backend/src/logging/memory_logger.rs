@@ -15,14 +15,14 @@ pub struct StorageHealthReport {
     pub validation_message: String,
     pub document_count: u64,
     pub institution_count: u64,
-    pub owner_mapping_count: u64,
+    pub user_profile_count: u64,
     pub total_file_size_bytes: u64,
 }
 
 // Structure for memory wipe logs response
 #[derive(candid::CandidType, serde::Serialize, Clone, Debug)]
 pub struct MemoryWipeLogs {
-    pub current_state: storage::StorageStats,
+    pub current_state: crate::types::StorageStats,
     pub is_potentially_wiped: bool,
     pub log_instructions: String,
     pub last_check_timestamp: u64,
@@ -67,29 +67,29 @@ pub fn get_memory_logger() -> MemoryLogger {
 pub fn get_storage_counts() -> (u64, u64, u64) {
     let documents_count = storage::DOCUMENTS.with(|docs| docs.borrow().len());
     let institutions_count = storage::INSTITUTIONS.with(|insts| insts.borrow().len());
-    let owner_tokens_count = storage::OWNER_TOKENS.with(|tokens| tokens.borrow().len());
-    (documents_count, institutions_count, owner_tokens_count)
+    let user_profiles_count = storage::USER_PROFILES.with(|profiles| profiles.borrow().len());
+    (documents_count, institutions_count, user_profiles_count)
 }
 
 // Helper function to get storage counts including user profiles
 pub fn get_all_storage_counts() -> (u64, u64, u64, u64) {
     let documents_count = storage::DOCUMENTS.with(|docs| docs.borrow().len());
     let institutions_count = storage::INSTITUTIONS.with(|insts| insts.borrow().len());
-    let owner_tokens_count = storage::OWNER_TOKENS.with(|tokens| tokens.borrow().len());
     let user_profiles_count = storage::USER_PROFILES.with(|profiles| profiles.borrow().len());
-    (documents_count, institutions_count, owner_tokens_count, user_profiles_count)
+    let total_items = documents_count + institutions_count + user_profiles_count;
+    (documents_count, institutions_count, user_profiles_count, total_items)
 }
 
 // Helper function to format storage stats
-pub fn format_storage_stats(prefix: &str, documents: u64, institutions: u64, owner_mappings: u64) -> String {
-    format!("{}: {} documents, {} institutions, {} owner mappings", 
-            prefix, documents, institutions, owner_mappings)
+pub fn format_storage_stats(prefix: &str, documents: u64, institutions: u64, user_profiles: u64) -> String {
+    format!("{}: {} documents, {} institutions, {} user profiles", 
+            prefix, documents, institutions, user_profiles)
 }
 
 // Helper function to check if storage is empty
 pub fn is_storage_empty() -> bool {
-    let (documents_count, institutions_count, owner_tokens_count) = get_storage_counts();
-    documents_count == 0 && institutions_count == 0 && owner_tokens_count == 0
+    let (documents_count, institutions_count, user_profiles_count) = get_storage_counts();
+    documents_count == 0 && institutions_count == 0 && user_profiles_count == 0
 }
 
 // Query function to check storage health and statistics
@@ -107,7 +107,7 @@ pub fn get_storage_health() -> StorageHealthReport {
         validation_message: validation_result,
         document_count: stats.document_count,
         institution_count: stats.institution_count,
-        owner_mapping_count: stats.owner_mapping_count,
+        user_profile_count: stats.user_profile_count,
         total_file_size_bytes: stats.total_file_size_bytes,
     }
 }
@@ -139,10 +139,10 @@ pub fn get_memory_wipe_logs() -> MemoryWipeLogs {
 // Core memory wipe detection logic - reusable function
 fn perform_memory_wipe_check(check_type: &str, use_discord_only: bool) -> (String, bool) {
     let stats = storage::get_storage_stats();
-    let total_items = stats.document_count + stats.institution_count + stats.owner_mapping_count;
+    let total_items = stats.document_count + stats.institution_count + stats.user_profile_count;
     
-    let stats_message = format!("Memory stats: documents={}, institutions={}, owner_mappings={}, total={}", 
-                     stats.document_count, stats.institution_count, stats.owner_mapping_count, total_items);
+    let stats_message = format!("Memory stats: documents={}, institutions={}, user_profiles={}, total={}", 
+                     stats.document_count, stats.institution_count, stats.user_profile_count, total_items);
     
     let is_wiped = total_items == 0;
     
@@ -199,7 +199,7 @@ pub async fn send_discord_webhook(event_type: String, message: String) -> Result
 pub fn get_recent_memory_events() -> Vec<String> {
     // This function returns a summary of recent memory events
     // Note: This only shows current state, not historical logs
-    let (documents_count, institutions_count, owner_mapping_count) = get_storage_counts();
+    let (documents_count, institutions_count, user_profiles_count) = get_storage_counts();
     let anomalies = storage::detect_memory_anomalies();
     
     let mut events = Vec::new();
@@ -208,7 +208,7 @@ pub fn get_recent_memory_events() -> Vec<String> {
     events.push(format!("Current time: {}", get_current_timestamp()));
     events.push(format!("Document count: {}", documents_count));
     events.push(format!("Institution count: {}", institutions_count));
-    events.push(format!("Owner mapping count: {}", owner_mapping_count));
+    events.push(format!("User profiles count: {}", user_profiles_count));
     
     // Add any anomalies
     for anomaly in anomalies {

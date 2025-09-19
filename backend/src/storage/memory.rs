@@ -6,11 +6,69 @@ use ic_stable_structures::{
 };
 use std::cell::RefCell;
 use candid::Principal;
-use crate::types::{Document, Institution, UserProfile};
+use crate::types::{Document, Institution, UserProfile, StorageStats, CleanupResult};
 use std::borrow::Cow;
-use crate::logging::{get_logger, LogSeverity, get_severity_for_event_type};
+use crate::logging::{get_logger, get_severity_for_event_type};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+
+// Constants for storage limits
+const MAX_STRING_KEY_SIZE: usize = 1000;
+const MAX_PRINCIPAL_SIZE: usize = 29;
+
+// Helper function for logging serialization errors
+fn log_serialization_error(type_name: &str, error: &impl std::fmt::Display) {
+    let logger = get_logger("storage");
+    let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
+    logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize {}: {}", type_name, error), Some(error.to_string()));
+}
+
+// Helper function for logging deserialization errors
+fn log_deserialization_error(type_name: &str, error: &impl std::fmt::Display, data_preview: &str) {
+    let logger = get_logger("storage");
+    let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+    logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize {}: {}", type_name, error), Some(error.to_string()));
+    
+    let severity = get_severity_for_event_type("CORRUPTED_DATA");
+    logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted {} data (first 100 bytes): {}", type_name, data_preview), None);
+}
+
+// Macro to implement Storable with consistent error handling
+macro_rules! impl_storable_with_logging {
+    ($type:ty, $wrapper:ty, $constructor:expr, $default_constructor:expr) => {
+        impl Storable for $wrapper {
+            fn to_bytes(&self) -> Cow<[u8]> {
+                match bincode::serialize(&self.0) {
+                    Ok(bytes) => Cow::Owned(bytes),
+                    Err(e) => {
+                        log_serialization_error(stringify!($type), &e);
+                        Cow::Owned(Vec::new())
+                    }
+                }
+            }
+
+            fn from_bytes(bytes: Cow<[u8]>) -> Self {
+                if bytes.is_empty() {
+                    let logger = get_logger("storage");
+                    let severity = get_severity_for_event_type("CORRUPTED_DATA");
+                    logger.log(severity, "CORRUPTED_DATA", &format!("Attempted to deserialize empty bytes - returning default {}", stringify!($type)), None);
+                    return $default_constructor;
+                }
+                
+                match bincode::deserialize::<$type>(&bytes) {
+                    Ok(data) => $constructor(data),
+                    Err(e) => {
+                        let data_preview = format!("{:?}", &bytes[..std::cmp::min(100, bytes.len())]);
+                        log_deserialization_error(stringify!($type), &e, &data_preview);
+                        $default_constructor
+                    }
+                }
+            }
+
+            const BOUND: Bound = Bound::Unbounded;
+        }
+    };
+}
 
 // Wrapper types that implement Storable for stable storage
 #[derive(Clone)]
@@ -20,154 +78,29 @@ pub struct StorableDocument(pub Document);
 pub struct StorableInstitution(pub Institution);
 
 #[derive(Clone)]
-pub struct StorableTokens(pub Vec<String>);
-
-#[derive(Clone)]
 pub struct StorableUserProfile(pub UserProfile);
 
-// Implement Storable for Document wrapper
-impl Storable for StorableDocument {
-    fn to_bytes(&self) -> Cow<[u8]> {
-        match serde_json::to_vec(&self.0) {
-            Ok(bytes) => Cow::Owned(bytes),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
-                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize document: {}", e), Some(e.to_string()));
-                // Return empty bytes instead of trapping to avoid init mode issues
-                Cow::Owned(Vec::new())
-            }
-        }
-    }
+// Implement Storable for Document wrapper using macro
+impl_storable_with_logging!(Document, StorableDocument, StorableDocument, StorableDocument(crate::types::Document::default()));
 
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        match serde_json::from_slice(&bytes) {
-            Ok(document) => StorableDocument(document),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
-                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize document: {}", e), Some(e.to_string()));
-                let severity = get_severity_for_event_type("CORRUPTED_DATA");
-                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
-                
-                // Return a default/empty document instead of trapping to allow recovery
-                StorableDocument(crate::types::Document::default())
-            }
-        }
-    }
+// Implement Storable for Institution wrapper using macro
+impl_storable_with_logging!(Institution, StorableInstitution, StorableInstitution, StorableInstitution(crate::types::Institution::default()));
 
-    const BOUND: Bound = Bound::Unbounded;
-}
-
-// Implement Storable for Institution wrapper
-impl Storable for StorableInstitution {
-    fn to_bytes(&self) -> Cow<[u8]> {
-        match serde_json::to_vec(&self.0) {
-            Ok(bytes) => Cow::Owned(bytes),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
-                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize institution: {}", e), Some(e.to_string()));
-                // Return empty bytes instead of trapping to avoid init mode issues
-                Cow::Owned(Vec::new())
-            }
-        }
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        match serde_json::from_slice(&bytes) {
-            Ok(institution) => StorableInstitution(institution),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
-                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize institution: {}", e), Some(e.to_string()));
-                let severity = get_severity_for_event_type("CORRUPTED_DATA");
-                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted institution data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
-                
-                // Return a default/empty institution instead of trapping to allow recovery
-                StorableInstitution(crate::types::Institution::default())
-            }
-        }
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
-
-// Implement Storable for Tokens wrapper
-impl Storable for StorableTokens {
-    fn to_bytes(&self) -> Cow<[u8]> {
-        match serde_json::to_vec(&self.0) {
-            Ok(bytes) => Cow::Owned(bytes),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
-                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize tokens: {}", e), Some(e.to_string()));
-                // Return empty bytes instead of trapping to avoid init mode issues
-                Cow::Owned(Vec::new())
-            }
-        }
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        match serde_json::from_slice(&bytes) {
-            Ok(tokens) => StorableTokens(tokens),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
-                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize tokens: {}", e), Some(e.to_string()));
-                let severity = get_severity_for_event_type("CORRUPTED_DATA");
-                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted tokens data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
-                
-                // Return empty tokens instead of trapping to allow recovery
-                StorableTokens(Vec::new())
-            }
-        }
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
-
-// Implement Storable for UserProfile wrapper
-impl Storable for StorableUserProfile {
-    fn to_bytes(&self) -> Cow<[u8]> {
-        match serde_json::to_vec(&self.0) {
-            Ok(bytes) => Cow::Owned(bytes),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("SERIALIZATION_ERROR");
-                logger.log(severity, "SERIALIZATION_ERROR", &format!("Failed to serialize user profile: {}", e), Some(e.to_string()));
-                // Return empty bytes instead of trapping to avoid init mode issues
-                Cow::Owned(Vec::new())
-            }
-        }
-    }
-
-    fn from_bytes(bytes: Cow<[u8]>) -> Self {
-        match serde_json::from_slice(&bytes) {
-            Ok(profile) => StorableUserProfile(profile),
-            Err(e) => {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
-                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize user profile: {}", e), Some(e.to_string()));
-                let severity = get_severity_for_event_type("CORRUPTED_DATA");
-                logger.log(severity, "CORRUPTED_DATA", &format!("Corrupted profile data (first 100 bytes): {:?}", &bytes[..std::cmp::min(100, bytes.len())]), None);
-                
-                // Return a default/empty profile instead of trapping to allow recovery
-                StorableUserProfile(UserProfile {
-                    internet_identity: Principal::anonymous(),
-                    name: String::new(),
-                    email: String::new(),
-                    role: crate::types::UserRole::RegularUser,
-                    assigned_institution_id: String::new(),
-                    created_at: 0,
-                    last_login: 0,
-                })
-            }
-        }
-    }
-
-    const BOUND: Bound = Bound::Unbounded;
-}
+// Implement Storable for UserProfile wrapper using macro
+impl_storable_with_logging!(
+    UserProfile, 
+    StorableUserProfile, 
+    StorableUserProfile,
+    StorableUserProfile(UserProfile {
+        internet_identity: Principal::anonymous(),
+        name: String::new(),
+        email: String::new(),
+        role: crate::types::UserRole::RegularUser,
+        assigned_institution_id: String::new(),
+        created_at: 0,
+        last_login: 0,
+    })
+);
 
 // Wrapper type for String keys
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -192,7 +125,7 @@ impl Storable for StorableString {
     }
 
     const BOUND: Bound = Bound::Bounded {
-        max_size: 1000, // Maximum key size
+        max_size: MAX_STRING_KEY_SIZE as u32,
         is_fixed_size: false,
     };
 }
@@ -220,7 +153,7 @@ impl Storable for StorablePrincipal {
     }
 
     const BOUND: Bound = Bound::Bounded {
-        max_size: 29, // Principal max size
+        max_size: MAX_PRINCIPAL_SIZE as u32,
         is_fixed_size: false,
     };
 }
@@ -239,14 +172,9 @@ thread_local! {
         init_stable_map(MemoryId::new(1))
     );
 
-    // Store owner mappings using proper Storable types
-    pub static OWNER_TOKENS: RefCell<StableBTreeMap<StorablePrincipal, StorableTokens, Memory>> = RefCell::new(
-        init_stable_map(MemoryId::new(2))
-    );
-
     // Store user profiles using proper Storable types
     pub static USER_PROFILES: RefCell<StableBTreeMap<StorablePrincipal, StorableUserProfile, Memory>> = RefCell::new(
-        init_stable_map(MemoryId::new(3))
+        init_stable_map(MemoryId::new(2))
     );
 }
 
@@ -265,18 +193,6 @@ where
         StableBTreeMap::new(memory)
     } else {
         StableBTreeMap::load(memory)
-    }
-}
-
-// Helper functions for storage operations
-pub fn principal_to_bytes(principal: &Principal) -> Vec<u8> {
-    principal.as_slice().to_vec()
-}
-
-pub fn bytes_to_principal(bytes: &[u8]) -> Result<Principal, String> {
-    match Principal::try_from_slice(bytes) {
-        Ok(principal) => Ok(principal),
-        Err(_) => Err("Invalid principal bytes".to_string())
     }
 }
 
@@ -334,23 +250,33 @@ pub fn store_document_safe(document_id: &str, document: &Document) -> Result<(),
     Ok(())
 }
 
+// User profile helper functions
+pub fn get_user_profile_safe(user_identity: &Principal) -> Option<UserProfile> {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().get(&StorablePrincipal(*user_identity))
+            .map(|storable_profile| storable_profile.0)
+    })
+}
+
+pub fn update_user_profile_safe(user_identity: &Principal, profile: &UserProfile) -> Result<(), String> {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow_mut().insert(
+            StorablePrincipal(*user_identity),
+            StorableUserProfile(profile.clone())
+        );
+    });
+    Ok(())
+}
+
 // Function to validate all storage integrity
 pub fn validate_all_storage() -> Result<(), String> {
     // Clear corrupted entries during validation
-    clear_corrupted_entries();
+    cleanup_corrupted_entries();
     
-    // Validate documents
+    // Validate documents - only check structural integrity, not content issues handled by cleanup
     let document_issues = DOCUMENTS.with(|storage| {
         let mut issues = Vec::new();
         for (key, value) in storage.borrow().iter() {
-            // Skip default/empty documents that were recovered from corruption
-            if value.0.document_id.is_empty() && value.0.name.is_empty() && value.0.file_data.is_empty() {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("VALIDATION_SKIP");
-                logger.log(severity, "VALIDATION_SKIP", &format!("Skipping validation for recovered empty document with key: {}", key.0), None);
-                continue;
-            }
-            
             if key.0.is_empty() {
                 issues.push("Empty document key found".to_string());
             }
@@ -361,10 +287,6 @@ pub fn validate_all_storage() -> Result<(), String> {
             
             if !value.0.document_id.is_empty() && value.0.document_id != key.0 {
                 issues.push(format!("Document ID mismatch: key='{}', document_id='{}'", key.0, value.0.document_id));
-            }
-            
-            if value.0.file_data.is_empty() && value.0.file_type != "text/plain" && !value.0.file_type.is_empty() {
-                issues.push(format!("Document '{}' has empty file data", key.0));
             }
         }
         issues
@@ -377,18 +299,10 @@ pub fn validate_all_storage() -> Result<(), String> {
         logger.log(severity, "VALIDATION_WARNINGS", &format!("Document validation warnings: {}", document_issues.join("; ")), Some(document_issues.join("; ")));
     }
     
-    // Validate institutions
+    // Validate institutions - only check structural integrity
     let institution_issues = INSTITUTIONS.with(|storage| {
         let mut issues = Vec::new();
         for (key, value) in storage.borrow().iter() {
-            // Skip default/empty institutions that were recovered from corruption
-            if value.0.institution_id.is_empty() && value.0.name.is_empty() {
-                let logger = get_logger("storage");
-                let severity = get_severity_for_event_type("VALIDATION_SKIP");
-                logger.log(severity, "VALIDATION_SKIP", &format!("Skipping validation for recovered empty institution with key: {}", key.0), None);
-                continue;
-            }
-            
             if key.0.is_empty() {
                 issues.push("Empty institution key found".to_string());
             }
@@ -415,42 +329,51 @@ pub fn validate_all_storage() -> Result<(), String> {
         logger.log(severity, "VALIDATION_WARNINGS", &format!("Institution validation warnings: {}", institution_issues.join("; ")), Some(institution_issues.join("; ")));
     }
     
-    // Validate owner tokens consistency (be lenient about missing documents during recovery)
-    let token_issues = OWNER_TOKENS.with(|storage| {
+    // Validate user profiles - only check structural integrity, not content issues handled by cleanup
+    let user_profile_issues = USER_PROFILES.with(|storage| {
         let mut issues = Vec::new();
-        for (principal, tokens) in storage.borrow().iter() {
-            // Check that all tokens in the list correspond to actual documents
-            for token in &tokens.0 {
-                if !DOCUMENTS.with(|docs| docs.borrow().contains_key(&StorableString(token.clone()))) {
-                    issues.push(format!("Token '{}' for principal '{}' references non-existent document", token, principal.0));
-                }
+        for (key, value) in storage.borrow().iter() {
+            if value.0.internet_identity != key.0 {
+                issues.push(format!("User identity mismatch: key='{}', internet_identity='{}'", key.0, value.0.internet_identity));
+            }
+            
+            if value.0.name.is_empty() {
+                issues.push(format!("User profile '{}' has empty name", key.0));
+            }
+            
+            if value.0.email.is_empty() {
+                issues.push(format!("User profile '{}' has empty email", key.0));
+            }
+            
+            // Validate email format (basic check)
+            if !value.0.email.is_empty() && !value.0.email.contains('@') {
+                issues.push(format!("User profile '{}' has invalid email format: {}", key.0, value.0.email));
             }
         }
         issues
     });
     
-    // Log token issues as warnings but don't fail validation during recovery
-    if !token_issues.is_empty() {
+    // Log user profile issues as warnings but don't fail validation
+    if !user_profile_issues.is_empty() {
         let logger = get_logger("storage");
         let severity = get_severity_for_event_type("VALIDATION_WARNINGS");
-        logger.log(severity, "VALIDATION_WARNINGS", &format!("Owner tokens validation warnings: {}", token_issues.join("; ")), Some(token_issues.join("; ")));
+        logger.log(severity, "VALIDATION_WARNINGS", &format!("User profile validation warnings: {}", user_profile_issues.join("; ")), Some(user_profile_issues.join("; ")));
     }
     
     Ok(())
 }
 
-// Function to clear corrupted entries that were replaced with defaults
-pub fn clear_corrupted_entries() {
-    // Clear corrupted documents (those with all default values)
+// Cleanup function - removes documents with empty files and anonymous users
+pub fn cleanup_corrupted_entries() -> CleanupResult {
+    let mut total_cleaned = 0;
+    let mut cleaned_document_ids = Vec::new();
+    let mut cleaned_user_profile_identities = Vec::new();
+    
+    // Remove documents with empty file data
     let corrupted_doc_keys: Vec<String> = DOCUMENTS.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(key, value)| {
-                // Check if this is a default document (indicates corruption recovery)
-                if value.0.document_id.is_empty() && 
-                   value.0.name.is_empty() && 
-                   value.0.file_data.is_empty() &&
-                   value.0.company_name.is_empty() &&
-                   value.0.description.is_empty() {
+                if value.0.file_data.is_empty() {
                     Some(key.0.clone())
                 } else {
                     None
@@ -462,22 +385,20 @@ pub fn clear_corrupted_entries() {
     for key in corrupted_doc_keys {
         let logger = get_logger("storage");
         let severity = get_severity_for_event_type("CLEANUP");
-        logger.log(severity, "CLEANUP", &format!("Removing corrupted document entry: {}", key), Some(key.clone()));
+        logger.log(severity, "CLEANUP", &format!("Removing document with empty file data: {}", key), Some(key.clone()));
         DOCUMENTS.with(|storage| {
-            storage.borrow_mut().remove(&StorableString(key));
+            storage.borrow_mut().remove(&StorableString(key.clone()));
         });
+        cleaned_document_ids.push(key);
+        total_cleaned += 1;
     }
     
-    // Clear corrupted institutions (those with all default values)
-    let corrupted_inst_keys: Vec<String> = INSTITUTIONS.with(|storage| {
+    // Remove anonymous user profiles
+    let anonymous_user_keys: Vec<Principal> = USER_PROFILES.with(|storage| {
         storage.borrow().iter()
             .filter_map(|(key, value)| {
-                // Check if this is a default institution (indicates corruption recovery)
-                if value.0.institution_id.is_empty() && 
-                   value.0.name.is_empty() && 
-                   value.0.email.is_empty() &&
-                   value.0.created_at == 0 {
-                    Some(key.0.clone())
+                if value.0.internet_identity == Principal::anonymous() {
+                    Some(key.0)
                 } else {
                     None
                 }
@@ -485,33 +406,44 @@ pub fn clear_corrupted_entries() {
             .collect()
     });
     
-    for key in corrupted_inst_keys {
+    for principal in anonymous_user_keys {
         let logger = get_logger("storage");
         let severity = get_severity_for_event_type("CLEANUP");
-        logger.log(severity, "CLEANUP", &format!("Removing corrupted institution entry: {}", key), Some(key.clone()));
-        INSTITUTIONS.with(|storage| {
-            storage.borrow_mut().remove(&StorableString(key));
+        logger.log(severity, "CLEANUP", &format!("Removing anonymous user profile: {}", principal), Some(principal.to_string()));
+        USER_PROFILES.with(|storage| {
+            storage.borrow_mut().remove(&StorablePrincipal(principal));
         });
+        cleaned_user_profile_identities.push(principal.to_string());
+        total_cleaned += 1;
+    }
+    
+    CleanupResult {
+        total_cleaned,
+        cleaned_document_ids,
+        cleaned_user_profile_identities,
     }
 }
 
 // Function to get storage statistics for monitoring
 pub fn get_storage_stats() -> StorageStats {
-    let document_count = DOCUMENTS.with(|storage| storage.borrow().len());
     let institution_count = INSTITUTIONS.with(|storage| storage.borrow().len());
-    let owner_mapping_count = OWNER_TOKENS.with(|storage| storage.borrow().len());
+    let user_profile_count = USER_PROFILES.with(|storage| storage.borrow().len());
     
-    // Calculate total file data size
-    let total_file_size = DOCUMENTS.with(|storage| {
-        storage.borrow().iter()
-            .map(|(_, doc)| doc.0.file_data.len() as u64)
-            .sum()
+    // Calculate document count and total file size in a single pass
+    let (document_count, total_file_size) = DOCUMENTS.with(|storage| {
+        let mut count = 0;
+        let mut total_size = 0;
+        for (_, doc) in storage.borrow().iter() {
+            count += 1;
+            total_size += doc.0.file_data.len() as u64;
+        }
+        (count, total_size)
     });
     
     StorageStats {
         document_count: document_count as u64,
         institution_count: institution_count as u64,
-        owner_mapping_count: owner_mapping_count as u64,
+        user_profile_count: user_profile_count as u64,
         total_file_size_bytes: total_file_size,
     }
 }
@@ -522,7 +454,7 @@ pub fn detect_memory_anomalies() -> Vec<String> {
     let stats = get_storage_stats();
     
     // Check if all storage is empty (potential complete wipe)
-    if stats.document_count == 0 && stats.institution_count == 0 && stats.owner_mapping_count == 0 {
+    if stats.document_count == 0 && stats.institution_count == 0 && stats.user_profile_count == 0 {
         anomalies.push("CRITICAL: All storage appears to be empty - potential memory wipe detected".to_string());
     }
     
@@ -533,6 +465,10 @@ pub fn detect_memory_anomalies() -> Vec<String> {
     
     if stats.institution_count == 0 && stats.document_count > 0 {
         anomalies.push("WARNING: Institutions are empty but documents exist - potential partial wipe".to_string());
+    }
+    
+    if stats.user_profile_count == 0 && (stats.document_count > 0 || stats.institution_count > 0) {
+        anomalies.push("WARNING: User profiles are empty but other data exists - potential partial wipe".to_string());
     }
     
     // Check for orphaned data
@@ -561,55 +497,4 @@ pub fn detect_memory_anomalies() -> Vec<String> {
     anomalies
 }
 
-// Structure to hold storage statistics
-#[derive(Debug, Clone, candid::CandidType, serde::Serialize)]
-pub struct StorageStats {
-    pub document_count: u64,
-    pub institution_count: u64,
-    pub owner_mapping_count: u64,
-    pub total_file_size_bytes: u64,
-}
-
-// Legacy helper functions for backward compatibility
-pub fn document_to_bytes(document: &Document) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(document).map_err(|e| format!("Failed to serialize document: {}", e))
-}
-
-pub fn bytes_to_document(bytes: &[u8]) -> Result<Document, String> {
-    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize document: {}", e))
-}
-
-pub fn tokens_to_bytes(tokens: &[String]) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(tokens).map_err(|e| format!("Failed to serialize tokens: {}", e))
-}
-
-pub fn bytes_to_tokens(bytes: &[u8]) -> Result<Vec<String>, String> {
-    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize tokens: {}", e))
-}
-
-pub fn institution_to_bytes(institution: &Institution) -> Result<Vec<u8>, String> {
-    serde_json::to_vec(institution).map_err(|e| format!("Failed to serialize institution: {}", e))
-}
-
-pub fn bytes_to_institution(bytes: &[u8]) -> Result<Institution, String> {
-    serde_json::from_slice(bytes).map_err(|e| format!("Failed to deserialize institution: {}", e))
-}
-
-// User profile helper functions
-pub fn get_user_profile_safe(user_identity: &Principal) -> Option<UserProfile> {
-    USER_PROFILES.with(|profiles| {
-        profiles.borrow().get(&StorablePrincipal(*user_identity))
-            .map(|storable_profile| storable_profile.0)
-    })
-}
-
-pub fn update_user_profile_safe(user_identity: &Principal, profile: &UserProfile) -> Result<(), String> {
-    USER_PROFILES.with(|profiles| {
-        profiles.borrow_mut().insert(
-            StorablePrincipal(*user_identity),
-            StorableUserProfile(profile.clone())
-        );
-    });
-    Ok(())
-}
 
