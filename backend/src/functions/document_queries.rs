@@ -1,7 +1,7 @@
 use ic_cdk::query;
 use candid::Principal;
 use crate::types::{Document, DocumentType, DocumentSummary};
-use crate::storage::{DOCUMENTS, OWNER_TOKENS, StorableString};
+use crate::storage::{DOCUMENTS, StorableString};
 
 // ============================================================================
 // DOCUMENT QUERY FUNCTIONS
@@ -38,26 +38,20 @@ pub fn get_all_document_ids() -> Vec<String> {
     })
 }
 
-/// Get documents owned by a specific principal (fast query)
+/// Get documents owned by a specific principal (direct query - no owner token mapping needed)
 #[query]
 pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
-    OWNER_TOKENS.with(|owner_tokens| {
-        let owner_key = crate::storage::memory::StorablePrincipal(owner);
-        let document_ids = owner_tokens.borrow().get(&owner_key)
-            .map(|storable_tokens| storable_tokens.0)
-            .unwrap_or_default();
-        
-        // Convert document IDs to DocumentSummary
-        document_ids.into_iter()
-            .filter_map(|doc_id| {
-                crate::storage::get_document_safe(&doc_id).map(|doc| {
-                    DocumentSummary {
-                        id: doc.document_id,
-                        document_name: doc.name,
-                        file_type: doc.file_type,
-                        publication_date: doc.publication_date,
-                    }
-                })
+    DOCUMENTS.with(|storage| {
+        storage.borrow().iter()
+            .filter(|(_, doc)| doc.0.owner == owner)
+            .map(|(_, doc)| {
+                let document = &doc.0;
+                DocumentSummary {
+                    id: document.document_id.clone(),
+                    document_name: document.name.clone(),
+                    file_type: document.file_type.clone(),
+                    publication_date: document.publication_date,
+                }
             })
             .collect()
     })
@@ -112,5 +106,15 @@ pub fn get_documents_by_institution(institution_id: String) -> Vec<Document> {
                 }
             })
             .collect()
+    })
+}
+
+/// Check if a user owns a specific document (direct query)
+#[query]
+pub fn is_document_owned_by(document_id: String, owner: Principal) -> bool {
+    DOCUMENTS.with(|storage| {
+        storage.borrow().get(&crate::storage::memory::StorableString(document_id))
+            .map(|doc| doc.0.owner == owner)
+            .unwrap_or(false)
     })
 }

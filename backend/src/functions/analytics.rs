@@ -281,7 +281,7 @@ fn extract_document_content(document: &Document) -> String {
 
 /// Perform the actual Gemini API analysis with retry logic
 async fn perform_gemini_analysis(content: &str, focus: &str, api_key: &str) -> Result<String, String> {
-    const MAX_RETRIES: u32 = 3;
+    const MAX_RETRIES: u32 = 1; // Reduced from 3 to 1 to save 2B cycles per failed call
     
     for attempt in 1..=MAX_RETRIES {
         match perform_single_gemini_request(content, focus, api_key).await {

@@ -35,6 +35,9 @@ fn pre_upgrade() {
     let lifecycle_logger = get_lifecycle_logger();
     lifecycle_logger.log_pre_upgrade();
     
+    // Optimize data before upgrade to reduce transfer costs
+    optimize_data_for_upgrade();
+    
     validate_storage_integrity();
     
     println!("Pre-upgrade process completed successfully");
@@ -75,7 +78,7 @@ fn post_upgrade() {
     
     // Clean up any corrupted entries that may have been created during deserialization
     println!("Cleaning up corrupted entries...");
-    storage::clear_corrupted_entries();
+    storage::cleanup_corrupted_entries();
     
     // Final validation after cleanup
     let (final_documents_count, final_institutions_count, final_owner_tokens_count) = get_storage_counts();
@@ -169,5 +172,17 @@ fn migrate_document_file_hashes() {
                 lifecycle_logger.log_document_migration(&doc_id, true, None);
             }
         }
+    }
+}
+
+// Optimize data before upgrade to reduce transfer costs
+fn optimize_data_for_upgrade() {
+    let lifecycle_logger = get_lifecycle_logger();
+    
+    // Use existing cleanup function to reduce data size before upgrade
+    let cleanup_result = storage::cleanup_corrupted_entries();
+    if cleanup_result.total_cleaned > 0 {
+        println!("Pre-upgrade cleanup: removed {} corrupted entries", cleanup_result.total_cleaned);
+        lifecycle_logger.log_document_migration("PRE_UPGRADE_CLEANUP", true, Some(format!("Cleaned {} documents: {:?}", cleanup_result.cleaned_document_ids.len(), cleanup_result.cleaned_document_ids)));
     }
 }
