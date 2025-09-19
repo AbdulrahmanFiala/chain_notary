@@ -227,19 +227,20 @@ thread_local! {
 }
 
 // Heartbeat function that runs every 24 hours to check for memory wipes
-#[heartbeat]
-fn heartbeat() {
-    const TWENTY_FOUR_HOURS_NANOSECONDS: u64 = 24 * 3_600_000_000_000; // 24 hours in nanoseconds
-    
-    let current_time = get_current_timestamp();
-    let last_check = LAST_MEMORY_CHECK.with(|last| *last.borrow());
-    
-    // Check if 24 hours have passed since last check
-    if current_time - last_check >= TWENTY_FOUR_HOURS_NANOSECONDS {
-        // Update the last check timestamp
-        LAST_MEMORY_CHECK.with(|last| *last.borrow_mut() = current_time);
-        
-        // Run the memory wipe check using Discord only
-        let (_message, _is_wiped) = perform_memory_wipe_check("HEARTBEAT", true);
-    }
-}
+// DISABLED: This was causing excessive cycle consumption
+// #[heartbeat]
+// fn heartbeat() {
+//     const TWENTY_FOUR_HOURS_NANOSECONDS: u64 = 24 * 3_600_000_000_000; // 24 hours in nanoseconds
+//     
+//     let current_time = get_current_timestamp();
+//     let last_check = LAST_MEMORY_CHECK.with(|last| *last.borrow());
+//     
+//     // Check if 24 hours have passed since last check
+//     if current_time - last_check >= TWENTY_FOUR_HOURS_NANOSECONDS {
+//         // Update the last check timestamp
+//         LAST_MEMORY_CHECK.with(|last| *last.borrow_mut() = current_time);
+//         
+//         // Run the memory wipe check using Discord only
+//         let (_message, _is_wiped) = perform_memory_wipe_check("HEARTBEAT", true);
+//     }
+// }
