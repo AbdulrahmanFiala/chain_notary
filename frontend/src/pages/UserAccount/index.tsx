@@ -1,36 +1,61 @@
-import { Avatar } from 'antd'
-import type { FC } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { useAppSelector } from "@/store/hooks";
+import { Avatar } from "antd";
+import type { FC } from "react";
+import { NavLink, Outlet } from "react-router";
 
 const UserAccount: FC = () => {
+  const { userProfile } = useAppSelector((state) => state.auth);
+
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-8">
-        <Avatar className='cursor-pointer'  size={96}  alt="User avatar large" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCv8cbpKkiPFSt5EvnotZkKy8tloosX-_WEnxtPchLZxHdYqdY1QkLh7HWItaYTcZbBZVYUf_JPMUWfiTgAdcE7_WG9vtP13lhP323wbjnhbvI3ZQyF8sfkI_n2V31_IaGOIWr1tAtvwB82hKeqNYWP_oFM6sczH9cG_iEyGwxdRd_QL9o5vOsFzsHky5buoFxaWkOb_Qh2U6vUEdrPX6NbFH8ftLR6Ta9WgemLgXft29k8Ap5D9kl5S_gv7WZCSELwRBk9_Y1s" />
-        <div className='ml-6'>
-          <h1 className="text-3xl font-bold text-gray-900">John Doe</h1>
-          <p className="text-gray-500">john.doe@email.com</p>
+        <Avatar
+          className="cursor-pointer"
+          size={96}
+          alt="User avatar large"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCv8cbpKkiPFSt5EvnotZkKy8tloosX-_WEnxtPchLZxHdYqdY1QkLh7HWItaYTcZbBZVYUf_JPMUWfiTgAdcE7_WG9vtP13lhP323wbjnhbvI3ZQyF8sfkI_n2V31_IaGOIWr1tAtvwB82hKeqNYWP_oFM6sczH9cG_iEyGwxdRd_QL9o5vOsFzsHky5buoFxaWkOb_Qh2U6vUEdrPX6NbFH8ftLR6Ta9WgemLgXft29k8Ap5D9kl5S_gv7WZCSELwRBk9_Y1s"
+        />
+        <div className="ml-6">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {userProfile?.name}
+          </h1>
+          <p className="text-gray-500">{userProfile?.email}</p>
         </div>
       </div>
       <div className="mb-8">
         <div className="border-b border-gray-200">
           <nav aria-label="Tabs" className="-mb-px flex space-x-8">
-            <NavLink className={({ isActive }: { isActive: boolean }) => (isActive
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")
-              + " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"} to="/account/profile">
+            <NavLink
+              className={({ isActive }: { isActive: boolean }) =>
+                (isActive
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300") +
+                " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+              }
+              to="/account/profile"
+            >
               Profile
             </NavLink>
-            <NavLink className={({ isActive }: { isActive: boolean }) => (isActive
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")
-              + " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"} to="/account/document-history">
+            <NavLink
+              className={({ isActive }: { isActive: boolean }) =>
+                (isActive
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300") +
+                " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+              }
+              to="/account/document-history"
+            >
               Document History
             </NavLink>
-            <NavLink className={({ isActive }: { isActive: boolean }) => (isActive
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300")
-              + " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"} to="/account/settings">
+            <NavLink
+              className={({ isActive }: { isActive: boolean }) =>
+                (isActive
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300") +
+                " whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+              }
+              to="/account/settings"
+            >
               Settings
             </NavLink>
           </nav>
@@ -40,7 +65,7 @@ const UserAccount: FC = () => {
         <Outlet />
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default UserAccount
+export default UserAccount;
