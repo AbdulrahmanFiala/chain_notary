@@ -15,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'  # Update to Node 20 to fix engine warnings
+        node-version: '20'  
         
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
@@ -58,7 +58,7 @@ jobs:
       run: |
         export PATH="$HOME/.local/bin:$PATH"
         cd frontend
-        dfx generate backend  # Now the backend.did file exists
+        dfx generate backend
         npm run build
         cd ..
         
