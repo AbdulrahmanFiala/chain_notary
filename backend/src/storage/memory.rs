@@ -80,6 +80,23 @@ pub struct StorableInstitution(pub Institution);
 #[derive(Clone)]
 pub struct StorableUserProfile(pub UserProfile);
 
+// Wrapper for UpgradeCycleConsumption
+#[derive(Clone)]
+pub struct StorableUpgradeCycleConsumption(pub crate::types::UpgradeCycleConsumption);
+
+// Implement Storable for UpgradeCycleConsumption wrapper using macro
+impl_storable_with_logging!(
+    crate::types::UpgradeCycleConsumption, 
+    StorableUpgradeCycleConsumption, 
+    StorableUpgradeCycleConsumption,
+    StorableUpgradeCycleConsumption(crate::types::UpgradeCycleConsumption {
+        cycles_before: 0,
+        cycles_after: 0,
+        cycles_consumed: 0,
+        timestamp: 0,
+    })
+);
+
 // Implement Storable for Document wrapper using macro
 impl_storable_with_logging!(Document, StorableDocument, StorableDocument, StorableDocument(crate::types::Document::default()));
 
@@ -106,6 +123,10 @@ impl_storable_with_logging!(
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StorableString(pub String);
 
+// Wrapper type for upgrade keys
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StorableUpgradeKey(pub String);
+
 impl Storable for StorableString {
     fn to_bytes(&self) -> Cow<[u8]> {
         Cow::Borrowed(self.0.as_bytes())
@@ -126,6 +147,29 @@ impl Storable for StorableString {
 
     const BOUND: Bound = Bound::Bounded {
         max_size: MAX_STRING_KEY_SIZE as u32,
+        is_fixed_size: false,
+    };
+}
+
+impl Storable for StorableUpgradeKey {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Borrowed(self.0.as_bytes())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        match String::from_utf8(bytes.to_vec()) {
+            Ok(string) => StorableUpgradeKey(string),
+            Err(e) => {
+                let logger = get_logger("storage");
+                let severity = get_severity_for_event_type("DESERIALIZATION_ERROR");
+                logger.log(severity, "DESERIALIZATION_ERROR", &format!("Failed to deserialize upgrade key: {}", e), Some(e.to_string()));
+                StorableUpgradeKey(String::new())
+            }
+        }
+    }
+
+    const BOUND: Bound = Bound::Bounded {
+        max_size: 50,
         is_fixed_size: false,
     };
 }
@@ -176,6 +220,22 @@ thread_local! {
     pub static USER_PROFILES: RefCell<StableBTreeMap<StorablePrincipal, StorableUserProfile, Memory>> = RefCell::new(
         init_stable_map(MemoryId::new(2))
     );
+
+    // Store pre-upgrade cycles data
+    pub static PRE_UPGRADE_CYCLES: RefCell<StableBTreeMap<StorableUpgradeKey, StorableUpgradeCycleConsumption, Memory>> = RefCell::new(
+        init_cycles_map(MemoryId::new(4))
+    );
+}
+
+// Initialize cycles map
+fn init_cycles_map(memory_id: MemoryId) -> StableBTreeMap<StorableUpgradeKey, StorableUpgradeCycleConsumption, Memory> {
+    let memory = MEMORY_MANAGER.with(|m| m.borrow().get(memory_id));
+    
+    if memory.size() == 0 {
+        StableBTreeMap::new(memory)
+    } else {
+        StableBTreeMap::load(memory)
+    }
 }
 
 // Helper function to safely initialize stable maps

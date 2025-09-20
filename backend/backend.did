@@ -86,6 +86,12 @@ type Result_3 = variant { Ok : CycleMonitoringData; Err : text };
 type Result_4 = variant { Ok : opt UserProfile; Err : text };
 type Result_5 = variant { Ok : UserProfile; Err : text };
 type TransformArgs = record { context : blob; response : HttpRequestResult };
+type UpgradeCycleConsumption = record {
+  cycles_after : nat;
+  cycles_consumed : nat;
+  timestamp : nat64;
+  cycles_before : nat;
+};
 type UserProfile = record {
   last_login : nat64;
   name : text;
@@ -149,6 +155,9 @@ service : () -> {
   // Get institutions by owner
   get_institutions_by_owner : (principal) -> (vec Institution) query;
   get_storage_info : () -> (vec text) query;
+  get_upgrade_cycle_history : () -> (
+      vec record { text; UpgradeCycleConsumption },
+    ) query;
   // Check if user has a profile and what their role is
   get_user_profile : () -> (Result_4) query;
   // Check if a user owns a specific document (direct query)

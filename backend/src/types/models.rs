@@ -153,6 +153,15 @@ pub struct CycleMonitoringData {
     pub timestamp: u64,
 }
 
+// Upgrade cycle consumption tracking data
+#[derive(Clone, Debug, candid::CandidType, serde::Serialize, serde::Deserialize)]
+pub struct UpgradeCycleConsumption {
+    pub cycles_before: u128,
+    pub cycles_after: u128,
+    pub cycles_consumed: u128, 
+    pub timestamp: u64,
+}
+
 // Structure to hold storage statistics
 #[derive(Debug, Clone, candid::CandidType, serde::Serialize)]
 pub struct StorageStats {
