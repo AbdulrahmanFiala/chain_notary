@@ -4,7 +4,7 @@
 use serde_json::json;
 use ic_cdk::api::canister_self;
 use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
-use ic_cdk::{println, futures};
+use ic_cdk::println;
 use crate::utils::helpers::{get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 use super::get_severity_for_event_type;
 

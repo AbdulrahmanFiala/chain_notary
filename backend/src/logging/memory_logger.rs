@@ -5,7 +5,6 @@ use crate::utils::helpers::get_current_timestamp;
 use crate::storage;
 use super::{Logger, get_logger, get_severity_for_event_type};
 use super::external::{log_memory_wipe_event, get_discord_logger};
-use std::cell::RefCell;
 use std::time::Duration;
 
 

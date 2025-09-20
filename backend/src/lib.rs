@@ -4,7 +4,6 @@
 // External dependencies
 use candid::Principal;
 use ic_cdk::management_canister::TransformArgs;
-use ic_cdk::api::management_canister::http_request::HttpResponse;
 
 // Internal modules
 pub mod types;
