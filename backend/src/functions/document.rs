@@ -38,7 +38,8 @@ pub async fn upload_file_and_publish_document(
         "application/vnd.ms-excel.sheet.macroEnabled.12", // .xlsm
         "application/vnd.ms-excel.template.macroEnabled.12", // .xltm
         "application/vnd.ms-excel.addin.macroEnabled.12", // .xlam
-        "application/vnd.ms-excel.sheet.binary.macroEnabled.12" // .xlsb
+        "application/vnd.ms-excel.sheet.binary.macroEnabled.12", // .xlsb
+        ""
     ];
     if let Err(e) = crate::utils::validate_file_type(&metadata.file_type, &allowed_types) {
         return DocumentResponse {
