@@ -53,6 +53,8 @@ jobs:
         export PATH="$HOME/.local/bin:$PATH"
         cargo build --target wasm32-unknown-unknown --release --package backend
         candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > backend/backend.did
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         
     - name: Build frontend
       run: |
@@ -61,8 +63,6 @@ jobs:
         dfx generate backend
         npm run build
         cd ..
-      env:
-        VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
         
     - name: Import DFX identity from secrets
       run: |

@@ -14,6 +14,9 @@ const MAX_RESPONSE_BYTES: u64 = 500_000; // 500KB for comprehensive analysis
 const REQUEST_CYCLES: u128 = 1_000_000_000;
 const MAX_PDF_TEXT_LENGTH: usize = 50_000; // Limit PDF text to ~50K characters to avoid API limits
 
+// Add API key constant at the top
+const GEMINI_API_KEY: &str = env!("GEMINI_API_KEY");
+
 // Gemini API response structures
 #[derive(SerdeDeserialize, Debug)]
 struct GeminiResponse {
@@ -51,12 +54,15 @@ pub struct AnalyticsRequest {
     pub document_id: Option<String>, // If provided, analyze the PDF content
     pub input_data: Option<String>,  // If no PDF, analyze this input data
     pub analysis_focus: String,      // "financial_summary", "risk_assessment", "market_insights", etc.
-    pub api_key: String,             // Gemini API key for authentication
+    pub api_key: String,             // Gemini API key for authentication (kept for compatibility, but backend uses its own key)
 }
 
 /// Main analytics function that handles both PDF and input data analysis
 #[update]
 pub async fn analyze_document_data(request: AnalyticsRequest) -> AnalyticsResponse {
+    // Note: We ignore the api_key from the request for security
+    // and use the backend's GEMINI_API_KEY instead
+    
     // Validate request
     if request.document_id.is_none() && request.input_data.is_none() {
         return AnalyticsResponse {
@@ -109,13 +115,13 @@ pub async fn analyze_document_data(request: AnalyticsRequest) -> AnalyticsRespon
         }
     };
 
-    // Perform the analysis
-    match perform_gemini_analysis(&content_to_analyze, &request.analysis_focus, &request.api_key).await {
+    // Perform the analysis using backend's API key (ignore request.api_key)
+    match perform_gemini_analysis(&content_to_analyze, &request.analysis_focus).await {
         Ok(analysis) => AnalyticsResponse {
             success: true,
             analysis,
             error_message: String::new(),
-            analysis_type,
+            analysis_type: request.analysis_focus.clone(), 
         },
         Err(error) => AnalyticsResponse {
             success: false,
@@ -279,39 +285,9 @@ fn extract_document_content(document: &Document) -> String {
     }
 }
 
-/// Perform the actual Gemini API analysis with retry logic
-async fn perform_gemini_analysis(content: &str, focus: &str, api_key: &str) -> Result<String, String> {
-    const MAX_RETRIES: u32 = 1; // Reduced from 3 to 1 to save 2B cycles per failed call
-    
-    for attempt in 1..=MAX_RETRIES {
-        match perform_single_gemini_request(content, focus, api_key).await {
-            Ok(result) => return Ok(result),
-            Err(error) => {
-                ic_cdk::println!("Gemini API attempt {}/{} failed: {}", attempt, MAX_RETRIES, error);
-                
-                // Don't retry on the last attempt
-                if attempt == MAX_RETRIES {
-                    return Err(format!("All {} attempts failed. Last error: {}", MAX_RETRIES, error));
-                }
-                
-                // Check if it's a consensus error that might benefit from retry
-                if error.contains("No consensus could be reached") || error.contains("SysTransient") {
-                    ic_cdk::println!("Consensus error detected, retrying attempt {}/{}", attempt + 1, MAX_RETRIES);
-                    continue;
-                } else {
-                    // For other errors, don't retry
-                    return Err(error);
-                }
-            }
-        }
-    }
-    
-    Err("Unexpected retry loop exit".to_string())
-}
-
-/// Perform a single Gemini API request
-async fn perform_single_gemini_request(content: &str, focus: &str, api_key: &str) -> Result<String, String> {
-    let url = format!("{}?key={}", GEMINI_ENDPOINT, api_key);
+/// Perform Gemini API request
+async fn perform_gemini_analysis(content: &str, focus: &str) -> Result<String, String> {
+    let url = format!("{}?key={}", GEMINI_ENDPOINT, GEMINI_API_KEY);
 
     // Create focused prompt based on analysis type
     let prompt = create_analysis_prompt(content, focus);
