@@ -133,28 +133,3 @@ pub async fn send_discord_webhook(event_type: String, message: String) -> Result
         Err(e) => Err(format!("Discord webhook failed: {}", e)),
     }
 }
-
-// Query function to get storage information in a human-readable format (super admin only)
-#[ic_cdk::query]
-pub fn get_storage_info() -> Result<Vec<String>, String> {
-    require_super_admin()?;
-    
-    // This function returns storage information in a readable format
-    let stats = storage::get_storage_stats();
-    let documents_count = stats.document_count;
-    let institutions_count = stats.institution_count;
-    let user_profiles_count = stats.user_profile_count;
-    
-    let mut info = Vec::new();
-    
-    // Add current state
-    info.push(format!("Current time: {}", get_current_timestamp()));
-    info.push(format!("Document count: {}", documents_count));
-    info.push(format!("Institution count: {}", institutions_count));
-    info.push(format!("User profiles count: {}", user_profiles_count));
-    
-    // Add instructions for accessing full logs
-    info.push("To see full logs, check IC Dashboard or use 'dfx canister logs'".to_string());
-    
-    Ok(info)
-}

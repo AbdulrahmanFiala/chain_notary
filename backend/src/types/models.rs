@@ -148,9 +148,9 @@ pub struct DocumentSummary {
 pub struct CycleMonitoringData {
     pub current_balance: u128,
     pub formatted_balance: String,
-    pub status: String,
     pub memory_size_bytes: u64,
     pub timestamp: u64,
+    pub date_and_time: String,
 }
 
 // Structure to hold storage statistics

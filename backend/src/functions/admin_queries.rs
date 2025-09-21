@@ -1,8 +1,8 @@
 use ic_cdk::{query, update};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole, CycleMonitoringData};
-use crate::storage::USER_PROFILES;
-use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
+use crate::storage::{USER_PROFILES, get_storage_stats};
+use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status, format_timestamp_to_human_readable};
 
 /// Check if current caller is a super admin
 pub fn require_super_admin() -> Result<Principal, String> {
@@ -308,19 +308,45 @@ pub fn admin_get_cycle_monitoring() -> Result<CycleMonitoringData, String> {
     
     let current_balance = get_canister_cycles_balance();
     let formatted_balance = format_cycles_balance_with_status(current_balance);
-    let status = crate::utils::helpers::get_cycles_status(current_balance).to_string();
     
     // Get memory size (approximate)
     let memory_size_bytes = ic_cdk::stable::stable_size() * 64 * 1024; // 64 KB per page
     
+    let timestamp = get_current_timestamp();
+    let date_and_time = format_timestamp_to_human_readable(timestamp);
     
     Ok(CycleMonitoringData {
         current_balance,
         formatted_balance,
-        status,
         memory_size_bytes,
-        timestamp: get_current_timestamp(),
+        timestamp,
+        date_and_time,
     })
+}
+
+/// Admin function: Get storage information in a human-readable format (super admin only)
+#[query]
+pub fn admin_get_storage_info() -> Result<Vec<String>, String> {
+    require_super_admin()?;
+    
+    // This function returns storage information in a readable format
+    let stats = get_storage_stats();
+    let documents_count = stats.document_count;
+    let institutions_count = stats.institution_count;
+    let user_profiles_count = stats.user_profile_count;
+    
+    let mut info = Vec::new();
+    
+    // Add current state
+    info.push(format!("Current time: {}", get_current_timestamp()));
+    info.push(format!("Document count: {}", documents_count));
+    info.push(format!("Institution count: {}", institutions_count));
+    info.push(format!("User profiles count: {}", user_profiles_count));
+    
+    // Add instructions for accessing full logs
+    info.push("To see full logs, check IC Dashboard or use 'dfx canister logs'".to_string());
+    
+    Ok(info)
 }
 
 

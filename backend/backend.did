@@ -26,7 +26,7 @@ type ConsolidatedIncomeData = record {
 };
 type CycleMonitoringData = record {
   formatted_balance : text;
-  status : text;
+  date_and_time : text;
   current_balance : nat;
   memory_size_bytes : nat64;
   timestamp : nat64;
@@ -106,6 +106,8 @@ service : () -> {
   admin_get_all_users : () -> (Result_2) query;
   // Admin function: Get cycle monitoring information (admin only)
   admin_get_cycle_monitoring : () -> (Result_3) query;
+  // Admin function: Get storage information in a human-readable format (super admin only)
+  admin_get_storage_info : () -> (Result_4) query;
   // Admin function: Get users without institutions (admin only)
   admin_get_users_without_institutions : () -> (Result_2) query;
   // Admin function: Link existing user to existing institution (super admin only)
@@ -149,7 +151,6 @@ service : () -> {
   get_institution_metadata : (text) -> (opt Institution) query;
   // Get institutions by owner
   get_institutions_by_owner : (principal) -> (vec Institution) query;
-  get_storage_info : () -> (Result_4) query;
   // Check if user has a profile and what their role is
   get_user_profile : () -> (Result_5) query;
   // Check if a user owns a specific document (direct query)
