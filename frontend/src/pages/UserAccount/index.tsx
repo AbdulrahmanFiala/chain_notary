@@ -1,4 +1,5 @@
 import { useAppSelector } from "@/store/hooks";
+import { UserOutlined } from "@ant-design/icons";
 import { Avatar } from "antd";
 import type { FC } from "react";
 import { NavLink, Outlet } from "react-router";
@@ -13,7 +14,7 @@ const UserAccount: FC = () => {
           className="cursor-pointer"
           size={96}
           alt="User avatar large"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCv8cbpKkiPFSt5EvnotZkKy8tloosX-_WEnxtPchLZxHdYqdY1QkLh7HWItaYTcZbBZVYUf_JPMUWfiTgAdcE7_WG9vtP13lhP323wbjnhbvI3ZQyF8sfkI_n2V31_IaGOIWr1tAtvwB82hKeqNYWP_oFM6sczH9cG_iEyGwxdRd_QL9o5vOsFzsHky5buoFxaWkOb_Qh2U6vUEdrPX6NbFH8ftLR6Ta9WgemLgXft29k8Ap5D9kl5S_gv7WZCSELwRBk9_Y1s"
+          icon={<UserOutlined />}
         />
         <div className="ml-6">
           <h1 className="text-3xl font-bold text-gray-900">
