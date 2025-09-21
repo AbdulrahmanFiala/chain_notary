@@ -533,3 +533,13 @@ pub fn transform_gemini_response(args: TransformArgs) -> ic_cdk::management_cani
 pub fn analytics_service_status() -> String {
     "Analytics service is available. Supported analysis types: PDF documents and input data.".to_string()
 }
+
+/// Query function to get available analysis focus options
+#[query]
+pub fn get_analysis_focus_options() -> Vec<String> {
+    vec![
+        "financial_summary".to_string(),
+        "investment_insights".to_string(),
+        "analysis_chart".to_string(),
+    ]
+}
