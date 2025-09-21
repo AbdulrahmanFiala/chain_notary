@@ -21,12 +21,10 @@ const CreateDocument: FC = () => {
   const handleSubmit: FormProps<Document>['onFinish'] = async (values) => {
     setIsLoading(true);
     try {
-      const mintedFile = await createDocumentService(values);
-      setIsLoading(false);
-      navigate(`/document/${mintedFile?.document_id}/view`);
+      const response = await createDocumentService(values);
+      navigate(`/document/${response?.document_id}/view`);
     } catch (error) {
       console.error("Error during file upload and document creation:", error);
-      setIsLoading(false);
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +62,7 @@ const CreateDocument: FC = () => {
                         hasFeedback
                         rules={[{ required: true, message: 'Please input the name!' }]}
                       >
-                        <Input />
+                        <Input disabled/>
                       </Form.Item>
                     </Col>
                     <Col xs={{ span: 24 }} md={{ span: 12 }} >
