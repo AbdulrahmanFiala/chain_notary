@@ -76,6 +76,7 @@ jobs:
     - name: Run mainnet deployment script
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        export DFX_WARNING=-mainnet_plaintext_identity
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
