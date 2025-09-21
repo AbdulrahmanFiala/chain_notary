@@ -61,6 +61,8 @@ jobs:
         dfx generate backend
         npm run build
         cd ..
+      env:
+        VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
         
     - name: Import DFX identity from secrets
       run: |
