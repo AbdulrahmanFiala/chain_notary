@@ -71,21 +71,19 @@ jobs:
         echo "${{ secrets.DFX_IDENTITY_PEM }}" > /tmp/identity.pem
         chmod 600 /tmp/identity.pem
         
-        # Import identity using encrypted storage with passphrase
-        echo "$DFX_IDENTITY_PASSPHRASE" | dfx identity import chainnotary-mainnet /tmp/identity.pem
+        # Import identity using plaintext storage (required for CI/CD)
+        dfx identity import chainnotary-mainnet /tmp/identity.pem --storage-mode plaintext
         
         # Clean up temporary file
         rm /tmp/identity.pem
         
         dfx identity use chainnotary-mainnet
-      env:
-        DFX_IDENTITY_PASSPHRASE: ${{ secrets.DFX_IDENTITY_PASSPHRASE }}
         
     - name: Run mainnet deployment script
       run: |
         export PATH="$HOME/.local/bin:$PATH"
+        export DFX_WARNING=-mainnet_plaintext_identity
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        DFX_IDENTITY_PASSPHRASE: ${{ secrets.DFX_IDENTITY_PASSPHRASE }}
