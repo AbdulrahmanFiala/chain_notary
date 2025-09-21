@@ -5,7 +5,7 @@ use crate::storage::USER_PROFILES;
 use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 
 /// Check if current caller is a super admin
-fn require_super_admin() -> Result<Principal, String> {
+pub fn require_super_admin() -> Result<Principal, String> {
     let caller = require_authenticated_user()?;
     
     match crate::storage::get_user_profile_safe(&caller) {

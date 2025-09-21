@@ -2,6 +2,7 @@
 // Handles memory event logging, storage health, and Discord webhooks
 
 use crate::utils::helpers::get_current_timestamp;
+use crate::functions::admin_queries::require_super_admin;
 use crate::storage;
 use super::{Logger, get_logger, get_severity_for_event_type};
 use super::external::{log_memory_wipe_event, get_discord_logger};
@@ -107,7 +108,7 @@ pub fn start_memory_check_timer() {
     ic_cdk_timers::set_timer_interval(
         Duration::from_secs(TWENTY_FOUR_HOURS_SECONDS),
         || {
-            ic_cdk::spawn(async {
+            ic_cdk::futures::spawn(async {
                 // Run the memory wipe check using Discord only
                 let (_message, _is_wiped) = perform_memory_wipe_check("Periodic Memory Check", true);
             });
@@ -133,9 +134,11 @@ pub async fn send_discord_webhook(event_type: String, message: String) -> Result
     }
 }
 
-// Query function to get storage information in a human-readable format
+// Query function to get storage information in a human-readable format (super admin only)
 #[ic_cdk::query]
-pub fn get_storage_info() -> Vec<String> {
+pub fn get_storage_info() -> Result<Vec<String>, String> {
+    require_super_admin()?;
+    
     // This function returns storage information in a readable format
     let stats = storage::get_storage_stats();
     let documents_count = stats.document_count;
@@ -153,5 +156,5 @@ pub fn get_storage_info() -> Vec<String> {
     // Add instructions for accessing full logs
     info.push("To see full logs, check IC Dashboard or use 'dfx canister logs'".to_string());
     
-    info
+    Ok(info)
 }

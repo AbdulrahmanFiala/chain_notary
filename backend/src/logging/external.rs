@@ -11,7 +11,6 @@ use super::get_severity_for_event_type;
 // Constants - OPTIMIZED FOR LOWER CYCLE USAGE
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 const MAX_DISCORD_RESPONSE_BYTES: u64 = 2000; 
-const DISCORD_REQUEST_CYCLES: u128 = 100_000_000;
 const DISCORD_WEBHOOK_URL: &str = "https://discordapp.com/api/webhooks/1415683134997139466/F894OVHPtYCQiOVKI7HGu_7uHQtPhViVHVadt7oKgYPpHISDkeI9137AhQW-yehjSUeA";
 
 // External logging service for memory wipe tracking
@@ -71,7 +70,7 @@ pub fn log_memory_wipe_event(
     let webhook_url = logger.webhook_url.clone();
     let timestamp_nanos_owned = timestamp_nanos;
     
-    ic_cdk::spawn(async move {  
+    ic_cdk::futures::spawn(async move {  
         match send_webhook(&webhook_url, &event_type_owned, &message_owned, detailed_data_owned, timestamp_nanos_owned, cycles_balance, formatted_cycles).await {
             Ok(_) => println!("Webhook sent successfully"),
             Err(e) => println!("Failed to send webhook: {}", e),
