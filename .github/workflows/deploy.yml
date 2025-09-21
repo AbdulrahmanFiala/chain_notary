@@ -71,8 +71,8 @@ jobs:
         echo "${{ secrets.DFX_IDENTITY_PEM }}" > /tmp/identity.pem
         chmod 600 /tmp/identity.pem
         
-        # Import identity using DFX's proper method with plaintext storage for CI/CD
-        dfx identity import chainnotary-mainnet /tmp/identity.pem --storage-mode plaintext
+        # Import identity using OS keyring storage (most secure for CI/CD)
+        dfx identity import chainnotary-mainnet /tmp/identity.pem --storage-mode keyring
         
         # Clean up temporary file
         rm /tmp/identity.pem
