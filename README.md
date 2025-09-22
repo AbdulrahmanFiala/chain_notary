@@ -44,12 +44,6 @@ To establish a trusted, transparent, and verifiable ecosystem for Egyptian finan
 - Cryptographic proof of authenticity with timestamp verification
 - International verification capability for global investors in Egyptian market
 
-### 🤝 Multi-Signature Support [Future]
-- Multi-party verification for high-value Egyptian market documents
-- Auditor and regulatory co-signing capabilities for market compliance
-- Enhanced security for critical financial disclosures
-- Chain of custody tracking for Egyptian market compliance purposes
-
 ## Target Users & Benefits
 
 ### 🔐 Data Input Users (Private Access)
