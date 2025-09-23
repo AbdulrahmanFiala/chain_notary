@@ -140,7 +140,7 @@ pub struct DocumentSummary {
     pub id: String,
     pub document_name: String,
     pub file_type: String,
-    pub publication_date: u64,
+    pub publication_date: Option<u64>,
 }
 
 // Cycle monitoring data structure

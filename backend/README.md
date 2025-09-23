@@ -147,7 +147,6 @@ get_collection_count : () -> (nat64) query
 # Document Queries
 get_document_metadata : (text) -> (opt Document) query
 get_document_file : (text) -> (opt blob) query
-get_complete_document : (text) -> (opt record { Document; blob }) query
 get_all_document_ids : () -> (vec text) query
 get_documents_by_owner : (principal) -> (vec text) query
 get_document_count : () -> (nat64) query

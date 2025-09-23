@@ -60,17 +60,5 @@ export const getAnalysisFocusOptions = async (): Promise<string[]> => {
   }
 };
 
-/**
- * Check analytics service status
- * @returns Promise<string>
- */
-export const getAnalyticsServiceStatus = async (): Promise<string> => {
-  try {
-    return await backend.analytics_service_status();
-  } catch (error) {
-    console.error('Error checking analytics service status:', error);
-    return 'Analytics service unavailable';
-  }
-};
 
 export default getAnalytics;

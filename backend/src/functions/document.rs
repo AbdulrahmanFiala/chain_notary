@@ -50,7 +50,6 @@ pub async fn upload_file_and_publish_document(
         };
     }
 
-
     // Normalize and validate institution_id (trim whitespace and check if empty)
     let normalized_institution_id = metadata.institution_id.trim().to_string();
     
@@ -83,6 +82,9 @@ pub async fn upload_file_and_publish_document(
     document.file_hash = calculated_hash.clone();
     document.institution_id = normalized_institution_id;
     document.publication_date = get_current_timestamp();
+    
+    // Override the owner with the authenticated caller's principal for security
+    document.owner = caller;
 
     // Store the complete document using safe storage function
     if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {
