@@ -33,6 +33,9 @@ pub fn get_all_document_ids() -> Vec<String> {
 /// Unified document query function with comprehensive filtering, sorting, and pagination
 #[query]
 pub fn query_documents(
+    // Document ID filter
+    doc_id: Option<String>,
+    
     // Existing filters
     owner: Option<Principal>,
     institution_id: Option<String>,
@@ -66,6 +69,13 @@ pub fn query_documents(
         storage.borrow().iter()
             .map(|(_, storable_doc)| storable_doc.0)
             .filter(|doc| {
+                // Document ID filter
+                if let Some(doc_id_filter) = &doc_id {
+                    if doc.document_id != *doc_id_filter {
+                        return false;
+                    }
+                }
+                
                 // Owner filter
                 if let Some(owner_filter) = owner {
                     if doc.owner != owner_filter {
@@ -180,6 +190,7 @@ pub fn query_documents(
 #[query]
 pub fn get_documents_by_owner(owner: Principal) -> Vec<DocumentSummary> {
     let (documents, _) = query_documents(
+        None, // doc_id
         Some(owner),
         None, // institution_id
         None, // document_type
