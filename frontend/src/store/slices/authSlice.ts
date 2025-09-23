@@ -1,60 +1,68 @@
-import type { LoginState } from '@/interfaces';
-import { AuthClient } from '@dfinity/auth-client';
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { canisterId, createActor } from 'declarations/backend';
+import type { LoginState } from "@/interfaces";
+import { AuthClient } from "@dfinity/auth-client";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { canisterId, createActor } from "declarations/backend";
+import type { UserProfile } from "declarations/backend/backend.did";
 
 const initialState: LoginState = {
   actor: undefined,
   authClient: undefined,
   isAuthenticated: false,
-  principal: '',
+  principal: "",
   loading: false,
-  error: null
+  error: null,
+  userProfile: null,
 };
 
 const network = process.env.DFX_NETWORK;
 const identityProvider =
-  network === 'ic'
-    ? 'https://identity.ic0.app' // Mainnet
-    : 'http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8080'; // Local
+  network === "ic"
+    ? "https://identity.ic0.app" // Mainnet
+    : "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8080"; // Local
 
 // Async Thunks (for async operations)
 export const updateActor = createAsyncThunk(
-  'auth/updateActor',
+  "auth/updateActor",
   async (_, { rejectWithValue }) => {
+    const authClient = await AuthClient.create();
+    const identity = authClient.getIdentity();
+    const actor = createActor(canisterId, {
+      agentOptions: {
+        identity,
+      },
+    });
     try {
-      const authClient = await AuthClient.create();
-      const identity = authClient.getIdentity();
-
-      const actor = createActor(canisterId, {
-        agentOptions: {
-          identity
-        }
-      });
-
       const result = await actor?.whoami();
-      const principal = result?.toString() || '';
+      const principal = result?.toString() || "";
       const isAuthenticated = await authClient.isAuthenticated();
+
+      const data = await actor?.get_user_profile();
+      let userProfile: UserProfile | null = null;
+      if ("Ok" in data && data.Ok.length > 0) {
+        userProfile = data.Ok[0] || null;
+      }
 
       return {
         actor,
         authClient,
         isAuthenticated,
-        principal
+        principal,
+        userProfile: userProfile || null,
       };
     } catch (error) {
-      console.error('Error updating actor:', error);
-      return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+      console.error("Error updating actor:", error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
-  }
+  },
 );
 
 export const login = createAsyncThunk(
-  'auth/login',
+  "auth/login",
   async (_, { dispatch, rejectWithValue }) => {
     try {
       const authClient = await AuthClient.create();
-
       return new Promise<string>((resolve, reject) => {
         authClient.login({
           identityProvider,
@@ -62,66 +70,58 @@ export const login = createAsyncThunk(
             try {
               // After successful login, update the actor
               await dispatch(updateActor()).unwrap();
-              resolve('Login successful');
+              resolve("Login successful");
             } catch (error) {
               reject(error);
             }
           },
           onError: (error) => {
-            reject(error || 'Login failed');
+            reject(error || "Login failed");
           },
         });
       });
     } catch (error) {
-      console.error('Login error:', error);
-      return rejectWithValue(error instanceof Error ? error.message : 'Login failed');
+      console.error("Login error:", error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Login failed",
+      );
     }
-  }
+  },
 );
 
 export const register = createAsyncThunk(
-  'auth/register',
-  async (_, { dispatch, rejectWithValue }) => {
+  "auth/register",
+  async (
+    { name, email }: { name: string; email: string },
+    { dispatch, rejectWithValue },
+  ) => {
     try {
       const authClient = await AuthClient.create();
-
-      return new Promise<string>((resolve, reject) => {
-        authClient.login({
-          identityProvider,
-          onSuccess: async () => {
-            try {
-              // After successful login, update the actor
-              await dispatch(updateActor()).unwrap();
-              resolve('Register successful');
-              const authClient = await AuthClient.create();
-              const identity = authClient.getIdentity();
-
-              const actor = createActor(canisterId, {
-                agentOptions: {
-                  identity
-                }
-              });
-              const profile = await actor.register_user()
-              console.log(profile);
-
-            } catch (error) {
-              reject(error);
-            }
-          },
-          onError: (error) => {
-            reject(error || 'Register failed');
-          },
-        });
+      const identity = authClient.getIdentity();
+      const actor = createActor(canisterId, {
+        agentOptions: {
+          identity,
+        },
       });
+      const data = await actor.register_user(name, email);
+      if ("Ok" in data) {
+        return data.Ok;
+      }
+
+      // After successful registration, update the actor
+      await dispatch(updateActor()).unwrap();
+      return "Register successful";
     } catch (error) {
-      console.error('Register error:', error);
-      return rejectWithValue(error instanceof Error ? error.message : 'Register failed');
+      console.error("Register error:", error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Register failed",
+      );
     }
-  }
+  },
 );
 
 export const logout = createAsyncThunk(
-  'auth/logout',
+  "auth/logout",
   async (_, { getState, dispatch, rejectWithValue }) => {
     try {
       const state = getState() as { auth: LoginState };
@@ -134,24 +134,26 @@ export const logout = createAsyncThunk(
       // Update actor after logout
       await dispatch(updateActor()).unwrap();
 
-      return 'Logout successful';
+      return "Logout successful";
     } catch (error) {
-      console.error('Logout error:', error);
-      return rejectWithValue(error instanceof Error ? error.message : 'Logout failed');
+      console.error("Logout error:", error);
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Logout failed",
+      );
     }
-  }
+  },
 );
 
 // Initialize auth on app start
 export const initializeAuth = createAsyncThunk(
-  'auth/initialize',
+  "auth/initialize",
   async (_, { dispatch }) => {
     await dispatch(updateActor());
-  }
+  },
 );
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     // Synchronous reducers only
@@ -165,9 +167,10 @@ const authSlice = createSlice({
       state.actor = undefined;
       state.authClient = undefined;
       state.isAuthenticated = false;
-      state.principal = '';
+      state.principal = "";
       state.loading = false;
       state.error = null;
+      state.userProfile = null;
     },
   },
   extraReducers: (builder) => {
@@ -183,6 +186,7 @@ const authSlice = createSlice({
         state.authClient = action.payload.authClient;
         state.isAuthenticated = action.payload.isAuthenticated;
         state.principal = action.payload.principal;
+        state.userProfile = action.payload.userProfile;
       })
       .addCase(updateActor.rejected, (state, action) => {
         state.loading = false;
@@ -226,7 +230,7 @@ const authSlice = createSlice({
       })
       .addCase(initializeAuth.rejected, (state) => {
         state.loading = false;
-        state.error = 'Failed to initialize authentication';
+        state.error = "Failed to initialize authentication";
       });
   },
 });

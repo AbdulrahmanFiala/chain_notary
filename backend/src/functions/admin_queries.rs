@@ -1,11 +1,11 @@
 use ic_cdk::{query, update};
 use candid::Principal;
 use crate::types::{UserProfile, UserRole, CycleMonitoringData};
-use crate::storage::{USER_PROFILES, cleanup_corrupted_entries};
-use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
+use crate::storage::{USER_PROFILES, get_storage_stats};
+use crate::utils::helpers::{require_authenticated_user, get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status, format_timestamp_to_human_readable};
 
 /// Check if current caller is a super admin
-fn require_super_admin() -> Result<Principal, String> {
+pub fn require_super_admin() -> Result<Principal, String> {
     let caller = require_authenticated_user()?;
     
     match crate::storage::get_user_profile_safe(&caller) {
@@ -111,30 +111,39 @@ pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), Stri
         return Err("Cannot promote anonymous users to super admin. Target user must be authenticated.".to_string());
     }
     
-    USER_PROFILES.with(|profiles| {
-        let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
-        match profiles.borrow().get(&profile_key) {
-            Some(mut profile) => {
-                profile.0.role = UserRole::SuperAdmin;
-                profiles.borrow_mut().insert(profile_key, profile);
-                Ok(())
-            },
-            None => {
-                // Create new super admin profile
-                let new_profile = UserProfile {
-                    internet_identity: user_identity,
-                    name: String::new(), // Will be set when user updates their profile
-                    email: String::new(), // Will be set when user updates their profile
-                    role: UserRole::SuperAdmin,
-                    assigned_institution_id: String::new(),
-                    created_at: get_current_timestamp(),
-                    last_login: 0,
-                };
+    let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
+    
+    // First, check if user exists and get their current profile
+    let existing_profile = USER_PROFILES.with(|profiles| {
+        profiles.borrow().get(&profile_key).map(|storable| storable.0.clone())
+    });
+    
+    match existing_profile {
+        Some(mut profile) => {
+            // Update existing profile
+            profile.role = UserRole::SuperAdmin;
+            USER_PROFILES.with(|profiles| {
+                profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(profile));
+            });
+            Ok(())
+        },
+        None => {
+            // Create new super admin profile
+            let new_profile = UserProfile {
+                internet_identity: user_identity,
+                name: String::new(), // Will be set when user updates their profile
+                email: String::new(), // Will be set when user updates their profile
+                role: UserRole::SuperAdmin,
+                assigned_institution_id: String::new(),
+                created_at: get_current_timestamp(),
+                last_login: 0,
+            };
+            USER_PROFILES.with(|profiles| {
                 profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(new_profile));
-                Ok(())
-            }
+            });
+            Ok(())
         }
-    })
+    }
 }
 
 /// Admin function: Delete a user (super admin only)
@@ -299,40 +308,46 @@ pub fn admin_get_cycle_monitoring() -> Result<CycleMonitoringData, String> {
     
     let current_balance = get_canister_cycles_balance();
     let formatted_balance = format_cycles_balance_with_status(current_balance);
-    let status = crate::utils::helpers::get_cycles_status(current_balance).to_string();
     
     // Get memory size (approximate)
-    let memory_size_bytes = ic_cdk::api::stable::stable_size() * 64 * 1024; // 64 KB per page
+    let memory_size_bytes = ic_cdk::stable::stable_size() * 64 * 1024; // 64 KB per page
     
+    let timestamp = get_current_timestamp();
+    let date_and_time = format_timestamp_to_human_readable(timestamp);
     
     Ok(CycleMonitoringData {
         current_balance,
         formatted_balance,
-        status,
         memory_size_bytes,
-        timestamp: get_current_timestamp(),
+        timestamp,
+        date_and_time,
     })
 }
 
-/// Admin function: Clean up corrupted entries (empty documents and anonymous users) (super admin only)
-#[update]
-pub fn admin_cleanup_corrupted_entries() -> Result<String, String> {
+/// Admin function: Get storage information in a human-readable format (super admin only)
+#[query]
+pub fn admin_get_storage_info() -> Result<Vec<String>, String> {
     require_super_admin()?;
     
-    let cleanup_result = cleanup_corrupted_entries();
+    // This function returns storage information in a readable format
+    let stats = get_storage_stats();
+    let documents_count = stats.document_count;
+    let institutions_count = stats.institution_count;
+    let user_profiles_count = stats.user_profile_count;
     
-    let message = if cleanup_result.total_cleaned > 0 {
-        format!("Cleaned up {} corrupted entries ({} documents, {} user profiles): {:?}", 
-                cleanup_result.total_cleaned, 
-                cleanup_result.cleaned_document_ids.len(),
-                cleanup_result.cleaned_user_profile_identities.len(),
-                cleanup_result.cleaned_document_ids)
-    } else {
-        "No corrupted entries found to clean up".to_string()
-    };
+    let mut info = Vec::new();
     
-    ic_cdk::println!("Admin cleanup: {}", message);
-    Ok(message)
+    // Add current state
+    info.push(format!("Current time: {}", get_current_timestamp()));
+    info.push(format!("Document count: {}", documents_count));
+    info.push(format!("Institution count: {}", institutions_count));
+    info.push(format!("User profiles count: {}", user_profiles_count));
+    
+    // Add instructions for accessing full logs
+    info.push("To see full logs, check IC Dashboard or use 'dfx canister logs'".to_string());
+    
+    Ok(info)
 }
+
 
 

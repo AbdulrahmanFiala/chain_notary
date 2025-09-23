@@ -26,7 +26,7 @@ type ConsolidatedIncomeData = record {
 };
 type CycleMonitoringData = record {
   formatted_balance : text;
-  status : text;
+  date_and_time : text;
   current_balance : nat;
   memory_size_bytes : nat64;
   timestamp : nat64;
@@ -83,8 +83,9 @@ type Result = variant { Ok : text; Err : text };
 type Result_1 = variant { Ok; Err : text };
 type Result_2 = variant { Ok : vec UserProfile; Err : text };
 type Result_3 = variant { Ok : CycleMonitoringData; Err : text };
-type Result_4 = variant { Ok : opt UserProfile; Err : text };
-type Result_5 = variant { Ok : UserProfile; Err : text };
+type Result_4 = variant { Ok : vec text; Err : text };
+type Result_5 = variant { Ok : opt UserProfile; Err : text };
+type Result_6 = variant { Ok : UserProfile; Err : text };
 type TransformArgs = record { context : blob; response : HttpRequestResult };
 type UserProfile = record {
   last_login : nat64;
@@ -105,6 +106,8 @@ service : () -> {
   admin_get_all_users : () -> (Result_2) query;
   // Admin function: Get cycle monitoring information (admin only)
   admin_get_cycle_monitoring : () -> (Result_3) query;
+  // Admin function: Get storage information in a human-readable format (super admin only)
+  admin_get_storage_info : () -> (Result_4) query;
   // Admin function: Get users without institutions (admin only)
   admin_get_users_without_institutions : () -> (Result_2) query;
   // Admin function: Link existing user to existing institution (super admin only)
@@ -148,14 +151,13 @@ service : () -> {
   get_institution_metadata : (text) -> (opt Institution) query;
   // Get institutions by owner
   get_institutions_by_owner : (principal) -> (vec Institution) query;
-  get_storage_info : () -> (vec text) query;
   // Check if user has a profile and what their role is
-  get_user_profile : () -> (Result_4) query;
+  get_user_profile : () -> (Result_5) query;
   // Check if a user owns a specific document (direct query)
   is_document_owned_by : (text, principal) -> (bool) query;
   // Public function for users to register themselves (called after Internet Identity login)
   // Used as well to update the last_login timestamp for existing users
-  register_user : (text, text) -> (Result_5);
+  register_user : (text, text) -> (Result_6);
   // Search documents by name (case-insensitive partial match)
   search_documents_by_name : (text) -> (vec Document) query;
   // Search institutions by name (case-insensitive partial match)

@@ -53,6 +53,8 @@ jobs:
         export PATH="$HOME/.local/bin:$PATH"
         cargo build --target wasm32-unknown-unknown --release --package backend
         candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > backend/backend.did
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         
     - name: Build frontend
       run: |
@@ -65,10 +67,16 @@ jobs:
     - name: Import DFX identity from secrets
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        # Create directory and import existing identity
-        mkdir -p ~/.config/dfx/identity/chainnotary-mainnet/
-        echo "${{ secrets.DFX_IDENTITY_PEM }}" > ~/.config/dfx/identity/chainnotary-mainnet/identity.pem
-        chmod 600 ~/.config/dfx/identity/chainnotary-mainnet/identity.pem
+        # Create a temporary PEM file for import
+        echo "${{ secrets.DFX_IDENTITY_PEM }}" > /tmp/identity.pem
+        chmod 600 /tmp/identity.pem
+        
+        # Import identity using plaintext storage (required for CI/CD)
+        dfx identity import chainnotary-mainnet /tmp/identity.pem --storage-mode plaintext
+        
+        # Clean up temporary file
+        rm /tmp/identity.pem
+        
         dfx identity use chainnotary-mainnet
         
     - name: Run mainnet deployment script
@@ -77,3 +85,5 @@ jobs:
         export DFX_WARNING=-mainnet_plaintext_identity
         chmod +x docs/technical/mainnet_deploy.sh
         ./docs/technical/mainnet_deploy.sh
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

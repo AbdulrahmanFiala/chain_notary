@@ -1,6 +1,5 @@
 use ic_cdk::update;
 use crate::types::{DocumentResponse, Document};
-use crate::storage;
 use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
 
 /// Custom upload endpoint for publishing documents to the icp blockchain
@@ -39,7 +38,8 @@ pub async fn upload_file_and_publish_document(
         "application/vnd.ms-excel.sheet.macroEnabled.12", // .xlsm
         "application/vnd.ms-excel.template.macroEnabled.12", // .xltm
         "application/vnd.ms-excel.addin.macroEnabled.12", // .xlam
-        "application/vnd.ms-excel.sheet.binary.macroEnabled.12" // .xlsb
+        "application/vnd.ms-excel.sheet.binary.macroEnabled.12", // .xlsb
+        ""
     ];
     if let Err(e) = crate::utils::validate_file_type(&metadata.file_type, &allowed_types) {
         return DocumentResponse {

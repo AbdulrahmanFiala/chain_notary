@@ -2,12 +2,10 @@
 // Provides unified logging interface for all modules
 
 pub mod memory_logger;
-pub mod lifecycle_logger;
 pub mod external;
 
 // Re-export main logging functions for easy access
 pub use memory_logger::*;
-pub use lifecycle_logger::*;
 pub use external::*;
 
 // Common logging structures and utilities
@@ -76,15 +74,13 @@ pub fn get_logger(module: &str) -> Logger {
 // Shared severity mapping for event types - eliminates duplication between modules
 pub fn get_severity_for_event_type(event_type: &str) -> LogSeverity {
     match event_type {
-        "POTENTIAL_MEMORY_WIPE" | "MEMORY_WIPE_DETECTED" | "HEARTBEAT_MEMORY_WIPE_DETECTED" => LogSeverity::Critical,
-        "PRE_UPGRADE" | "POST_UPGRADE" | "POST_UPGRADE_FINAL" => LogSeverity::Info,
+        event if event.contains("WIPE DETECTED") => LogSeverity::Critical,
+        event if event.contains(" - OK") => LogSeverity::Info,
+        "POST_UPGRADE" => LogSeverity::Info,
         "CANISTER_INIT" => LogSeverity::Info,
-        "MANUAL_MEMORY_WIPE_CHECK" | "MEMORY_ANOMALY" | "STORAGE_ANOMALY" => LogSeverity::Warning,
-        "HEARTBEAT_MEMORY_OK" => LogSeverity::Info,
-        "STORAGE_VALIDATION" | "DATA_MIGRATION" | "DOCUMENT_MIGRATION" | "CLEANUP" => LogSeverity::Info,
+        "MANUAL_MEMORY_WIPE_CHECK" | "STORAGE_ANOMALY" => LogSeverity::Warning,
         "SERIALIZATION_ERROR" | "DESERIALIZATION_ERROR" => LogSeverity::Critical,
-        "CORRUPTED_DATA" | "VALIDATION_SKIP" => LogSeverity::Debug,
-        "VALIDATION_WARNINGS" => LogSeverity::Warning,
+        "CORRUPTED_DATA" => LogSeverity::Debug,
         "USER_REGISTRATION" => LogSeverity::Info,
         _ => LogSeverity::Info,
     }

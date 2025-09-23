@@ -4,14 +4,13 @@
 use serde_json::json;
 use ic_cdk::api::canister_self;
 use ic_cdk::management_canister::{HttpRequestArgs, HttpMethod, HttpHeader, http_request};
-use ic_cdk::{println, futures};
+use ic_cdk::println;
 use crate::utils::helpers::{get_current_timestamp, get_canister_cycles_balance, format_cycles_balance_with_status};
 use super::get_severity_for_event_type;
 
 // Constants - OPTIMIZED FOR LOWER CYCLE USAGE
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 const MAX_DISCORD_RESPONSE_BYTES: u64 = 2000; 
-const DISCORD_REQUEST_CYCLES: u128 = 100_000_000;
 const DISCORD_WEBHOOK_URL: &str = "https://discordapp.com/api/webhooks/1415683134997139466/F894OVHPtYCQiOVKI7HGu_7uHQtPhViVHVadt7oKgYPpHISDkeI9137AhQW-yehjSUeA";
 
 // External logging service for memory wipe tracking
@@ -71,7 +70,7 @@ pub fn log_memory_wipe_event(
     let webhook_url = logger.webhook_url.clone();
     let timestamp_nanos_owned = timestamp_nanos;
     
-    futures::spawn(async move {
+    ic_cdk::futures::spawn(async move {  
         match send_webhook(&webhook_url, &event_type_owned, &message_owned, detailed_data_owned, timestamp_nanos_owned, cycles_balance, formatted_cycles).await {
             Ok(_) => println!("Webhook sent successfully"),
             Err(e) => println!("Failed to send webhook: {}", e),
@@ -86,8 +85,9 @@ pub fn get_severity_level(event_type: &str) -> String {
     get_severity_for_event_type(event_type).as_str().to_string()
 }
 
+
 // Discord webhook payload structure for memory wipe events
-pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {
+pub fn create_discord_webhook_payload(event_type: &str, message: &str, detailed_data: Option<String>, timestamp_nanos: u64, _cycles_balance: u128, formatted_cycles: String) -> serde_json::Value {
     let color = match get_severity_level(event_type).as_str() {
         "CRITICAL" => 0xff0000, // Red
         "WARNING" => 0xffaa00,  // Orange

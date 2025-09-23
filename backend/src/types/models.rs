@@ -148,9 +148,9 @@ pub struct DocumentSummary {
 pub struct CycleMonitoringData {
     pub current_balance: u128,
     pub formatted_balance: String,
-    pub status: String,
     pub memory_size_bytes: u64,
     pub timestamp: u64,
+    pub date_and_time: String,
 }
 
 // Structure to hold storage statistics
@@ -160,12 +160,4 @@ pub struct StorageStats {
     pub institution_count: u64,
     pub user_profile_count: u64,
     pub total_file_size_bytes: u64,
-}
-
-// Structure to hold cleanup results
-#[derive(Debug, Clone, candid::CandidType, serde::Serialize)]
-pub struct CleanupResult {
-    pub total_cleaned: u64,
-    pub cleaned_document_ids: Vec<String>,
-    pub cleaned_user_profile_identities: Vec<String>,
 }

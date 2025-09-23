@@ -1,0 +1,95 @@
+import useFormValidation from "@/hooks/useFormValidation";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { register } from "@/store/slices/authSlice";
+import { Button, Card, Form, Input, message, Typography } from "antd";
+import { useState, type FC } from "react";
+import { Navigate, useNavigate } from "react-router";
+
+const { Title, Text } = Typography;
+
+const UserRegistration: FC = () => {
+  const [form] = Form.useForm();
+  const { actor, userProfile } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
+
+  const { isValid } = useFormValidation(form);
+
+  const handleSubmit = async ({
+    name,
+    email,
+  }: {
+    name: string;
+    email: string;
+  }) => {
+    setIsLoading(true);
+    if (!actor) {
+      message.error("Authentication required");
+      return;
+    }
+
+    try {
+      await dispatch(register({ name, email })).unwrap();
+      navigate("/");
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (userProfile?.name && userProfile?.email)
+    return <Navigate to="/" state={{ from: location }} replace />;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <Card className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <Title level={2}>Complete Your Registration</Title>
+          <Text type="secondary">Please provide your details to continue</Text>
+        </div>
+
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          size="large"
+        >
+          <Form.Item
+            name="name"
+            label="Full Name"
+            rules={[{ required: true, message: "Please enter your full name" }]}
+          >
+            <Input placeholder="Full Name" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email Address"
+            rules={[
+              { required: true, message: "Please enter your email" },
+              { type: "email", message: "Please enter a valid email" },
+            ]}
+          >
+            <Input placeholder="Email Address" />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              disabled={(isValid && isLoading) || !isValid}
+              loading={isLoading}
+              type="primary"
+              htmlType="submit"
+              block
+            >
+              Complete Registration
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+    </div>
+  );
+};
+
+export default UserRegistration;

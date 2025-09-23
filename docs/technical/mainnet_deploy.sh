@@ -1,11 +1,17 @@
 #!/bin/bash
 
-# deploy.sh - Automated deployment script for ChainNotary
-# This script automatically sets the VITE_PRINCIPAL_ID and deploys the project
-
 set -e
 
 echo "Starting automated deployment..."
+
+# Verify GEMINI_API_KEY is available for Rust compilation
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "Error: GEMINI_API_KEY environment variable is not set."
+    echo "This variable is required for backend compilation."
+    exit 1
+fi
+
+echo "GEMINI_API_KEY is available (length: ${#GEMINI_API_KEY} characters)"
 
 # Get the current dfx identity (principal ID)
 echo "Getting principal ID..."

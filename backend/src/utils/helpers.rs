@@ -113,4 +113,97 @@ pub fn format_cycles_balance(cycles: u128) -> String {
     } else {
         format!("{} cycles", cycles)
     }
+}
+
+/// Format timestamp (nanoseconds) to human-readable date and time
+/// Returns format like "Sunday, 21 September 2025 3:08 AM"
+pub fn format_timestamp_to_human_readable(timestamp_nanos: u64) -> String {
+    // Convert nanoseconds to seconds
+    let timestamp_seconds = timestamp_nanos / 1_000_000_000;
+    
+    // Unix epoch: January 1, 1970, 00:00:00 UTC
+    const UNIX_EPOCH: u64 = 0;
+    const SECONDS_PER_DAY: u64 = 86400;
+    const SECONDS_PER_HOUR: u64 = 3600;
+    const SECONDS_PER_MINUTE: u64 = 60;
+    
+    // Days since epoch
+    let days_since_epoch = timestamp_seconds / SECONDS_PER_DAY;
+    
+    // Calculate year (approximate, accounting for leap years)
+    let mut year = 1970;
+    let mut remaining_days = days_since_epoch;
+    
+    while remaining_days > 365 {
+        let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+        let days_in_year = if is_leap { 366 } else { 365 };
+        if remaining_days >= days_in_year {
+            remaining_days -= days_in_year;
+            year += 1;
+        } else {
+            break;
+        }
+    }
+    
+    // Calculate month and day
+    let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+    let days_in_months = if is_leap {
+        [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    
+    let mut month = 1;
+    let mut day = remaining_days + 1;
+    
+    for &days_in_month in &days_in_months {
+        if day > days_in_month {
+            day -= days_in_month;
+            month += 1;
+        } else {
+            break;
+        }
+    }
+    
+    // Calculate time components
+    let seconds_in_day = timestamp_seconds % SECONDS_PER_DAY;
+    let hour = seconds_in_day / SECONDS_PER_HOUR;
+    let minute = (seconds_in_day % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE;
+    let second = seconds_in_day % SECONDS_PER_MINUTE;
+    
+    // Calculate day of week (Zeller's congruence)
+    let mut y = year;
+    let mut m = month;
+    if m < 3 {
+        m += 12;
+        y -= 1;
+    }
+    let k = y % 100;
+    let j = y / 100;
+    let day_of_week = (day + (13 * (m + 1)) / 5 + k + k / 4 + j / 4 + 5 * j) % 7;
+    
+    // Day names (0 = Saturday, 1 = Sunday, etc.)
+    let day_names = ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    let day_name = day_names[day_of_week as usize];
+    
+    // Month names
+    let month_names = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    let month_name = month_names[(month - 1) as usize];
+    
+    // Format AM/PM
+    let (display_hour, period) = if hour == 0 {
+        (12, "AM")
+    } else if hour < 12 {
+        (hour as u32, "AM")
+    } else if hour == 12 {
+        (12, "PM")
+    } else {
+        ((hour - 12) as u32, "PM")
+    };
+    
+    format!("{}, {} {} {} {}:{:02} {}", 
+            day_name, day, month_name, year, display_hour, minute, period)
 } 
