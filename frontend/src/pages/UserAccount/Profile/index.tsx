@@ -1,6 +1,6 @@
 import { useAppSelector } from "@/store/hooks";
-import { Button } from "antd";
-import { capitalize, kebabCase } from "lodash";
+import { Button, Tag } from "antd";
+import { startCase } from "lodash";
 import { type FC } from "react";
 
 const Profile: FC = () => {
@@ -63,13 +63,19 @@ const Profile: FC = () => {
             >
               Role
             </label>
-            <p className="mt-1 text-gray-900">
-              {capitalize(
-                kebabCase(Object.keys(userProfile.role)[0])
-                  .split("-")
-                  .join(" "),
-              )}
-            </p>
+
+            <Tag
+              className="mt-1!"
+              color={
+                Object.keys(userProfile.role)[0] === "SuperAdmin"
+                  ? "red"
+                  : Object.keys(userProfile.role)[0] === "RegularUser"
+                    ? "blue"
+                    : "gold"
+              }
+            >
+              {startCase(Object.keys(userProfile.role)[0])}
+            </Tag>
           </div>
           {userProfile.assigned_institution_id && (
             <div>
