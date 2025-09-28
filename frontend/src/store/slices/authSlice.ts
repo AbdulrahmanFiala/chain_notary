@@ -1,7 +1,7 @@
+import { identityProvider } from "@/constants";
 import type { LoginState } from "@/interfaces";
-import { AuthClient } from "@dfinity/auth-client";
+import { getAuthClient } from "@/utils/authClient";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { canisterId, createActor } from "declarations/backend";
 import type { UserProfile } from "declarations/backend/backend.did";
 
 const initialState: LoginState = {
@@ -9,28 +9,17 @@ const initialState: LoginState = {
   authClient: undefined,
   isAuthenticated: false,
   principal: "",
-  loading: false,
+  loading: true,
   error: null,
   userProfile: null,
 };
-
-const network = process.env.DFX_NETWORK;
-const identityProvider =
-  network === "ic"
-    ? "https://identity.ic0.app" // Mainnet
-    : "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8080"; // Local
 
 // Async Thunks (for async operations)
 export const updateActor = createAsyncThunk(
   "auth/updateActor",
   async (_, { rejectWithValue }) => {
-    const authClient = await AuthClient.create();
-    const identity = authClient.getIdentity();
-    const actor = createActor(canisterId, {
-      agentOptions: {
-        identity,
-      },
-    });
+    const { actor, authClient } = await getAuthClient();
+
     try {
       const result = await actor?.whoami();
       const principal = result?.toString() || "";
@@ -62,7 +51,8 @@ export const login = createAsyncThunk(
   "auth/login",
   async (_, { dispatch, rejectWithValue }) => {
     try {
-      const authClient = await AuthClient.create();
+      const { authClient } = await getAuthClient();
+
       return new Promise<string>((resolve, reject) => {
         authClient.login({
           identityProvider,
@@ -96,13 +86,8 @@ export const register = createAsyncThunk(
     { dispatch, rejectWithValue },
   ) => {
     try {
-      const authClient = await AuthClient.create();
-      const identity = authClient.getIdentity();
-      const actor = createActor(canisterId, {
-        agentOptions: {
-          identity,
-        },
-      });
+      const { actor } = await getAuthClient();
+
       const data = await actor.register_user(name, email);
       if ("Ok" in data) {
         return data.Ok;
