@@ -2,6 +2,7 @@ import App from "@/App";
 import CreateDocument from "@/pages/CreateDocument";
 import Dashboard from "@/pages/Dashboard";
 import InstitutionsTable from "@/pages/Dashboard/InstitutionsTable";
+import Statistics from "@/pages/Dashboard/Statistics";
 import UsersTable from "@/pages/Dashboard/UsersTable";
 import DocumentAnalytics from "@/pages/DocumentAnalytics";
 import DocumentDetails from "@/pages/DocumentDetails";
@@ -98,7 +99,6 @@ const router = createBrowserRouter([
         ),
         children: [
           {
-            index: true,
             path: "profile",
             Component: Profile,
           },
@@ -124,6 +124,10 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        path: "",
+        Component: Statistics,
+      },
+      {
         path: "users",
         Component: UsersTable,
       },
