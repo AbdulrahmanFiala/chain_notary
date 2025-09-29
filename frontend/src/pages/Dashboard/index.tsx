@@ -1,11 +1,12 @@
 import { useAppDispatch } from "@/store/hooks";
 import { setMessageApi } from "@/store/slices/messageSlice";
 import {
+  AreaChartOutlined,
   BankOutlined,
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  UserOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { Menu, message } from "antd";
@@ -17,7 +18,7 @@ type MenuItem = Required<MenuProps>["items"][number];
 const Dashboard: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  
+
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -31,6 +32,7 @@ const Dashboard: React.FC = () => {
   const items: MenuItem[] = [
     {
       key: "0",
+      
       onClick: toggleCollapsed,
       label: collapsed ? "Expand" : "Collapse",
 
@@ -39,12 +41,17 @@ const Dashboard: React.FC = () => {
     { key: "1", icon: <HomeOutlined />, label: <NavLink to="/">Home</NavLink> },
     {
       key: "2",
+      icon: <AreaChartOutlined />,
+      label: <NavLink to="/dashboard/">Statistics</NavLink>,
+    },
+    {
+      key: "3",
       icon: <BankOutlined />,
       label: <NavLink to="/dashboard/institutions">Institutions</NavLink>,
     },
     {
-      key: "3",
-      icon: <UserOutlined />,
+      key: "4",
+      icon: <TeamOutlined />,
       label: <NavLink to="/dashboard/users">Users</NavLink>,
     },
   ];
@@ -63,7 +70,7 @@ const Dashboard: React.FC = () => {
         inlineCollapsed={collapsed}
         items={items}
       />
-      <main className="w-full py-5 px-4 overflow-scroll">
+      <main className="w-full py-5 px-4 overflow-auto bg-gray-100">
         <Outlet />
       </main>
     </div>
