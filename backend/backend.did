@@ -133,6 +133,8 @@ service : () -> {
   get_all_document_ids : () -> (vec text) query;
   // Get all institutions with full metadata
   get_all_institutions : () -> (vec Institution) query;
+  // Query function to get available analysis focus options
+  get_analysis_focus_options : () -> (vec text) query;
   // Get complete document (metadata + file data) by document ID
   get_complete_document : (text) -> (opt record { Document; blob }) query;
   // Get document file data by document ID (loads file data)
