@@ -1,9 +1,9 @@
 export const network = process.env.DFX_NETWORK;
 
 export const identityProvider =
-  network === "ic"
-    ? "https://identity.ic0.app" // Mainnet
-    : "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8080"; // Local
+  network === "local"
+    ? "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:8080" // Mainnet
+    : "https://identity.ic0.app"; // Local
 
 export const mimeToExtension: { [key: string]: string } = {
   "text/plain": "txt",

@@ -2,8 +2,9 @@ import createInstitution, {
   type CreateInstitutionData,
 } from "@/services/institutions/createInstitution";
 import getAllInstitutions from "@/services/institutions/getAllInstitutions";
+import { useAppSelector } from "@/store/hooks";
 import type { TableProps } from "antd";
-import { Button, Form, Input, Table, message } from "antd";
+import { Button, Form, Input, Table } from "antd";
 import type { Institution } from "declarations/backend/backend.did";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -35,6 +36,7 @@ const InstitutionsTable: React.FC = () => {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
   const [form] = Form.useForm();
+  const { messageApi } = useAppSelector((state) => state.message);
 
   const fetchInstitutions = useCallback(async () => {
     try {
@@ -59,12 +61,11 @@ const InstitutionsTable: React.FC = () => {
     try {
       setLoading(true);
       await createInstitution(values);
-      message.success("Institution created successfully!");
+      messageApi?.success("Institution created successfully!");
       form.resetFields();
       await fetchInstitutions();
-    } catch (error) {
-      console.error("Error creating institution:", error);
-      message.error("Failed to create institution");
+    } catch {
+      messageApi?.error("Failed to create institution");
       setLoading(false);
     }
   };
