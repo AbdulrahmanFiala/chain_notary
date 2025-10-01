@@ -4,10 +4,10 @@ import { initializeAuth } from "@/store/slices/authSlice";
 import { useEffect, useState, type FC, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigation } from "react-router";
 
-const ProtectedRoute: FC<{ children: ReactNode; admin?: boolean }> = ({
-  children,
-  admin = false,
-}) => {
+const ProtectedRoute: FC<{
+  children: ReactNode;
+  requiredRoles?: ("RegularUser" | "SuperAdmin" | "InstitutionMember")[];
+}> = ({ children, requiredRoles }) => {
   const location = useLocation();
   const navigation = useNavigation();
   const { messageApi } = useAppSelector((state) => state.message);
@@ -39,17 +39,17 @@ const ProtectedRoute: FC<{ children: ReactNode; admin?: boolean }> = ({
     return <Navigate to="/register" state={{ from: location }} replace />;
   }
 
-  if (
-    admin &&
-    userProfile &&
-    Object.keys(userProfile.role)[0] !== "SuperAdmin"
-  ) {
-    sessionStorage.setItem(
-      "messageApi",
-      "You are not authorized to access this page. Contact your administrator for more information",
-    );
-
-    return <Navigate to="/" state={{ from: location }} replace />;
+  // Check for specific required role
+  if (requiredRoles && requiredRoles.length > 0) {
+    const userRoleKey = Object.keys(userProfile.role)[0] as
+      | "RegularUser"
+      | "SuperAdmin"
+      | "InstitutionMember";
+    if (!requiredRoles.includes(userRoleKey)) {
+      const roleMessage = `Access restricted to access this page only. Contact your administrator for more information`;
+      sessionStorage.setItem("messageApi", roleMessage);
+      return <Navigate to="/" state={{ from: location }} replace />;
+    }
   }
 
   return <>{children}</>;
