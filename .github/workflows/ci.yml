@@ -1,0 +1,34 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm i
+
+      - name: Lint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Cypress tests
+        run: |
+          cd frontend
+          npm run test

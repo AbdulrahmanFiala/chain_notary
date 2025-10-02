@@ -1,7 +1,7 @@
 import useFormValidation from "@/hooks/useFormValidation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { register } from "@/store/slices/authSlice";
-import { Button, Card, Form, Input, message, Typography } from "antd";
+import { Button, Card, Form, Input, Typography } from "antd";
 import { useState, type FC } from "react";
 import { Navigate, useNavigate } from "react-router";
 
@@ -10,6 +10,7 @@ const { Title, Text } = Typography;
 const UserRegistration: FC = () => {
   const [form] = Form.useForm();
   const { actor, userProfile } = useAppSelector((state) => state.auth);
+  const { messageApi } = useAppSelector((state) => state.message);
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,15 +27,18 @@ const UserRegistration: FC = () => {
   }) => {
     setIsLoading(true);
     if (!actor) {
-      message.error("Authentication required");
+      messageApi?.error("Authentication required");
       return;
     }
 
     try {
       await dispatch(register({ name, email })).unwrap();
       navigate("/");
+      messageApi?.success("Registration successful");
     } catch (err) {
-      message.error(err instanceof Error ? err.message : "Registration failed");
+      messageApi?.error(
+        err instanceof Error ? err.message : "Registration failed",
+      );
     } finally {
       setIsLoading(false);
     }

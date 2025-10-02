@@ -1,4 +1,5 @@
 import getDocumentDetails from "@/services/documents/getDocumentDetails";
+import { useAppSelector } from "@/store/hooks";
 import { parseXBRL, type XBRLData } from "@/utils/xbrlParser";
 import {
   InboxOutlined,
@@ -8,7 +9,6 @@ import {
 import {
   Button,
   Card,
-  message,
   Spin,
   Table,
   Tabs,
@@ -18,7 +18,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { DataNode } from "antd/es/tree";
-import { useEffect, useState, type FC } from "react";
+import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router";
 
 const { Dragger } = Upload;
@@ -36,42 +36,46 @@ const XBRLViewer: FC = () => {
   const [loading, setLoading] = useState(false);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { messageApi } = useAppSelector((state) => state.message);
+
+  const fetchDocumentData = useCallback(
+    async (documentId: string) => {
+      setLoading(true);
+      try {
+        const response = await getDocumentDetails(documentId);
+        if (response.length > 0) {
+          const document = response[0];
+          if (document) {
+            const fileData = new Uint8Array(document.file_data);
+            const text = new TextDecoder().decode(fileData);
+            const parsedData = parseXBRL(text);
+            setXbrlData(parsedData);
+            messageApi?.success("Document loaded successfully");
+          }
+        }
+      } catch {
+        messageApi?.error("Failed to load document");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [messageApi],
+  );
 
   useEffect(() => {
     if (id) {
       fetchDocumentData(id);
     }
-  }, [id]);
-
-  const fetchDocumentData = async (documentId: string) => {
-    setLoading(true);
-    try {
-      const response = await getDocumentDetails(documentId);
-      if (response.length > 0) {
-        const document = response[0];
-        if (document) {
-          const fileData = new Uint8Array(document.file_data);
-          const text = new TextDecoder().decode(fileData);
-          const parsedData = parseXBRL(text);
-          setXbrlData(parsedData);
-          message.success("Document loaded successfully");
-        }
-      }
-    } catch {
-      message.error("Failed to load document");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchDocumentData, id]);
 
   const handleFileUpload = async (file: File) => {
     try {
       const text = await file.text();
       const parsedData = parseXBRL(text);
       setXbrlData(parsedData);
-      message.success(`${file.name} parsed successfully`);
+      messageApi?.success(`${file.name} parsed successfully`);
     } catch {
-      message.error("Failed to parse XBRL file");
+      messageApi?.error("Failed to parse XBRL file");
     }
     return false;
   };
@@ -232,7 +236,12 @@ const XBRLViewer: FC = () => {
   return (
     <div className="bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto ">
-        <Button className="mb-2" color="default" variant="outlined" onClick={() => navigate(-1)}>
+        <Button
+          className="mb-2"
+          color="default"
+          variant="outlined"
+          onClick={() => navigate(-1)}
+        >
           Back
         </Button>
         <Card className="px-4 sm:px-6 lg:px-8">

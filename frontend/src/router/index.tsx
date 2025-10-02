@@ -2,6 +2,8 @@ import App from "@/App";
 import CreateDocument from "@/pages/CreateDocument";
 import Dashboard from "@/pages/Dashboard";
 import InstitutionsTable from "@/pages/Dashboard/InstitutionsTable";
+import Statistics from "@/pages/Dashboard/Statistics";
+import UsersTable from "@/pages/Dashboard/UsersTable";
 import DocumentAnalytics from "@/pages/DocumentAnalytics";
 import DocumentDetails from "@/pages/DocumentDetails";
 import Home from "@/pages/Home";
@@ -30,21 +32,13 @@ const router = createBrowserRouter([
         Component: UserRegistration,
       },
       {
-        path: "xbrl-viewer",
-        Component: XBRLViewer,
-      },
-      {
-        path: "xbrl-viewer/:id",
-        Component: XBRLViewer,
-      },
-      {
         path: "document",
         children: [
           {
             index: true,
             path: "create",
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["InstitutionMember", "SuperAdmin"]}>
                 <CreateDocument />
               </ProtectedRoute>
             ),
@@ -52,7 +46,7 @@ const router = createBrowserRouter([
           {
             path: "query",
             element: (
-              <ProtectedRoute>
+              <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
                 <QueryDocument />
               </ProtectedRoute>
             ),
@@ -63,7 +57,7 @@ const router = createBrowserRouter([
               {
                 path: "view",
                 element: (
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
                     <DocumentDetails />
                   </ProtectedRoute>
                 ),
@@ -71,7 +65,7 @@ const router = createBrowserRouter([
               {
                 path: "analytics",
                 element: (
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
                     <DocumentAnalytics />
                   </ProtectedRoute>
                 ),
@@ -79,7 +73,7 @@ const router = createBrowserRouter([
               {
                 path: "spreadsheet",
                 element: (
-                  <ProtectedRoute>
+                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
                     <XBRLViewer />
                   </ProtectedRoute>
                 ),
@@ -97,7 +91,6 @@ const router = createBrowserRouter([
         ),
         children: [
           {
-            index: true,
             path: "profile",
             Component: Profile,
           },
@@ -115,8 +108,21 @@ const router = createBrowserRouter([
   },
   {
     path: "dashboard",
-    element: <Dashboard />,
+    element: (
+      <ProtectedRoute requiredRoles={["SuperAdmin"]}>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
     children: [
+      {
+        index: true,
+        path: "",
+        Component: Statistics,
+      },
+      {
+        path: "users",
+        Component: UsersTable,
+      },
       {
         path: "institutions",
         Component: InstitutionsTable,
