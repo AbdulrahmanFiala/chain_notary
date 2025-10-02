@@ -17,13 +17,13 @@ const Hero: FC = () => {
             to="/document/create"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700 transition duration-300"
           >
-            Publish Earning Release
+            Publish Document
           </NavLink>
           <NavLink
             to="/document/query"
             className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg shadow hover:bg-gray-300 transition duration-300"
           >
-            Query Earning release
+            Get Document
           </NavLink>
         </div>
       </div>
