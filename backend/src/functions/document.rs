@@ -1,4 +1,5 @@
 use ic_cdk::update;
+use ic_cdk::api::msg_caller;
 use crate::types::{DocumentResponse, Document};
 use crate::utils::{calculate_file_hash, generate_document_id, get_current_timestamp};
 
@@ -84,7 +85,7 @@ pub async fn upload_file_and_publish_document(
     document.publication_date = get_current_timestamp();
     
     // Override the owner with the authenticated caller's principal for security
-    document.owner = caller;
+    document.owner = msg_caller();
 
     // Store the complete document using safe storage function
     if let Err(e) = crate::storage::store_document_safe(&document_id, &document) {

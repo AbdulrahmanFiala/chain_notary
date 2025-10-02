@@ -56,7 +56,7 @@ type DocumentSummary = record {
   id : text;
   document_name : text;
   file_type : text;
-  publication_date : nat64;
+  publication_date : opt nat64;
 };
 type DocumentType = variant { EarningRelease : EarningReleaseData };
 type EarningReleaseData = record {
@@ -133,20 +133,14 @@ service : () -> {
   get_all_document_ids : () -> (vec text) query;
   // Get all institutions with full metadata
   get_all_institutions : () -> (vec Institution) query;
-  // Get complete document (metadata + file data) by document ID
-  get_complete_document : (text) -> (opt record { Document; blob }) query;
+  // Query function to get available analysis focus options
+  get_analysis_focus_options : () -> (vec text) query;
   // Get document file data by document ID (loads file data)
   get_document_file : (text) -> (opt blob) query;
   // Get document metadata by document ID (fast query, no file data)
   get_document_metadata : (text) -> (opt Document) query;
-  // Get documents by institution
-  get_documents_by_institution : (text) -> (vec Document) query;
-  // Get documents owned by a specific principal (direct query - no owner token mapping needed)
+  // Get documents owned by a specific principal (wrapper for backward compatibility)
   get_documents_by_owner : (principal) -> (vec DocumentSummary) query;
-  // Get documents by earning release quarter and year
-  get_documents_by_quarter_year : (nat8, nat16) -> (vec Document) query;
-  // Get documents by document type
-  get_documents_by_type : (text) -> (vec Document) query;
   // Get institution metadata by institution ID
   get_institution_metadata : (text) -> (opt Institution) query;
   // Get institutions by owner
@@ -155,6 +149,8 @@ service : () -> {
   get_user_profile : () -> (Result_5) query;
   // Check if a user owns a specific document (direct query)
   is_document_owned_by : (text, principal) -> (bool) query;
+   // Unified document query function with comprehensive filtering, sorting, and pagination
+   query_documents : (opt text, opt principal, opt text, opt text, opt nat8, opt nat16, opt nat64, opt nat64, opt nat64, opt nat64, opt text, opt text, opt bool) -> (vec Document, nat64) query;
   // Public function for users to register themselves (called after Internet Identity login)
   // Used as well to update the last_login timestamp for existing users
   register_user : (text, text) -> (Result_6);
