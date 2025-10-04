@@ -9,7 +9,9 @@ const { Title, Text } = Typography;
 
 const UserRegistration: FC = () => {
   const [form] = Form.useForm();
-  const { actor, userProfile } = useAppSelector((state) => state.auth);
+  const { actor, isAuthenticated, userProfile } = useAppSelector(
+    (state) => state.auth,
+  );
   const { messageApi } = useAppSelector((state) => state.message);
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +46,7 @@ const UserRegistration: FC = () => {
     }
   };
 
-  if (userProfile?.name && userProfile?.email)
+  if (isAuthenticated && userProfile?.name && userProfile?.email)
     return <Navigate to="/" state={{ from: location }} replace />;
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
