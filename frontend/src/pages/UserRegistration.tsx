@@ -63,7 +63,19 @@ const UserRegistration: FC = () => {
           <Form.Item
             name="name"
             label="Full Name"
-            rules={[{ required: true, message: "Please enter your full name" }]}
+            rules={[
+              { required: true, message: "Please enter your full name" },
+              { min: 2, message: "Name must be at least 2 characters" },
+              { max: 50, message: "Name must be at most 50 characters" },
+              {
+                pattern: /^[a-zA-Z\s]+$/,
+                message: "Name must contain only letters and spaces",
+              },
+              {
+                whitespace: true,
+                message: "Name cannot be just whitespace",
+              },
+            ]}
           >
             <Input placeholder="Full Name" />
           </Form.Item>
