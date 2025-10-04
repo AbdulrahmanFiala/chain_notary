@@ -38,7 +38,7 @@ const router = createBrowserRouter([
             index: true,
             path: "create",
             element: (
-              <ProtectedRoute requiredRoles={["InstitutionMember", "SuperAdmin"]}>
+              <ProtectedRoute requiredRoles={["InstitutionMember"]}>
                 <CreateDocument />
               </ProtectedRoute>
             ),
@@ -46,7 +46,13 @@ const router = createBrowserRouter([
           {
             path: "query",
             element: (
-              <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
+              <ProtectedRoute
+                requiredRoles={[
+                  "SuperAdmin",
+                  "RegularUser",
+                  "InstitutionMember",
+                ]}
+              >
                 <QueryDocument />
               </ProtectedRoute>
             ),
@@ -57,7 +63,13 @@ const router = createBrowserRouter([
               {
                 path: "view",
                 element: (
-                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
+                  <ProtectedRoute
+                    requiredRoles={[
+                      "SuperAdmin",
+                      "RegularUser",
+                      "InstitutionMember",
+                    ]}
+                  >
                     <DocumentDetails />
                   </ProtectedRoute>
                 ),
@@ -65,7 +77,13 @@ const router = createBrowserRouter([
               {
                 path: "analytics",
                 element: (
-                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
+                  <ProtectedRoute
+                    requiredRoles={[
+                      "SuperAdmin",
+                      "RegularUser",
+                      "InstitutionMember",
+                    ]}
+                  >
                     <DocumentAnalytics />
                   </ProtectedRoute>
                 ),
@@ -73,7 +91,13 @@ const router = createBrowserRouter([
               {
                 path: "spreadsheet",
                 element: (
-                  <ProtectedRoute requiredRoles={["SuperAdmin", "RegularUser", "InstitutionMember"]}>
+                  <ProtectedRoute
+                    requiredRoles={[
+                      "SuperAdmin",
+                      "RegularUser",
+                      "InstitutionMember",
+                    ]}
+                  >
                     <XBRLViewer />
                   </ProtectedRoute>
                 ),
