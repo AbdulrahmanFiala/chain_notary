@@ -6,7 +6,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, type MenuProps } from "antd";
-import { NavLink } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import "./style.css";
 
 // Reusable button component
@@ -15,6 +15,8 @@ const AuthControls = () => {
   const { isAuthenticated, loading, userProfile } = useAppSelector(
     (state) => state.auth,
   );
+  const { messageApi } = useAppSelector((state) => state.message);
+  const navigate = useNavigate();
 
   const items: MenuProps["items"] = [
     {
@@ -31,7 +33,11 @@ const AuthControls = () => {
       label: (
         <span
           className="font-medium inline-block w-24"
-          onClick={() => dispatch(logout())}
+          onClick={() => {
+            dispatch(logout());
+            navigate("/");
+            messageApi?.success("Logout successful", 2);
+          }}
           itemType="button"
         >
           Logout
