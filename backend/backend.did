@@ -102,6 +102,9 @@ service : () -> {
   admin_create_institution_for_user : (principal, text, text) -> (Result);
   // Admin function: Delete a user (super admin only)
   admin_delete_user : (principal) -> (Result_1);
+  // Admin function: Demote super admin to regular user (super admin only)
+  // Note: Super admins cannot demote themselves
+  admin_demote_super_admin : (principal) -> (Result_1);
   // Admin function: Get all users (admin only)
   admin_get_all_users : () -> (Result_2) query;
   // Admin function: Get cycle monitoring information (admin only)
@@ -149,8 +152,22 @@ service : () -> {
   get_user_profile : () -> (Result_5) query;
   // Check if a user owns a specific document (direct query)
   is_document_owned_by : (text, principal) -> (bool) query;
-   // Unified document query function with comprehensive filtering, sorting, and pagination
-   query_documents : (opt text, opt principal, opt text, opt text, opt nat8, opt nat16, opt nat64, opt nat64, opt nat64, opt nat64, opt text, opt text, opt bool) -> (vec Document, nat64) query;
+  // Unified document query function with comprehensive filtering, sorting, and pagination
+  query_documents : (
+      opt text,
+      opt principal,
+      opt text,
+      opt text,
+      opt nat8,
+      opt nat16,
+      opt nat64,
+      opt nat64,
+      opt nat64,
+      opt nat64,
+      opt text,
+      opt text,
+      opt bool,
+    ) -> (vec Document, nat64) query;
   // Public function for users to register themselves (called after Internet Identity login)
   // Used as well to update the last_login timestamp for existing users
   register_user : (text, text) -> (Result_6);

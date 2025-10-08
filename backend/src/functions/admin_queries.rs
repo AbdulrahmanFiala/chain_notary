@@ -349,5 +349,63 @@ pub fn admin_get_storage_info() -> Result<Vec<String>, String> {
     Ok(info)
 }
 
+/// Admin function: Demote super admin to regular user (super admin only)
+/// Note: Super admins cannot demote themselves
+#[update]
+pub fn admin_demote_super_admin(user_identity: Principal) -> Result<(), String> {
+    let caller = require_super_admin()?;
+    
+    // Prevent super admins from demoting themselves
+    if caller == user_identity {
+        return Err("Cannot demote yourself. You must be demoted by another super admin.".to_string());
+    }
+    
+    // Prevent demoting anonymous users
+    if user_identity == Principal::anonymous() {
+        return Err("Cannot demote anonymous users.".to_string());
+    }
+    
+    let profile_key = crate::storage::memory::StorablePrincipal(user_identity);
+    
+    // Check if user exists and get their current profile
+    let existing_profile = USER_PROFILES.with(|profiles| {
+        profiles.borrow().get(&profile_key).map(|storable| storable.0.clone())
+    });
+    
+    match existing_profile {
+        Some(mut profile) => {
+            // Check if user is actually a super admin
+            if profile.role != UserRole::SuperAdmin {
+                return Err(format!("User is not a super admin. Current role: {:?}", profile.role));
+            }
+            
+            // Get caller's name for logging
+            let caller_name = crate::storage::get_user_profile_safe(&caller)
+                .map(|p| p.name.clone())
+                .unwrap_or_else(|| "Unknown".to_string());
+            
+            let target_user_name = profile.name.clone();
+            
+            // Demote to regular user
+            profile.role = UserRole::RegularUser;
+            USER_PROFILES.with(|profiles| {
+                profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(profile));
+            });
+            
+            ic_cdk::println!(
+                "Admin {} ({}) demoted user {} ({}) from SuperAdmin to RegularUser", 
+                caller_name, 
+                caller, 
+                target_user_name, 
+                user_identity
+            );
+            Ok(())
+        },
+        None => {
+            Err("User profile not found. Cannot demote non-existent user.".to_string())
+        }
+    }
+}
+
 
 
