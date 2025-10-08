@@ -63,11 +63,18 @@ pub fn admin_create_institution_for_user(
     crate::utils::validate_string_length(&institution_name, 2, 100, "Institution name")?;
     crate::utils::validate_email(&institution_email)?;
     
+    // Check if user exists
+    let current_profile = crate::storage::get_user_profile_safe(&user_identity)
+        .ok_or("User not found. The user must be registered before creating an institution for them.".to_string())?;
+    
+    // Check if user is a super admin
+    if current_profile.role == UserRole::SuperAdmin {
+        return Err("Cannot assign institutions to super admin users. Please demote the user to a regular user first using admin_demote_super_admin.".to_string());
+    }
+    
     // Check if user already has an institution assigned
-    if let Some(existing_profile) = crate::storage::get_user_profile_safe(&user_identity) {
-        if !existing_profile.assigned_institution_id.is_empty() {
-            return Err("User already has an institution assigned".to_string());
-        }
+    if !current_profile.assigned_institution_id.is_empty() {
+        return Err("User already has an institution assigned".to_string());
     }
     
     // Generate institution ID
@@ -85,15 +92,15 @@ pub fn admin_create_institution_for_user(
     // Store institution
     crate::storage::update_institution_safe(&institution_id, &institution)?;
     
-    // Create or update user profile
+    // Update user profile with institution assignment, preserving existing data
     let user_profile = UserProfile {
         internet_identity: user_identity,
-        name: String::new(), // Will be set when user updates their profile
-        email: String::new(), // Will be set when user updates their profile
+        name: current_profile.name,
+        email: current_profile.email,
         role: UserRole::InstitutionMember(institution_id.clone()),
         assigned_institution_id: institution_id.clone(),
-        created_at: get_current_timestamp(),
-        last_login: get_current_timestamp(),
+        created_at: current_profile.created_at,
+        last_login: current_profile.last_login,
     };
     
     crate::storage::update_user_profile_safe(&user_identity, &user_profile)?;
@@ -122,6 +129,7 @@ pub fn admin_promote_to_super_admin(user_identity: Principal) -> Result<(), Stri
         Some(mut profile) => {
             // Update existing profile
             profile.role = UserRole::SuperAdmin;
+            profile.assigned_institution_id = String::new(); // Super admins should not be assigned to institutions
             USER_PROFILES.with(|profiles| {
                 profiles.borrow_mut().insert(profile_key, crate::storage::memory::StorableUserProfile(profile));
             });
@@ -204,6 +212,11 @@ pub fn admin_link_user_to_institution(
     // Get current user profile
     let current_profile = crate::storage::get_user_profile_safe(&user_identity)
         .ok_or("User profile not found")?;
+    
+    // Check if user is a super admin
+    if current_profile.role == UserRole::SuperAdmin {
+        return Err("Cannot assign institutions to super admin users. Please demote the user to a regular user first using admin_demote_super_admin.".to_string());
+    }
     
     // Check if user is already linked to an institution
     if !current_profile.assigned_institution_id.is_empty() {
