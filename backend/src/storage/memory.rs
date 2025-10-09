@@ -97,6 +97,7 @@ impl_storable_with_logging!(
         email: String::new(),
         role: crate::types::UserRole::RegularUser,
         assigned_institution_id: String::new(),
+        assigned_institution_name: String::new(),
         created_at: 0,
         last_login: 0,
     })

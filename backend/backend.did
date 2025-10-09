@@ -89,6 +89,7 @@ type Result_6 = variant { Ok : UserProfile; Err : text };
 type TransformArgs = record { context : blob; response : HttpRequestResult };
 type UserProfile = record {
   last_login : nat64;
+  assigned_institution_name : text;
   name : text;
   role : UserRole;
   created_at : nat64;

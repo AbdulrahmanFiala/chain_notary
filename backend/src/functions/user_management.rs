@@ -8,7 +8,19 @@ use crate::logging::{get_logger, get_severity_for_event_type};
 #[query]
 pub fn get_user_profile() -> Result<Option<UserProfile>, String> {
     let caller = require_authenticated_user()?;
-    Ok(crate::storage::get_user_profile_safe(&caller))
+    let profile = crate::storage::get_user_profile_safe(&caller);
+    
+    // Populate institution name if ID exists but name is empty
+    if let Some(mut user) = profile {
+        if !user.assigned_institution_id.is_empty() && user.assigned_institution_name.is_empty() {
+            if let Some(institution) = crate::storage::get_institution_safe(&user.assigned_institution_id) {
+                user.assigned_institution_name = institution.name;
+            }
+        }
+        Ok(Some(user))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Public function for users to register themselves (called after Internet Identity login)
@@ -47,6 +59,7 @@ pub fn register_user(name: String, email: String) -> Result<UserProfile, String>
         email,
         role: UserRole::RegularUser,
         assigned_institution_id: String::new(), // Empty until admin assigns
+        assigned_institution_name: String::new(),
         created_at: get_current_timestamp(),
         last_login: get_current_timestamp(),
     };
