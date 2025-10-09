@@ -269,6 +269,22 @@ pub fn update_user_profile_safe(user_identity: &Principal, profile: &UserProfile
     Ok(())
 }
 
+pub fn email_exists(email: &str) -> bool {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().iter().any(|(_, profile)| {
+            profile.0.email.to_lowercase() == email.to_lowercase()
+        })
+    })
+}
+
+pub fn email_exists_excluding_user(email: &str, exclude_user: &Principal) -> bool {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().iter().any(|(principal, profile)| {
+            principal.0 != *exclude_user && profile.0.email.to_lowercase() == email.to_lowercase()
+        })
+    })
+}
+
 
 
 // Function to get storage statistics for monitoring
