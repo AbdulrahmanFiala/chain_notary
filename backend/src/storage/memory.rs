@@ -97,6 +97,7 @@ impl_storable_with_logging!(
         email: String::new(),
         role: crate::types::UserRole::RegularUser,
         assigned_institution_id: String::new(),
+        assigned_institution_name: String::new(),
         created_at: 0,
         last_login: 0,
     })
@@ -266,6 +267,22 @@ pub fn update_user_profile_safe(user_identity: &Principal, profile: &UserProfile
         );
     });
     Ok(())
+}
+
+pub fn email_exists(email: &str) -> bool {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().iter().any(|(_, profile)| {
+            profile.0.email.to_lowercase() == email.to_lowercase()
+        })
+    })
+}
+
+pub fn email_exists_excluding_user(email: &str, exclude_user: &Principal) -> bool {
+    USER_PROFILES.with(|profiles| {
+        profiles.borrow().iter().any(|(principal, profile)| {
+            principal.0 != *exclude_user && profile.0.email.to_lowercase() == email.to_lowercase()
+        })
+    })
 }
 
 

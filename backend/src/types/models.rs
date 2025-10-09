@@ -40,7 +40,8 @@ pub struct UserProfile {
     pub name: String,
     pub email: String,
     pub role: UserRole,
-    pub assigned_institution_id: String, // Assigned by admin (empty string if none)
+    pub assigned_institution_id: String,
+    pub assigned_institution_name: String,
     pub created_at: u64,
     pub last_login: u64,
 }

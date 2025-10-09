@@ -57,5 +57,5 @@ candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > ./backend/
 echo "Deploying backend to local network..."
 dfx deploy backend --network local --yes
 
-echo "Backend deployment completed successfully!"
+echo "Backend local deployment completed successfully!"
 echo "Your backend is now running."

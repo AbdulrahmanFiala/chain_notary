@@ -32,6 +32,10 @@ dfx identity use default
 
 echo "Starting automated deployment..."
 
+# Change "ic" to "playground" in dfx.json for deployment
+echo "Updating dfx.json to use 'playground' network for internet_identity..."
+sed -i 's/"ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"/"playground": "rdmx6-jaaaa-aaaaa-aaadq-cai"/g' "$PROJECT_ROOT/dfx.json"
+
 # Create canisters if they don't exist
 echo "Creating canisters if needed..."
 dfx canister create --all --network local || echo "Canisters already exist"
@@ -68,10 +72,6 @@ dfx build --network local
 echo "Generating Candid interface..."
 candid-extractor target/wasm32-unknown-unknown/release/backend.wasm > ./backend/backend.did
 
-# Change "ic" to "playground" in dfx.json for deployment
-echo "Updating dfx.json to use 'playground' network for internet_identity..."
-sed -i 's/"ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"/"playground": "rdmx6-jaaaa-aaaaa-aaadq-cai"/g' "$PROJECT_ROOT/dfx.json"
-
 # Deploy the project
 echo "Deploying project..."
 dfx deploy --network playground --yes
@@ -80,5 +80,5 @@ dfx deploy --network playground --yes
 echo "Reverting dfx.json back to 'ic' network..."
 sed -i 's/"playground": "rdmx6-jaaaa-aaaaa-aaadq-cai"/"ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"/g' "$PROJECT_ROOT/dfx.json"
 
-echo "Deployment completed successfully!"
+echo "Playground deployment completed successfully!"
 echo "Your application is now running."

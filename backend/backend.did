@@ -89,6 +89,7 @@ type Result_6 = variant { Ok : UserProfile; Err : text };
 type TransformArgs = record { context : blob; response : HttpRequestResult };
 type UserProfile = record {
   last_login : nat64;
+  assigned_institution_name : text;
   name : text;
   role : UserRole;
   created_at : nat64;
@@ -102,6 +103,9 @@ service : () -> {
   admin_create_institution_for_user : (principal, text, text) -> (Result);
   // Admin function: Delete a user (super admin only)
   admin_delete_user : (principal) -> (Result_1);
+  // Admin function: Demote super admin to regular user (super admin only)
+  // Note: Super admins cannot demote themselves
+  admin_demote_super_admin : (principal) -> (Result_1);
   // Admin function: Get all users (admin only)
   admin_get_all_users : () -> (Result_2) query;
   // Admin function: Get cycle monitoring information (admin only)
@@ -149,10 +153,25 @@ service : () -> {
   get_user_profile : () -> (Result_5) query;
   // Check if a user owns a specific document (direct query)
   is_document_owned_by : (text, principal) -> (bool) query;
-   // Unified document query function with comprehensive filtering, sorting, and pagination
-   query_documents : (opt text, opt principal, opt text, opt text, opt nat8, opt nat16, opt nat64, opt nat64, opt nat64, opt nat64, opt text, opt text, opt bool) -> (vec Document, nat64) query;
-  // Public function for users to register themselves (called after Internet Identity login)
-  // Used as well to update the last_login timestamp for existing users
+  // Login existing user (updates last login timestamp)
+  login_user : () -> (Result_6);
+  // Unified document query function with comprehensive filtering, sorting, and pagination
+  query_documents : (
+      opt text,
+      opt principal,
+      opt text,
+      opt text,
+      opt nat8,
+      opt nat16,
+      opt nat64,
+      opt nat64,
+      opt nat64,
+      opt nat64,
+      opt text,
+      opt text,
+      opt bool,
+    ) -> (vec Document, nat64) query;
+  // Register a new user (called after Internet Identity login for first-time users)
   register_user : (text, text) -> (Result_6);
   // Search documents by name (case-insensitive partial match)
   search_documents_by_name : (text) -> (vec Document) query;
@@ -163,6 +182,8 @@ service : () -> {
   transform_gemini_response : (TransformArgs) -> (HttpRequestResult) query;
   // Update institution metadata (only owner can update)
   update_institution : (text, text, text) -> (Result_1);
+  // Update user name and email (users can update their own profile, super admins can update any profile)
+  update_user_profile : (opt principal, text, text) -> (Result_6);
   // Custom upload endpoint for publishing documents to the icp blockchain
   upload_file_and_publish_document : (Document) -> (DocumentResponse);
   whoami : () -> (principal) query;
